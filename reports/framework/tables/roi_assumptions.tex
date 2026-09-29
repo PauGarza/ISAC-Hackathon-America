@@ -1,0 +1,21 @@
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Supuestos del modelo de ROI (a validar con el club).}
+\label{tab:roiAssump}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{l r r r p{5.8cm}}
+\toprule
+\textbf{supuesto} & \textbf{Conservador} & \textbf{Base} & \textbf{Optimista} & \textbf{supuesto} \\
+\midrule
+costo\_cambio\_tecnico & 15,000,000 & 30,000,000 & 50,000,000 & Costo de cambiar de técnico antes de tiempo: indemnización, salario remanente y nuevo cuerpo técnico. \\
+prob\_cambio\_fallido & 0.30 & 0.40 & 0.50 & Probabilidad de que una contratación termine antes de dos torneos (se contrasta con la rotación observada). \\
+reduccion\_error & 0.05 & 0.10 & 0.20 & Reducción relativa de esa probabilidad al elegir con el ADN y el Índice de Encaje. \\
+decisiones\_por\_anio & 0.50 & 1.00 & 1.00 & Evaluaciones de técnico por año (contratación o renovación). \\
+horas\_ahorradas\_partido & 2.00 & 4.00 & 6.00 & Horas de analista ahorradas por partido gracias a la ficha automática. \\
+partidos\_por\_anio & 40.00 & 45.00 & 50.00 & Partidos analizados por año (propios y de rivales). \\
+costo\_hora\_analista & 400.00 & 600.00 & 800.00 & Costo por hora de un analista. \\
+costo\_anual\_herramienta & 400,000 & 300,000 & 200,000 & Costo anual de mantener la herramienta (sin licencias: Python local). \\
+\bottomrule
+\end{tabular}}
+\end{table}

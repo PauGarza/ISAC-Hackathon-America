@@ -1,0 +1,21 @@
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Los 8 rasgos del ADN del entrenador y sus métricas de StatsBomb.}
+\label{tab:coachAxes}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{l p{5.2cm} p{6.4cm}}
+\toprule
+\textbf{rasgo} & \textbf{métricas (-- = invertida)} & \textbf{qué significa} \\
+\midrule
+Control del balón & possession, pass\_completion, time\_in\_control & Cuánto tiempo tiene el balón y qué tan seguro lo circula. \\
+Verticalidad & directness, pace\_towards\_goal, avg\_team\_possession\_directness & Qué tan rápido y directo va hacia la portería rival en lugar de elaborar. \\
+Llegada al área & deep\_progressions, deep\_completions, passes\_inside\_box & Cuántas veces pisa el último tercio y el área rival con el balón. \\
+Presión alta & --ppda, fhalf\_pressures\_ratio, defensive\_distance, aggression & Qué tan arriba y qué tan intenso intenta recuperar (menos pases permite al rival). \\
+Reacción tras pérdida & counterpressures, counterpressure\_regains & Cuánto presiona justo después de perder el balón y cuánto recupera así. \\
+Peligro generado & np\_xg, np\_xg\_per\_shot, obv & Calidad y cantidad de las ocasiones que crea. \\
+Solidez defensiva & --np\_xg\_conceded, --deep\_progressions\_conceded, --obv\_conceded & Qué tan poco peligro y qué tan pocas llegadas concede. \\
+Balón parado & sp\_xg, xg\_per\_sp, --sp\_xg\_conceded & Peligro a favor en jugadas a balón parado, menos el que concede. \\
+\bottomrule
+\end{tabular}}
+\end{table}

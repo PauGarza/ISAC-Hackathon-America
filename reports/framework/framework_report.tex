@@ -20,7 +20,7 @@
 \usepackage{fancyvrb}
 \usepackage[hidelinks]{hyperref}
 
-\graphicspath{{../figures/framework/}}
+\graphicspath{{../figures/framework/}{../figures/coach/}}
 \definecolor{ame}{HTML}{1C5CAB}
 \definecolor{hip}{HTML}{EB6834}
 \DeclareRobustCommand{\col}[1]{\texttt{\detokenize{#1}}}
@@ -58,6 +58,11 @@ como criterios medibles (fiabilidad, discriminación, estabilidad, sensibilidad,
 Los modelos base superan a su baseline en \nSupera{} de \nSupervisados{} casos; sus fracasos también informan. Por
 último, todo se integra en un producto: una \textbf{ficha HTML automática por partido} con el partido actual, la
 comparación histórica y una proyección, trazable a \emph{model cards} y con monitoreo de \emph{drift}.
+\par\smallskip\noindent\textbf{ADN del entrenador.} Con las estadísticas de los 1,789 partidos de la liga se perfila a
+los \nTecnicos{} técnicos de la Liga MX en 8 rasgos de juego, ajustados por rival y localía. Con la partición oficial
+(entrenamiento 2021--2025, prueba 2026), el ADN reconoce a Almada en el América sin haberlo visto nunca ahí (posición
+mediana \almadaRank{} de 31): el estilo sigue al técnico. Es la base de un producto para contratar, dar seguimiento y
+preparar partidos, con escenarios de ROI.
 \end{abstract}
 
 \tableofcontents
@@ -88,7 +93,7 @@ posteriores, de modo que las conclusiones se construyen sobre el comportamiento 
   \item \textbf{P (desempeño):} error de generalización en una \emph{prueba temporal} (los partidos más recientes) frente
         a un baseline, e interpretabilidad trazable al marco analítico.
 \end{itemize}
-La pregunta se descompone en tareas concretas (Cuadro~\ref{tab:tareas}). Cada una tiene su variable objetivo, sus
+La pregunta se descompone en tareas concretas (Tabla~\ref{tab:tareas}). Cada una tiene su variable objetivo, sus
 variables explicativas y su métrica. Las tareas supervisadas explican o anticipan; las no supervisadas descubren
 estructura (ejes de estilo, tipos de partido y roles de jugador).
 
@@ -165,7 +170,7 @@ Todos los umbrales están en \texttt{ASSUMPTIONS} (Apéndice~\ref{app:assumption
 
 \subsection{Validación del marco}
 Una definición propia solo es útil si mide lo que dice medir. Donde existe una métrica comparable de StatsBomb, se
-compara el \emph{orden} de los partidos (Cuadro~\ref{tab:validations}).
+compara el \emph{orden} de los partidos (Tabla~\ref{tab:validations}).
 
 \input{tables/validations.tex}
 
@@ -181,7 +186,7 @@ compara el \emph{orden} de los partidos (Cuadro~\ref{tab:validations}).
 
 \subsection{Sensibilidad de los umbrales}
 Si mover un umbral cambiara qué partidos se ven como "más presionantes" o "más verticales", las conclusiones dependerían
-de una elección arbitraria. El Cuadro~\ref{tab:sensitivity} recalcula tres métricas con valores alternativos:
+de una elección arbitraria. La Tabla~\ref{tab:sensitivity} recalcula tres métricas con valores alternativos:
 cambia el \emph{nivel}, pero el \emph{orden} de los partidos se conserva ($\rho\geq\rhoSensMin$).
 
 \input{tables/sensitivity.tex}
@@ -260,7 +265,7 @@ dimensiones:
   \item Recorriendo las variables de mayor a menor fiabilidad, se descarta la que tenga $|\rho|>0.85$ con una ya elegida.
   \item Mientras alguna supere VIF $>10$, se descarta la de mayor VIF.
 \end{enumerate}
-Quedan \nNucleo{} variables núcleo (Cuadro~\ref{tab:coreCrit}); el detalle está en el Apéndice~\ref{app:varEval}.
+Quedan \nNucleo{} variables núcleo (Tabla~\ref{tab:coreCrit}); el detalle está en el Apéndice~\ref{app:varEval}.
 
 \input{tables/core_by_criterion.tex}
 
@@ -316,16 +321,22 @@ T4 usa lo que ocurre durante la posesión & $x$ = solo información disponible a
 \section{Partición y validación}\label{sec:particion}
 % =====================================================================
 Los partidos no son independientes ni idénticamente distribuidos: el estilo evoluciona. Una partición aleatoria
-filtraría el futuro al entrenamiento. Por eso se usa una partición \textbf{temporal por partido} 70/15/15
-(Cuadro~\ref{tab:split}). La prueba contiene los \nTest{} partidos más recientes (desde el \testDesde) y se usa
-\textbf{una sola vez}.
+filtraría el futuro al entrenamiento. Por eso se usa una partición \textbf{temporal oficial por partido}
+(Tabla~\ref{tab:split}):
+\begin{itemize}
+  \item \textbf{Entrenamiento}: la ventana de datos oficial del hackathon, Apertura 2021 -- Clausura 2025 (\nTrain{}
+        partidos del América y toda la liga en el mismo periodo).
+  \item \textbf{Validación}: Apertura 2025 (\nVal{} partidos), para elegir la familia de modelo.
+  \item \textbf{Prueba}: 2026 (\nTest{} partidos, desde el \testDesde), que se usa \textbf{una sola vez}. Incluye un
+        escenario real y exigente: la llegada de un \textbf{técnico nuevo} (Almada) que ningún modelo vio en el América.
+\end{itemize}
 
 \input{tables/split.tex}
 
 \begin{itemize}
   \item \textbf{Hiperparámetros}: validación cruzada de \emph{ventana creciente} (\texttt{TimeSeriesSplit}, 4 pliegues)
-        sobre entrenamiento + validación, con búsqueda en malla. Siempre se entrena con el pasado y se valida con el
-        futuro inmediato.
+        \emph{dentro del entrenamiento}, con búsqueda en malla. Siempre se entrena con el pasado y se valida con el
+        futuro inmediato. La familia de modelo (Ridge, LASSO, árbol o KNN) se elige con la validación.
   \item \textbf{Preprocesamiento}: estandarización e imputación con estadísticas de entrenamiento, y one-hot con
         \texttt{drop="first"} para evitar la trampa de las variables ficticias. Todo va dentro del \texttt{Pipeline}.
   \item \textbf{Baselines}: en regresión, la media histórica de entrenamiento y la media móvil de los 5 partidos previos
@@ -336,7 +347,7 @@ filtraría el futuro al entrenamiento. Por eso se usa una partición \textbf{tem
 % =====================================================================
 \section{Tareas, modelos y resultados base}\label{sec:modelos}
 % =====================================================================
-Para cada tarea se reporta la formulación (Cuadro~\ref{tab:tareas}), el desempeño en prueba frente al baseline y, cuando
+Para cada tarea se reporta la formulación (Tabla~\ref{tab:tareas}), el desempeño en prueba frente al baseline y, cuando
 aplica, el diagnóstico de supuestos. Los parámetros (coeficientes, cortes del árbol, centroides) se aprenden de los
 datos. Los hiperparámetros (penalización $\alpha$ o $C$, profundidad, número de vecinos, $k$) se eligen por validación
 cruzada.
@@ -370,14 +381,14 @@ la variable; $*$: $p<0.05$).}
 \end{figure}
 
 \paragraph{Supuestos del modelo lineal.} Para interpretar coeficientes se ajusta un OLS con las mismas $x$ y se
-diagnostican los supuestos (Cuadro~\ref{tab:t1Assump}):
+diagnostican los supuestos (Tabla~\ref{tab:t1Assump}):
 \begin{itemize}
   \item \textbf{Independencia}: el Durbin-Watson ronda 2, porque la inercia absorbe la dependencia temporal.
   \item \textbf{Homocedasticidad}: Breusch-Pagan no la rechaza en ninguna variable.
   \item \textbf{Normalidad}: Jarque-Bera la rechaza en las variables con colas pesadas (PPDA, xG propio y xG rival) y,
-        marginalmente, en field tilt. Eso no afecta la
+        marginalmente, en field tilt y saques de meta cortos. Eso no afecta la
         predicción, pero sí los intervalos, por lo que se interpreta el tamaño del efecto antes que el valor $p$.
-  \item \textbf{Multicolinealidad}: el VIF máximo es menor que 1.5, así que no hay multicolinealidad entre las $x$.
+  \item \textbf{Multicolinealidad}: el VIF máximo es menor que 2, así que no hay multicolinealidad entre las $x$.
 \end{itemize}
 
 \input{tables/t1_assumptions.tex}
@@ -416,7 +427,7 @@ con estabilidad medida en 100 remuestreos bootstrap; árbol y KNN.
         en la salida y progresión por pase, y menos llegadas del rival al último tercio.
   \item \textbf{OBV neto}: la validación cruzada elige el modelo nulo, porque ninguna métrica de proceso lo explica mejor
         que la media. El OBV neto de un partido es muy ruidoso, y el diferencial de xG es mejor objetivo de "dominio".
-  \item \textbf{T3b} (resultado G/E/P, Cuadro~\ref{tab:t3b}): los modelos mejoran el F1 macro frente a predecir siempre
+  \item \textbf{T3b} (resultado G/E/P, Tabla~\ref{tab:t3b}): los modelos mejoran el F1 macro frente a predecir siempre
         victoria, pero el resultado depende de la conversión, que es mayormente azar. Por eso la ficha explica el
         resultado con la simulación del xG (Sección~\ref{sec:implementacion}) y no con un clasificador.
 \end{itemize}
@@ -442,14 +453,15 @@ número de cambios, líneas que salen, localía y rival.
 
 \input{tables/t6.tex}
 
-Ningún modelo supera a los baselines ("el cambio no altera nada" o el cambio medio). Con la información disponible, el efecto de un cambio es
+Ningún modelo mejora de forma relevante a los baselines ("el cambio no altera nada" o el cambio medio): a lo sumo 1\,\%
+en $\Delta$ OBV neto y peor en las otras dos. Con la información disponible, el efecto de un cambio es
 \textbf{impredecible} intervención por intervención. Es un resultado honesto: la ficha muestra el antes y el después de
 cada cambio (Figura~\ref{fig:fichaTimeline}), pero no promete su efecto.
 
 \subsection{T7 · Distribución del juego según el contexto (5.3 + 5.2)}
 \input{tables/t7.tex}
 La concentración del juego y la potenciación de los jugadores apenas dependen del contexto previo: solo la dependencia
-de los tres mejores mejora ligeramente a la media histórica. El reparto del juego es un rasgo del partido y no algo
+de los tres mejores y la potenciación mejoran ligeramente a la media histórica. El reparto del juego es un rasgo del partido y no algo
 que se anticipe desde el calendario.
 
 \subsection{U1 / U2 · Ejes de estilo y tipos de partido}
@@ -472,7 +484,7 @@ por silhouette ($k=2$, silhouette $=\silDos$).
   \item \textbf{Tipo 1, dominante}: posesión \tipoUnoPos\,\%, field tilt \tipoUnoTilt\,\%, PPDA \tipoUnoPPDA.
   \item \textbf{Tipo 2, reactivo}: posesión \tipoDosPos\,\%, field tilt \tipoDosTilt\,\%, PPDA \tipoDosPPDA.
 \end{itemize}
-El equipo juega mayormente partidos del tipo 1, pero la proporción cambia por torneo (Cuadro~\ref{tab:u2Torneo}). El
+El equipo juega partidos del tipo 1 en la mayoría de los torneos, pero la proporción cambia por torneo (Tabla~\ref{tab:u2Torneo}). El
 Apertura 2024, campeón, fue el torneo más reactivo; el Apertura 2025, el más dominante. La silhouette moderada indica un
 \emph{continuo} de estilo más que grupos separados: los tipos son una simplificación útil para la ficha.
 \end{historia}
@@ -481,7 +493,7 @@ Apertura 2024, campeón, fue el torneo más reactivo; el Apertura 2025, el más 
 
 \subsection{U3 · Roles de jugador (5.3)}
 K-means sobre perfiles por 90' (jugador $\times$ partido con al menos 30 minutos, sin porteros; 14 acciones), ajustado
-con entrenamiento. Se identifican \nRoles{} roles (Cuadro~\ref{tab:u3}, Figura~\ref{fig:u3}): un rol de
+con entrenamiento. Se identifican \nRoles{} roles (Tabla~\ref{tab:u3}, Figura~\ref{fig:u3}): un rol de
 \emph{distribución} (muchos toques y pases, dominado por medios defensivos), uno de \emph{recuperación}
 (defensas), uno de \emph{creación} (xA y OBV de pase), uno de \emph{finalización y presión} (delanteros) y uno de
 \emph{regate y conducción} (bandas). La silhouette baja ($\silRoles$) indica que los roles se solapan: un mismo jugador
@@ -500,15 +512,145 @@ cambia de rol entre partidos, que es justo lo que interesa medir en el encaje ro
 \section{Evaluación en la prueba temporal}\label{sec:evaluacion}
 % =====================================================================
 De \nSupervisados{} modelos supervisados, \nSupera{} superan al mejor baseline en la prueba temporal (Apéndice~\ref{app:cards}).
-El Cuadro~\ref{tab:overfit} compara el error de los modelos de T1 en entrenamiento, validación y prueba:
+La Tabla~\ref{tab:overfit} compara el error de los modelos de T1 en entrenamiento, validación y prueba:
 \begin{itemize}
   \item Razones prueba/entrenamiento cercanas a 1 indican que el modelo no memorizó.
-  \item Razones de 1.3--1.4 (los KNN de posesión, saques de meta cortos, transiciones y pases progresivos) son síntoma
-        de sobreajuste o de un cambio de distribución en los partidos recientes. En las dos últimas el modelo tampoco
-        supera al baseline, y la ficha usa el baseline.
+  \item Razones de 1.1 a 1.35 son esperables: la prueba de 2026 incluye un cambio de técnico. Las más altas (xG rival y
+        pases progresivos) coinciden con variables donde el modelo no supera al baseline, y ahí la ficha usa el baseline.
 \end{itemize}
 
 \input{tables/overfitting.tex}
+
+% =====================================================================
+\section{ADN del entrenador: el estilo de cualquier técnico frente a la liga}\label{sec:adn}
+% =====================================================================
+Predecir un partido es difícil: el estilo por partido es una identidad estable más ruido (T1). Lo que sí es estable,
+y lo que pide el reto (\emph{``entender los estilos de juego de entrenadores y las características que los
+definen''}), es el \textbf{perfil promedio de un técnico frente a la liga}. Con las estadísticas de equipo de los
+1,789 partidos de la Liga MX se construye el \textbf{ADN del entrenador} para los \nTecnicos{} técnicos de la liga
+(Notebook 04).
+
+\begin{itemize}
+  \item \textbf{8 rasgos de juego} (Tabla~\ref{tab:coachAxes}). Cada rasgo es el promedio de 2 a 4 métricas
+        estandarizadas con la liga, orientadas para que ``más'' signifique ``más de ese rasgo''.
+  \item \textbf{Ajuste por contexto}: a cada rasgo se le quita el efecto del rival (efecto fijo) y de la localía,
+        estimados con la ventana oficial. Así se mide el estilo \emph{del técnico} y no el del calendario.
+  \item \textbf{Percentil de liga}: cada rasgo del técnico se ubica entre los técnicos-club con 15 partidos o más en la
+        ventana oficial. El 50 corresponde al técnico típico de la Liga MX.
+\end{itemize}
+
+\input{tables/coach_axes.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{adn_america.png}
+\caption{ADN de los técnicos del América frente a la Liga MX (percentiles; banda = IC 90\,\%). Solari, Ortiz y Jardine
+con la ventana oficial; Almada con sus 9 partidos de 2026 (prueba).}
+\label{fig:adn}
+\end{figure}
+
+\input{tables/coach_percentiles.tex}
+
+\begin{historia}[Cuatro técnicos, cuatro ADN]
+\begin{itemize}
+  \item \textbf{Solari}: ADN de \emph{solidez}. Estuvo entre los técnicos que menos concedieron en la liga, pero llegó
+        poco al área y casi no presionaba tras perder el balón.
+  \item \textbf{Ortiz}: \emph{presión y llegada}. Presión alta, llegada al área y peligro muy por encima de la liga.
+  \item \textbf{Jardine}: \emph{control y peligro}. Balón, llegada, peligro y solidez en la cima de la liga, con una
+        presión alta de nivel medio: domina con el balón más que presionando.
+  \item \textbf{Almada} (2026, 9 partidos): llegada al área y balón parado máximos, más reacción tras pérdida y más
+        verticalidad que Jardine, pero menos solidez defensiva.
+\end{itemize}
+\end{historia}
+
+\paragraph{Identidad del club frente a identidad del técnico (H2).} La proporción de la variación entre partidos
+explicada por el técnico (Tabla~\ref{tab:coachEta}) separa lo que es \emph{del club} de lo que depende \emph{del
+técnico}. Con los datos del América, el control del balón y la llegada al área son lo que más cambia con el técnico;
+la solidez defensiva y el balón parado, lo que menos.
+
+\input{tables/coach_identity.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{contexto_rival.png}
+\caption{Ajuste al rival: rasgos del ADN contra rivales débiles (relleno) y fuertes (hueco). Jardine es el que más
+ajusta su plan según el rival (H3).}
+\label{fig:adnRival}
+\end{figure}
+
+\subsection{El mapa de técnicos de la Liga MX}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\linewidth]{liga_mapa_estilo.png}
+\caption{Mapa de estilo de los técnicos de la Liga MX (PCA de los 8 rasgos). Cada punto es un técnico en un club; las
+flechas unen al mismo técnico en dos clubes.}
+\label{fig:adnMapa}
+\end{figure}
+
+\paragraph{Índice de Encaje (H10).} Es la distancia del ADN de cada técnico-club a la \textbf{identidad histórica del
+América}, que es el promedio de sus partidos de 2021--2025. Se expresa de 0 a 100, donde 100 es el más parecido de la
+liga. Sirve como lista corta para una contratación: los más cercanos juegan, en promedio, como ha jugado el América.
+
+\input{tables/coach_fit.tex}
+
+\subsection{Validación: ¿el ADN reconoce a un técnico en partidos que nunca vio? (H9)}
+Un clasificador (regresión logística multinomial) aprende, con toda la liga en la ventana oficial, a reconocer al
+técnico a partir de los 8 rasgos de un partido. La etiqueta es el técnico y no el equipo. En la prueba de 2026, el
+técnico real está entre los 5 más probables en el \topCincoTest\,\% de los partidos de la liga, frente a un
+\azarCinco\,\% por azar (Tabla~\ref{tab:coachTopk}).
+
+\input{tables/coach_topk.tex}
+
+\begin{historia}[El estilo sigue al técnico, no a la plantilla]
+El modelo nunca vio a Almada dirigir al América: solo lo conocía por su etapa en Pachuca. Aun así, en sus partidos
+de 2026 con el América lo ubica en la \textbf{posición mediana \almadaRank{} de 31 técnicos posibles}, y entre los tres
+más probables en el \almadaTopTres\,\% de los partidos (Tabla~\ref{tab:coachAmRank}). En promedio, los partidos de
+2026 se desplazan del ADN de Jardine hacia el de Almada (Figura~\ref{fig:adnCambio}).
+
+Esto es lo que necesita un club para evaluar candidatos: \textbf{el ADN construido en su club anterior anticipa cómo
+jugará en el nuevo}.
+\end{historia}
+
+\input{tables/coach_america_rank.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{cambio_tecnico.png}
+\caption{Por partido del América: ¿se parece más al ADN de Jardine o al de Almada? Modelo entrenado solo con
+2021--2025. La señal por partido es ruidosa; la media móvil muestra el cambio de técnico en 2026.}
+\label{fig:adnCambio}
+\end{figure}
+
+\subsection{Valor para el club}
+\paragraph{Una decisión frecuente y cara.} En la ventana oficial hubo \cambiosTecnico{} cambios de técnico en la Liga
+MX, y el \pctCortos\,\% de los periodos duró menos de dos torneos (Tabla~\ref{tab:turnover}). El ADN convierte esa
+decisión en una comparación objetiva:
+\begin{itemize}
+  \item \textbf{Contratación}: ADN e Índice de Encaje de los candidatos frente a la identidad del club.
+  \item \textbf{Seguimiento}: ¿el técnico actual mantiene su idea? (Figura~\ref{fig:adnCambio} y monitoreo de drift.)
+  \item \textbf{Preparación de partidos}: el ADN del técnico rival.
+\end{itemize}
+
+\input{tables/coach_turnover.tex}
+
+\paragraph{ROI por escenarios.} Los montos son \textbf{supuestos explícitos}, porque no hay cifras públicas verificadas
+de los costos del club (Tabla~\ref{tab:roiAssump}). El beneficio viene de reducir la probabilidad de una contratación
+fallida y de ahorrar horas de análisis. En el escenario base el ROI es de \roiBase{} veces el costo anual, y basta con
+reducir en un \equilibrioBase\,\% relativo la probabilidad de error para recuperar la inversión. En el conservador, el
+ROI es negativo (\roiCons): la herramienta solo se paga si efectivamente mejora las decisiones de técnico.
+
+\input{tables/roi.tex}
+\input{tables/roi_assumptions.tex}
+
+\paragraph{Escalabilidad y activación.}
+\begin{itemize}
+  \item \textbf{Escalabilidad}: el mismo código perfila a los \nTecnicos{} técnicos de la liga, y cambiar de competición
+        (Liga MX Femenil u otra liga con datos StatsBomb) es cambiar un parámetro.
+  \item \textbf{Activación}: tarjeta ``ADN del partido'' para la afición (solo agregados) y ficha previa con el ADN del
+        técnico rival para el cuerpo técnico.
+\end{itemize}
+
+\input{tables/coach_hypotheses.tex}
 
 % =====================================================================
 \section{Implementación: la ficha como producto}\label{sec:implementacion}
@@ -556,11 +698,11 @@ con mayor dominio territorial (Santos 3--0, field tilt 91\,\%).
 
 \begin{historia}[Lo que la ficha cuenta de la final sin haberla visto]
 \begin{itemize}
-  \item Fue un partido reactivo (tipo 2): la posesión estuvo en el percentil 0 y la presión alta en el 2.
+  \item Fue un partido reactivo (tipo 2): la posesión estuvo en el percentil 0 y la presión en campo rival en el 1.
   \item Se defendió abajo y resistió: la precisión bajo presión en la salida estuvo en el percentil 91, y el valor lo
         generaron defensas y carrileros (54\,\% del OBV positivo).
-  \item El modelo de contexto esperaba acciones defensivas mucho más altas ($-2.1$ desviaciones estándar): el plan se
-        desvió de lo habitual.
+  \item El modelo de contexto esperaba más posesión ($-2.3$ desviaciones estándar) y más presión en campo rival
+        ($-2.1$): el plan se desvió de lo habitual.
   \item Con los tiros que hubo, el resultado más probable era la derrota (P = 53\,\%); el empate que dio el título fue,
         según el xG, un resultado favorable.
 \end{itemize}
@@ -586,8 +728,8 @@ El PSI (\emph{Population Stability Index}) compara la distribución reciente de 
 entrenamiento. Con ventanas de 10 partidos, el PSI esperado \emph{sin} drift ya ronda 0.4, así que los umbrales clásicos
 (0.10 y 0.25) marcarían drift siempre. Por eso los umbrales se calibran por remuestreo: 1,000 muestras de 10 partidos de
 entrenamiento dan la distribución nula, y se marca drift moderado por encima del percentil 90 y fuerte por encima del 99
-(Cuadro~\ref{tab:drift}). Con este criterio, en los últimos 10 partidos solo los pases largos muestran un cambio
-moderado.
+(Tabla~\ref{tab:drift}). Con este criterio, en los últimos 10 partidos (ya con Almada) los pases largos y los
+pases progresivos muestran un cambio moderado; ninguna variable llega a fuerte.
 
 \input{tables/drift.tex}
 

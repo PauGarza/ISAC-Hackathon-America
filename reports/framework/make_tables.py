@@ -173,13 +173,15 @@ ld = rd("u1_loadings")
 ld.index.name = "variable"
 t(ld, "u1_loadings", "U1 -- Cargas de las componentes principales.", "tab:u1Load", digits=2, size=r"\footnotesize")
 pr = rd("u2_profiles")
-pr.columns = [f"Tipo {int(c) + 1}" for c in pr.columns]
+dom_order = pr.iloc[0].sort_values(ascending=False).index  # el número de clúster es arbitrario: Tipo 1 = más posesión
+pr = pr[dom_order]
+pr.columns = ["Tipo 1 (dominante)", "Tipo 2 (reactivo)"][:len(pr.columns)]
 pr.index.name = "variable (media en train)"
 t(pr, "u2_profiles", "U2 -- Perfil medio de cada tipo de partido (entrenamiento).", "tab:u2", digits=2)
 N.update(tipoUnoPos=f"{pr.iloc[0, 0]:.0f}", tipoDosPos=f"{pr.iloc[0, 1]:.0f}", tipoUnoTilt=f"{pr.iloc[1, 0]:.0f}",
          tipoDosTilt=f"{pr.iloc[1, 1]:.0f}", tipoUnoPPDA=f"{pr.iloc[2, 0]:.1f}", tipoDosPPDA=f"{pr.iloc[2, 1]:.1f}")
-bt = rd("u2_by_torneo")
-bt.columns = [f"Tipo {int(c) + 1} (\\%)" for c in bt.columns]
+bt = rd("u2_by_torneo")[dom_order]
+bt.columns = ["Tipo 1 dominante (\\%)", "Tipo 2 reactivo (\\%)"][:len(bt.columns)]
 t(bt, "u2_torneo", "U2 -- Porcentaje de partidos de cada tipo por torneo.", "tab:u2Torneo", digits=0)
 sil = rd("u2_silhouette")
 N["silDos"] = f"{sil.silhouette.max():.2f}"
@@ -201,6 +203,57 @@ dr = rd("drift_latest")
 t(dr, "drift", "Monitoreo de drift: PSI de los últimos 10 partidos frente a entrenamiento, con umbrales calibrados por remuestreo.",
   "tab:drift", header=["variable", "PSI", "p90 nulo", "p99 nulo", "media train", "media reciente", "estado"], digits=3)
 
+# ------------------------------------------------------------------ ADN del entrenador (notebook 04)
+cp = rd("coach_america_percentiles")
+cp.index.name = "técnico"
+t(cp, "coach_percentiles", "ADN de los técnicos del América: percentil de cada rasgo frente a los técnicos de la Liga MX "
+  "(ajustado por rival y localía). Almada, con sus partidos de 2026 (prueba).", "tab:coachPct", digits=0,
+  size=r"\footnotesize")
+axt = rd("coach_axes")
+t(axt, "coach_axes", r"Los 8 rasgos del ADN del entrenador y sus métricas de StatsBomb.", "tab:coachAxes",
+  colspec="l p{5.2cm} p{6.4cm}", size=r"\footnotesize")
+eta = rd("coach_identity_eta")
+eta.index.name = "rasgo"
+t(eta, "coach_identity", r"Identidad del club frente a identidad del técnico: proporción de la variación entre partidos "
+  r"del América (2021--2025) explicada por el técnico ($\eta^2$).", "tab:coachEta", digits=2)
+fit = rd("coach_fit_top15").head(10)
+t(fit, "coach_fit", "Índice de Encaje: los 10 técnicos-club de la liga más parecidos a la identidad histórica del América.",
+  "tab:coachFit", header=["técnico (club)", "Índice de Encaje", "distancia", "partidos"], digits=1)
+acc = rd("coach_classifier_topk")
+acc_show = acc.copy()
+acc_show.index = ["validación (Apertura 2025)", "prueba (2026)"]
+t(acc_show, "coach_topk", "¿El ADN reconoce al técnico en partidos que nunca vio? Proporción de partidos de la liga en que el "
+  "técnico real está entre los k más probables (31 técnicos posibles).", "tab:coachTopk", digits=2)
+ca = rd("coach_classifier_america")
+t(ca, "coach_america_rank", "Partidos del América fuera de la ventana oficial: posición del técnico real en el ranking.",
+  "tab:coachAmRank", header=["técnico · conjunto", "partidos", "posición mediana", r"\% en top 3"], digits=1)
+N.update(almadaRank=f"{ca.loc[('Almada', 'test'), 'posicion_mediana']:.0f}",
+         almadaTopTres=f"{ca.loc[('Almada', 'test'), 'en_top3']:.0f}",
+         topCincoTest=f"{acc.loc['test', 'top-5'] * 100:.0f}",
+         azarCinco=f"{acc.loc['test', 'azar top-1'] * 500:.0f}",
+         nTecnicos=str(pd.read_parquet(GOLD / "fct_team_match_league.parquet").manager.replace("", np.nan).nunique()))
+to = rd("coach_turnover")
+to.index.name = "indicador"
+t(to, "coach_turnover", "Rotación de técnicos en la Liga MX (ventana oficial, 2021--2025).", "tab:turnover", digits=1)
+N.update(cambiosTecnico=f"{int(to.loc['cambios de técnico', 'valor'])}",
+         pctCortos=f"{to.loc['% de periodos de menos de 2 torneos', 'valor']:.0f}")
+roi = rd("coach_roi_scenarios")
+roi_show = roi.copy()
+money = [c for c in roi.columns if c not in ("ROI", "punto de equilibrio (reducción de error)")]
+roi_show[money] = roi_show[money] / 1e6
+roi_show = roi_show.rename(columns={c: c + " (M MXN)" for c in money})
+t(roi_show.T, "roi", r"ROI anual por escenario (montos en millones de pesos; supuestos en la Tabla~\ref{tab:roiAssump}).",
+  "tab:roi", digits=2)
+N.update(roiBase=f"{roi.loc['Base', 'ROI']:.1f}", roiCons=f"{roi.loc['Conservador', 'ROI']:.1f}",
+         equilibrioBase=f"{roi.loc['Base', 'punto de equilibrio (reducción de error)'] * 100:.0f}")
+ra = rd("coach_roi_assumptions")
+ra.index.name = "supuesto"
+t(ra, "roi_assumptions", "Supuestos del modelo de ROI (a validar con el club).", "tab:roiAssump",
+  colspec="l r r r p{5.8cm}", size=r"\scriptsize", digits=2)
+hy = rd("coach_hypotheses")
+t(hy, "coach_hypotheses", "Veredicto preliminar de hipótesis del EDA con el ADN del entrenador y la partición oficial.",
+  "tab:coachHyp", colspec="l p{4.6cm} p{9.2cm}", size=r"\footnotesize")
+
 # ------------------------------------------------------------------ cifras de jugadores y fichas
 mf = pd.read_parquet(GOLD / "match_features.parquet")
 N.update(medTopTres=f"{mf.top3_obv_share.median():.0f}", medTopUno=f"{mf.top1_obv_share.median():.0f}",
@@ -218,7 +271,8 @@ card_txt = re.sub(r"(\d+\.\d{3})\d+", r"\1", card_txt)
 ficha = REPORTS / "2024-12-16_Monterrey.html"
 if ficha.exists():
     imgs = re.findall(r'base64,([A-Za-z0-9+/=]+)"', ficha.read_text(encoding="utf-8"))
-    for i, name in enumerate(["ficha_percentiles", "ficha_players", "ficha_style_map", "ficha_timeline", "ficha_set_pieces"]):
+    for i, name in enumerate(["ficha_percentiles", "ficha_players", "ficha_style_map", "ficha_timeline", "ficha_dna",
+                              "ficha_set_pieces"]):
         (FIG / f"{name}.png").write_bytes(base64.b64decode(imgs[i]))
 
 write_numbers(N, OUT / "numbers.tex")
