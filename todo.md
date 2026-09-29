@@ -114,6 +114,13 @@ Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo s
   - **Evidencia**: con z de ventana el torneo explicaba el 12 % de la variación de *Reacción tras pérdida* (resto ≤ 3 %); con z por torneo, 0 %. Clasificador igual (top-5 val 22 → 23 %, prueba 35 → 31 %; Almada sigue en posición mediana 2 de 31). Encaje: Jardine 97 → 99 (ahora el n.º 1), Ortiz 99 → 96.
   - **Qué cambió en el relato**: Almada ya no es "reacción tras pérdida" (percentil 79 → 30) sino **presión alta** (67 → 86); Jardine sigue siendo "control y peligro con presión media" (presión alta 37; reacción tras pérdida 69 → 46). README, reporte del marco y notebook 05 revisados: coherentes.
   - **En una frase de fútbol**: a cada técnico se le compara con la liga que le tocó; desde mediados de 2024 StatsBomb cuenta más balones recuperados tras perder en todos los equipos, y eso inflaba a los técnicos recientes.
+- [ ] **Decidir la definición de balón parado del marco** (visto en §3.8). El 40 % de xG a balón parado incluye ~3 puntos de posesiones del América que solo **heredan** el `play_pattern` (p. ej., un contragolpe tras atrapar un córner rival). Hay dos opciones:
+  - ajustarlo en `framework.possessions`, que cambia `xg_share_set_piece` y las cifras que dependen de ella;
+  - dejarlo y declararlo como límite.
+
+  Recomendación: ajustarlo, porque es un error de definición y no un matiz.
+- [ ] **Regenerar las fichas HTML** de `reports/match_reports/`: se hicieron antes del ADN por torneo (`python -m src.pipeline run --stages score,report --match-id …`).
+- [ ] Buscar "35 %" en textos y diapositivas nuevas: la cifra de prueba del clasificador ya es **31 %**.
 
 ---
 
