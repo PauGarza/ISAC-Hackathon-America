@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\small
+\caption{T4 -- ¿La posesión termina en tiro? Métricas en prueba.}
+\label{tab:t4}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{modelo} & \textbf{ROC-AUC} & \textbf{prevalencia} & \textbf{F1} & \textbf{Brier} \\
+\midrule
+Baseline: tasa base & 0.500 & 0.123 & -- & 0.123 \\
+Logística & 0.724 & -- & 0.361 & 0.217 \\
+Árbol & 0.696 & -- & 0.335 & 0.211 \\
+KNN & 0.708 & -- & 0.093 & 0.110 \\
+\bottomrule
+\end{tabular}}
+\end{table}

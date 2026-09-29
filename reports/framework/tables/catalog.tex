@@ -1,0 +1,70 @@
+{\scriptsize
+\begin{longtable}{p{3.4cm} p{3.3cm} p{2.2cm} p{5.2cm} p{2.6cm}}
+\caption{Catálogo de variables por partido (\texttt{features.FEATURES} y \texttt{PLAYER\_FEATURES}).}\label{tab:catalog}\\
+\toprule
+\textbf{variable} & \textbf{etiqueta} & \textbf{criterio} & \textbf{definición} & \textbf{dirección} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{variable} & \textbf{etiqueta} & \textbf{criterio} & \textbf{definición} & \textbf{dirección} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+gk\_short\_goal\_kick\_pct & Saques de meta cortos (\%) & Construcción & \% de saques de meta cortos (longitud < 32 yd) & + = salida corta \\
+buildup\_passes\_per\_seq & Pases por construcción & Construcción & Pases medios por posesión de construcción (inicio x<40) & + = elaboración \\
+buildup\_success\_pct & Construcciones que llegan a campo rival (\%) & Construcción & \% de construcciones que llegan a campo rival (x$\geq$60) & + = mejor salida \\
+press\_resistance\_own\_third & Precisión bajo presión en tercio propio (\%) & Construcción & Precisión de pase bajo presión en tercio propio & + = resiste presión \\
+prog\_passes\_per100 & Pases progresivos /100 pases & Progresión & Pases progresivos por 100 pases & + = más vertical \\
+prog\_carries\_per100 & Conducciones progresivas /100 pases & Progresión & Conducciones progresivas por 100 pases & + = progresa conduciendo \\
+prog\_lane\_left\_pct & Progresión por izquierda (\%) & Progresión & \% de pases progresivos que terminan en carril izquierdo & carril \\
+prog\_lane\_center\_pct & Progresión por el centro (\%) & Progresión & \% de pases progresivos que terminan en carril central & carril \\
+prog\_lane\_right\_pct & Progresión por derecha (\%) & Progresión & \% de pases progresivos que terminan en carril derecho & carril \\
+progression\_rate & Posesiones que progresan a último tercio (\%) & Progresión & \% de posesiones que cruzan de x<60 a x$\geq$80 & + = progresa más \\
+pass\_x\_mean & Altura media de pase (x) & Progresión & Altura media de los pases propios (x) & + = juega más arriba \\
+long\_pass\_pct & Pases largos (\%) & Progresión & \% de pases largos ($\geq$ 32 yd) en juego abierto & + = más directo \\
+np\_xg\_per100poss & np xG /100 posesiones & Ocasiones & np xG por 100 posesiones propias & + = más peligro \\
+np\_xg\_per\_shot & np xG por tiro & Ocasiones & np xG por tiro & + = mejores ocasiones \\
+shots\_per100poss & Tiros /100 posesiones & Ocasiones & Tiros por 100 posesiones propias & + = más volumen \\
+box\_touches\_per100poss & Acciones en área rival /100 posesiones & Ocasiones & Acciones en el área rival por 100 posesiones & + = pisa más el área \\
+xg\_share\_open\_play & xG de juego elaborado (\%) & Ocasiones & \% del xG propio en posesiones de juego abierto (no transición, no BP) & origen \\
+xg\_share\_transition & xG en transición (\%) & Ocasiones & \% del xG propio en transiciones & origen \\
+xg\_share\_set\_piece & xG a balón parado (\%) & Ocasiones & \% del xG propio en balón parado & origen \\
+cross\_xg\_share & xG tras centro (\%) & Ocasiones & \% del xG propio de tiros asistidos con centro & + = juego por centros \\
+ppda & PPDA & Presión & Pases rivales de juego abierto (x$\leq$72) por entrada/intercepción/falta propia (x$\geq$48) & -- = presión más intensa \\
+def\_action\_x\_mean & Altura de acciones defensivas (x) & Presión & Altura media de las acciones defensivas propias (x) & + = defiende más arriba \\
+high\_press\_pct & Acciones defensivas en campo rival (\%) & Presión & \% de acciones defensivas en campo rival (x$\geq$60) & + = presión alta \\
+high\_regains\_per100opp & Recuperaciones altas /100 pos. rivales & Presión & Recuperaciones que inician posesión en x$\geq$60 por 100 posesiones rivales & + = roba arriba \\
+counterpress\_per\_loss & Contrapresión por pérdida & Presión & Acciones de contrapresión por pérdida en juego & + = reacción tras pérdida \\
+opp\_np\_xg\_per100poss & np xG rival /100 pos. rivales & Organización defensiva & np xG rival por 100 posesiones rivales & -- = defiende mejor \\
+opp\_shots\_per100poss & Tiros rivales /100 pos. rivales & Organización defensiva & Tiros rivales por 100 posesiones rivales & -- = concede menos \\
+opp\_f3\_entry\_pct & Posesiones rivales que llegan a último tercio (\%) & Organización defensiva & \% de posesiones rivales que llegan a x$\geq$80 & -- = bloque más sólido \\
+block\_x\_mean & Altura del bloque (x) & Organización defensiva & Altura media de duelos, intercepciones, bloqueos y despejes & + = bloque alto \\
+transition\_poss\_pct & Posesiones en transición (\%) & Transiciones & \% de posesiones propias que son transición ofensiva & + = juego de transición \\
+transition\_xg\_per100poss & xG en transición /100 posesiones & Transiciones & xG en transición por 100 posesiones propias & + = castiga al contragolpe \\
+opp\_transition\_xg\_per100poss & xG rival en transición /100 pos. & Transiciones & xG rival en transición por 100 posesiones rivales & -- = controla transición defensiva \\
+quick\_regain\_pct & Pérdidas recuperadas en $\leq$5 s (\%) & Transiciones & \% de pérdidas recuperadas en $\leq$ 5 s & + = contrapresión efectiva \\
+possession\_time\_pct & Posesión (\% del tiempo) & Dominio & \% del tiempo de posesión (duración de posesiones) & + = más balón \\
+field\_tilt & Field tilt (\%) & Dominio & Pases propios en último tercio / pases de ambos en su último tercio & + = domina territorio \\
+obv\_net & OBV neto & Dominio & OBV propio -- OBV rival & + = domina en valor \\
+np\_xg\_diff & Diferencial de np xG & Dominio & np xG propio -- np xG rival & + = domina en ocasiones \\
+sp\_xg & xG a balón parado & Balón parado & xG propio en balón parado & + = peligro a balón parado \\
+opp\_sp\_xg & xG rival a balón parado & Balón parado & xG rival en balón parado & -- = defiende bien el BP \\
+corner\_shot\_pct & Córners con tiro (\%) & Balón parado & \% de córners propios que terminan en tiro & + = córners efectivos \\
+opp\_corner\_shot\_pct & Córners rivales con tiro (\%) & Balón parado & \% de córners rivales que terminan en tiro & -- = defiende bien córners \\
+gini\_obv & Gini del OBV & Uso de jugadores & Gini del OBV ($\geq$0) entre jugadores propios & + = juego concentrado \\
+gini\_touches & Gini de toques & Uso de jugadores & Gini de toques entre jugadores de campo & + = balón concentrado \\
+gini\_prog & Gini de progresión & Uso de jugadores & Gini de acciones progresivas & + = progresión concentrada \\
+top1\_obv\_share & OBV del mejor jugador (\%) & Uso de jugadores & \% del OBV positivo del mejor jugador & + = depende de uno \\
+top3\_obv\_share & OBV de los 3 mejores (\%) & Uso de jugadores & \% del OBV positivo de los 3 mejores & + = depende de pocos \\
+obv\_share\_def & OBV de defensas y carrileros (\%) & Uso de jugadores & \% del OBV positivo generado por defensas y carrileros & línea \\
+obv\_share\_mid & OBV de medios (\%) & Uso de jugadores & \% del OBV positivo generado por medios & línea \\
+obv\_share\_wide & OBV de bandas (\%) & Uso de jugadores & \% del OBV positivo generado por bandas & línea \\
+obv\_share\_fwd & OBV de delanteros (\%) & Uso de jugadores & \% del OBV positivo generado por delanteros & línea \\
+boost\_pct & Jugadores sobre su referencia (\%) & Uso de jugadores & \% de jugadores ($\geq$30') por encima de su OBV p90 de referencia previa & + = el sistema los potencia \\
+boost\_mean & OBV p90 vs referencia (media) & Uso de jugadores & Media del OBV p90 -- referencia previa, jugadores $\geq$30' & + = el sistema los potencia \\
+xi\_rotation & Cambios en el XI & Uso de jugadores & Titulares distintos respecto al partido anterior & + = rota más \\
+tactical\_shifts & Cambios de sistema & Uso de jugadores & Cambios de sistema en el partido (Tactical Shift) & + = ajusta en vivo \\
+first\_sub\_minute & Minuto del primer cambio & Uso de jugadores & Minuto del primer cambio & -- = interviene antes \\
+\end{longtable}
+}

@@ -1,0 +1,22 @@
+\begin{table}[H]
+\centering
+\small
+\caption{Sensibilidad de las métricas a los umbrales: nivel medio y correlación de Spearman del ranking de partidos con la versión base.}
+\label{tab:sensitivity}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{supuesto} & \textbf{valor} & \textbf{métrica} & \textbf{media} & \textbf{$\rho$ vs base} \\
+\midrule
+transition\_window\_s & 10.000 & transition\_poss\_pct & 13.994 & 0.905 \\
+transition\_window\_s (base) & 15.000 & transition\_poss\_pct & 17.791 & 1.000 \\
+transition\_window\_s & 20.000 & transition\_poss\_pct & 19.928 & 0.960 \\
+press\_high\_x & 55.000 & high\_press\_pct & 47.094 & 0.976 \\
+press\_high\_x (base) & 60.000 & high\_press\_pct & 41.984 & 1.000 \\
+press\_high\_x & 65.000 & high\_press\_pct & 36.889 & 0.978 \\
+progressive\_min\_gain & 0.200 & prog\_passes\_per100 & 9.745 & 0.861 \\
+progressive\_min\_gain (base) & 0.250 & prog\_passes\_per100 & 6.946 & 1.000 \\
+progressive\_min\_gain & 0.300 & prog\_passes\_per100 & 4.993 & 0.893 \\
+\bottomrule
+\end{tabular}}
+\end{table}

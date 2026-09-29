@@ -1,0 +1,629 @@
+\documentclass[11pt,a4paper]{article}
+
+% ------------------------------------------------------------------ paquetes
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-tabla,es-nodecimaldot]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage[table]{xcolor}
+\usepackage[font=small,labelfont=bf,skip=4pt]{caption}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{fancyvrb}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{../figures/framework/}}
+\definecolor{ame}{HTML}{1C5CAB}
+\definecolor{hip}{HTML}{EB6834}
+\DeclareRobustCommand{\col}[1]{\texttt{\detokenize{#1}}}
+\newtcolorbox{historia}[1][]{colback=ame!5,colframe=ame,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,title={#1},fonttitle=\bfseries\small}
+\newtcolorbox{aviso}[1][]{colback=hip!6,colframe=hip,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,title={#1},fonttitle=\bfseries\small}
+\setlist{itemsep=2pt,topsep=3pt}
+\renewcommand{\arraystretch}{1.12}
+\pagestyle{fancy}\fancyhf{}
+\lhead{\small ISAC Hackathon 2026 · Club América}\rhead{\small Marco analítico, variables y modelos}
+\cfoot{\small\thepage}
+
+\input{tables/numbers.tex}
+
+\title{\textbf{Del dato al criterio}\\[4pt]
+\large Pipeline medallion, marco analítico, formulación de modelos y ficha automática por partido\\[2pt]
+\normalsize Reto ISAC 2026: \emph{La historia de un entrenador a través de los datos} --- Fase 2}
+\author{Equipo ISAC-Hackathon-America}
+\date{Septiembre de 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+\noindent El análisis exploratorio (fase 1) describió los datos. Esta segunda fase construye la infraestructura y el
+método para responder la pregunta del reto con el \textbf{partido como unidad de estudio}. Primero, un \emph{pipeline}
+local con arquitectura \emph{medallion} (Bronze $\rightarrow$ Silver $\rightarrow$ Gold, en Parquet) extrae \nRecursos{}
+recursos de la API de StatsBomb, los valida con compuertas de calidad y reproduce exactamente los datos del EDA.
+Segundo, un \textbf{marco analítico} explícito define cada objeto táctico; se valida contra StatsBomb (PPDA
+$\rho=\rhoPPDA$, np xG $\rho=\rhoXG$) y es robusto a sus umbrales ($\rho\geq\rhoSensMin$). Tercero, \nVariables{}
+variables por partido, incluida una dimensión nueva sobre \emph{cómo se reparte el juego entre los jugadores}, se evalúan
+como criterios medibles (fiabilidad, discriminación, estabilidad, sensibilidad, redundancia y validez) y se reducen a
+\nNucleo{} variables núcleo. Cuarto, siguiendo el ciclo de vida del aprendizaje supervisado, se formulan once tareas
+(T1--T7 supervisadas, U1--U3 no supervisadas), cada una con su $y$, $x$, partición temporal, baseline y métrica.
+Los modelos base superan a su baseline en \nSupera{} de \nSupervisados{} casos; sus fracasos también informan. Por
+último, todo se integra en un producto: una \textbf{ficha HTML automática por partido} con el partido actual, la
+comparación histórica y una proyección, trazable a \emph{model cards} y con monitoreo de \emph{drift}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =====================================================================
+\section{Definición del problema}\label{sec:problema}
+% =====================================================================
+\begin{historia}[Pregunta central del reto]
+¿Cuáles son los principios que definen al equipo en fase ofensiva y defensiva, cómo se manifiestan estos patrones a lo
+largo del tiempo, y de qué manera se ajusta el comportamiento en función del contexto del partido (rival, marcador,
+localía o momento del juego)?
+\end{historia}
+
+\paragraph{Necesidad.} Que alguien que no vio los partidos entienda el estilo del equipo, sus ideas, cómo usa a sus
+jugadores y cómo todo eso se repite, evoluciona y se ajusta.
+
+\paragraph{Unidad de estudio.} El \textbf{partido}, junto con sus derivados: la posesión, el tramo de 15 minutos con su
+estado del marcador, la jugada a balón parado, la intervención de cambios y el jugador dentro de un partido. El
+entrenador \textbf{no} es una variable del modelo. Se conserva como metadato (\col{team_manager}) para particiones
+posteriores, de modo que las conclusiones se construyen sobre el comportamiento observado y no sobre etiquetas.
+
+\paragraph{Formulación global.} Siguiendo la definición de Mitchell (T/E/P):
+\begin{itemize}
+  \item \textbf{T (tarea):} describir, explicar y anticipar el comportamiento del equipo por partido.
+  \item \textbf{E (experiencia):} \nPartidos{} partidos de Liga MX (julio 2021 -- septiembre 2026) con eventos StatsBomb y
+        StatsBomb 360.
+  \item \textbf{P (desempeño):} error de generalización en una \emph{prueba temporal} (los partidos más recientes) frente
+        a un baseline, e interpretabilidad trazable al marco analítico.
+\end{itemize}
+La pregunta se descompone en tareas concretas (Cuadro~\ref{tab:tareas}). Cada una tiene su variable objetivo, sus
+variables explicativas y su métrica. Las tareas supervisadas explican o anticipan; las no supervisadas descubren
+estructura (ejes de estilo, tipos de partido y roles de jugador).
+
+\input{tables/tareas.tex}
+
+% =====================================================================
+\section{Arquitectura de datos y pipeline}\label{sec:pipeline}
+% =====================================================================
+\subsection{Capas medallion}
+Los datos se organizan en tres capas, todas locales y en Parquet (formato columnar comprimido que se lee más rápido y
+conserva los tipos). No se usa nube ni motores SQL: el volumen (unos 2.5 GB crudos) cabe en memoria y pandas basta.
+
+\begin{center}
+\small
+\begin{tabular}{p{2.2cm} p{5.6cm} p{6.6cm}}
+\toprule
+\textbf{Capa} & \textbf{Contenido} & \textbf{Reglas} \\
+\midrule
+\textbf{Bronze} & Respuesta \emph{exacta} de la API (\texttt{.json.gz}) por endpoint y partido, más el calendario de toda la liga. & Inmutable. Manifest con URL, versión, fecha de extracción, status, bytes y sha256. Incremental: salta lo ya extraído. \\
+\textbf{Silver} & Una tabla Parquet por entidad: partidos, liga, eventos y 360 (particionados por temporada), alineaciones, estadísticas de jugador y equipo. & Aplanado idéntico al de \texttt{statsbombpy}, leyendo de Bronze sin red. Compuertas de calidad: si una falla, el pipeline se detiene. \\
+\textbf{Gold} & Tablas por caso de uso: contexto sin \emph{leakage}, posesiones, tramos, balón parado, cambios, jugador $\times$ partido y variables por partido. & Se reconstruye completo desde Silver con las definiciones del marco. Cambiar una definición solo requiere volver a correr Gold. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+El pipeline se ejecuta con un solo comando y cada etapa lee únicamente de la anterior:
+\begin{center}
+\texttt{python -m src.pipeline run -{}-stages bronze,silver,gold,train,score,report [-{}-match-id \dots]}
+\end{center}
+
+\input{tables/bronze.tex}
+\input{tables/silver.tex}
+\input{tables/gold.tex}
+
+\subsection{Compuertas de calidad, idempotencia y linaje}
+Silver valida, por temporada: que los eventos cubren todos los partidos jugados, que los identificadores son únicos,
+que las coordenadas caen dentro de la cancha de $120\times80$, que todo tiro tiene xG y que cada partido tiene dos
+alineaciones iniciales. Al final valida que el \textbf{marcador reconstruido desde eventos coincide con el oficial en
+el 100\,\% de los partidos}, que cada partido tiene dos filas de estadísticas de equipo y que la precisión de pase
+corregida está en rango. Esta última corrige una anomalía detectada en el EDA: la columna de la API
+\col{team_match_passing_ratio} es idéntica a \col{opp_final_third_pass_ratio}.
+
+\begin{itemize}
+  \item \textbf{Idempotencia}: una segunda corrida de Bronze descarga 0 recursos y Silver/Gold se sobrescriben
+        completos. Ante cortes de red, Bronze reintenta con espera exponencial; lo que aún falle queda registrado en el
+        manifest y se reintenta en la siguiente corrida.
+  \item \textbf{Migración verificada}: Silver reproduce exactamente los datos del EDA (los mismos \nEventos{} eventos e
+        identificadores y las mismas sumas de xG y OBV), así que los hallazgos de la fase 1 siguen siendo válidos.
+  \item \textbf{Linaje}: cada \emph{model card} guarda el \emph{hash} de la tabla Gold con la que se entrenó
+        (Sección~\ref{sec:implementacion}).
+\end{itemize}
+
+% =====================================================================
+\section{Marco analítico}\label{sec:marco}
+% =====================================================================
+El módulo \texttt{src/framework.py} es la \textbf{fuente única} de definiciones (reto 5.6). Gold, los modelos, las
+gráficas y la ficha lo importan; ningún notebook redefine un objeto.
+
+\begin{itemize}
+  \item \textbf{Posesión}: la de StatsBomb. \textbf{Secuencia ofensiva}: al menos 3 pases o llegada a $x\geq80$.
+  \item \textbf{Zonas}: tercios (40/80), carriles (tercios de ancho), área y zona de peligro.
+  \item \textbf{Fases}: construcción (la posesión nace en $x<40$ en juego abierto), progresión (cruza de $x<60$ a
+        $x\geq80$) y finalización.
+  \item \textbf{Transición ofensiva}: posesión que nace de una recuperación y llega a $x\geq80$ o termina en tiro en
+        $\leq15$\,s. \textbf{Transición defensiva}: los 5\,s posteriores a una pérdida en juego.
+  \item \textbf{Presión}: alta ($x\geq60$), media (40--60) y baja; \textbf{PPDA} propio: pases rivales de juego abierto
+        en su 60\,\% propio ($x\leq72$) entre entradas, intercepciones y faltas propias en nuestro 60\,\% alto
+        ($x\geq48$).
+  \item \textbf{Balón parado}: córner, tiro libre y saque de banda en $x\geq80$. \textbf{Estado del marcador}: 5 niveles,
+        calculado \emph{antes} de cada evento. \textbf{Tramos} de 15'. \textbf{Grupos de posición}: portero, defensas,
+        carrileros, medios defensivos, medios, medios ofensivos, bandas y delanteros.
+\end{itemize}
+Todos los umbrales están en \texttt{ASSUMPTIONS} (Apéndice~\ref{app:assumptions}).
+
+\subsection{Validación del marco}
+Una definición propia solo es útil si mide lo que dice medir. Donde existe una métrica comparable de StatsBomb, se
+compara el \emph{orden} de los partidos (Cuadro~\ref{tab:validations}).
+
+\input{tables/validations.tex}
+
+\begin{itemize}
+  \item El PPDA propio ordena los partidos casi igual que el de StatsBomb ($\rho=\rhoPPDA$). Se llegó a esa definición
+        probando 16 variantes (4 conjuntos de acciones por 4 zonas).
+  \item Todas las transiciones propias las marca también StatsBomb, pero la definición propia solo captura el
+        \pctTransSB\,\% de las suyas. Es deliberado: \col{is_transition} marca cualquier posesión que nace de una
+        recuperación, mientras que aquí se exige que la transición sea \emph{efectiva}.
+  \item Los minutos por jugador (StatsBomb) cuadran con los que se reconstruyen desde las alineaciones (razón
+        \ratioMin); la pequeña diferencia viene del tiempo añadido.
+\end{itemize}
+
+\subsection{Sensibilidad de los umbrales}
+Si mover un umbral cambiara qué partidos se ven como "más presionantes" o "más verticales", las conclusiones dependerían
+de una elección arbitraria. El Cuadro~\ref{tab:sensitivity} recalcula tres métricas con valores alternativos:
+cambia el \emph{nivel}, pero el \emph{orden} de los partidos se conserva ($\rho\geq\rhoSensMin$).
+
+\input{tables/sensitivity.tex}
+
+% =====================================================================
+\section{Ingeniería y evaluación de variables}\label{sec:variables}
+% =====================================================================
+\subsection{Variables por criterio}
+Se construyen \nVariables{} variables por partido, agrupadas por los criterios del reto: construcción, progresión,
+ocasiones, presión, organización defensiva, transiciones, dominio, balón parado y uso de jugadores (catálogo completo en
+el Apéndice~\ref{app:catalog}). Tres decisiones de diseño:
+\begin{enumerate}
+  \item \textbf{Tasas, no conteos.} Un conteo depende de la duración y del ritmo del partido; una tasa (por 100 pases,
+        por 100 posesiones o en porcentaje) es comparable entre partidos.
+  \item \textbf{Una sola función de agregación.} \texttt{features.aggregate(ev, poss, keys)} calcula las mismas métricas
+        para cualquier agrupación: partido, mitad, tramo con estado del marcador o ventana alrededor de un cambio. Así
+        el partido y sus segmentos usan exactamente las mismas definiciones.
+  \item \textbf{Versión del rival.} Las métricas defensivas miden lo que el rival logra contra el equipo.
+\end{enumerate}
+
+\subsection{Uso de jugadores y distribución del juego (5.3)}
+La dimensión de jugadores se pregunta si una sola posición o un solo jugador "brilla", o si el juego está repartido,
+y si el sistema potencia a cada jugador. Desde \col{fct_player_match} (\nJugPartido{} filas jugador $\times$ partido)
+se agregan al partido:
+\begin{itemize}
+  \item \textbf{Concentración}: índice de Gini del OBV, de los toques y de las acciones progresivas (0 = reparto
+        perfecto; 1 = todo en un jugador).
+  \item \textbf{Dependencia}: porcentaje del OBV positivo que generan el mejor jugador y los tres mejores.
+  \item \textbf{Reparto por línea}: porcentaje del OBV positivo por defensas y carrileros, medios, bandas y delanteros.
+  \item \textbf{Potenciación}: el OBV por 90' de cada jugador se compara con \emph{su propia} referencia previa (la media
+        de sus 10 partidos anteriores, con \texttt{shift(1)} para no usar el partido actual). Se reporta el porcentaje de
+        jugadores por encima de su referencia y el residuo medio.
+  \item \textbf{Rotación y ajustes}: cambios en el XI respecto al partido anterior, cambios de sistema y minuto del
+        primer cambio.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{players_distribution.png}
+\caption{Distribución del juego entre jugadores: reparto del OBV positivo por línea, dependencia de los tres mejores y
+porcentaje de jugadores que rinden por encima de su referencia previa.}
+\label{fig:players}
+\end{figure}
+
+\begin{historia}[Lo que muestran los datos: el juego está repartido y se construye desde atrás]
+\begin{itemize}
+  \item En el partido mediano, los tres mejores jugadores generan el \medTopTres\,\% del OBV positivo y el mejor el
+        \medTopUno\,\%: hay protagonistas, pero ningún partido depende de uno solo.
+  \item Por línea, defensas y carrileros generan el \medShareDef\,\% del OBV positivo, los medios el \medShareMid\,\%, las
+        bandas el \medShareWide\,\% y los delanteros apenas el \medShareFwd\,\% (medianas). El valor se construye desde
+        atrás y por fuera.
+  \item En el partido mediano, el \medBoost\,\% de los jugadores rinde por encima de su propia referencia previa. Que sea
+        algo menos de la mitad es lo esperable por regresión a la media, así que la potenciación debe leerse partido a
+        partido, no como promedio.
+\end{itemize}
+\end{historia}
+
+\subsection{Evaluación de las variables como criterios}
+Una métrica solo sirve como criterio si mide algo \emph{del partido} y no ruido. Cada variable se evalúa en seis
+dimensiones:
+\begin{enumerate}
+  \item \textbf{Fiabilidad intra-partido}: la correlación entre su valor en el primer y en el segundo tiempo, corregida
+        con Spearman-Brown al partido completo.
+  \item \textbf{Discriminación}: ICC(1), tratando los dos tiempos como mediciones repetidas del mismo partido.
+  \item \textbf{Estabilidad temporal}: autocorrelación lag-1 entre partidos consecutivos.
+  \item \textbf{Sensibilidad al contexto}: $R^2$ de localía, fuerza del rival y fase.
+  \item \textbf{Redundancia}: máximo $|\rho|$ con otra variable y VIF; se liga al supuesto de no multicolinealidad.
+  \item \textbf{Validez}: correlación con el diferencial de np xG y con el OBV neto.
+\end{enumerate}
+
+\paragraph{Selección del núcleo.} Las reglas, en orden:
+\begin{enumerate}
+  \item Se excluyen las variables de resultado (OBV neto y diferencial de xG): son objetivos, no criterios de estilo.
+  \item Se exige una fiabilidad $\geq0.30$. Las variables de nivel partido sin mitades (uso de jugadores) deben tener
+        estabilidad lag-1 positiva.
+  \item Recorriendo las variables de mayor a menor fiabilidad, se descarta la que tenga $|\rho|>0.85$ con una ya elegida.
+  \item Mientras alguna supere VIF $>10$, se descarta la de mayor VIF.
+\end{enumerate}
+Quedan \nNucleo{} variables núcleo (Cuadro~\ref{tab:coreCrit}); el detalle está en el Apéndice~\ref{app:varEval}.
+
+\input{tables/core_by_criterion.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\linewidth]{variable_evaluation.png}
+\caption{Fiabilidad intra-partido frente a validez. A la derecha de la línea punteada, variables con fiabilidad
+suficiente; en azul, las variables núcleo.}
+\label{fig:varEval}
+\end{figure}
+
+\begin{aviso}[Hallazgo: el balón parado y el xG concedido son demasiado ruidosos por partido]
+Las métricas de balón parado y de ocasiones concedidas tienen una fiabilidad intra-partido cercana a cero: dependen de
+pocos eventos raros. Sirven para \emph{describir} un partido en la ficha, pero no como criterio estable ni como variable
+explicativa. En cambio, las métricas de volumen y altura (pases largos, field tilt, PPDA, altura de pase, saques de meta
+cortos) sí reflejan un rasgo del partido que se sostiene entre los dos tiempos.
+\end{aviso}
+
+\subsection{Evolución en el tiempo}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{evolution.png}
+\caption{Evolución por partido (puntos) y media móvil de 10 partidos de seis variables núcleo. Las líneas verticales
+marcan el inicio de cada torneo.}
+\label{fig:evolution}
+\end{figure}
+
+% =====================================================================
+\section{Reglas contra \emph{data leakage}}\label{sec:leakage}
+% =====================================================================
+El \emph{data leakage} ocurre cuando el modelo usa información que no estaría disponible en el momento de la
+predicción. Produce métricas optimistas que no se sostienen en la práctica. Cada riesgo tiene una regla y una prueba
+automática (\texttt{pytest}, 9 pruebas en verde):
+
+\begin{center}
+\small
+\begin{tabular}{p{4.6cm} p{5.6cm} p{4.4cm}}
+\toprule
+\textbf{Riesgo} & \textbf{Regla} & \textbf{Verificación} \\
+\midrule
+Fuerza del rival calculada con partidos futuros & Puntos por partido en los 17 partidos de liga \emph{previos} a la fecha & \texttt{test\_rival\_strength\_uses\_only\_past} \\
+Inercia que incluye el propio partido & Media móvil con \texttt{shift(1)} & \texttt{test\_inertia\_is\_lagged} \\
+Referencia del jugador que incluye el partido & \texttt{shift(1)} y ventana de 10 & \texttt{test\_player\_reference\_is\_shifted} \\
+Escalado, imputación, PCA, clústeres o percentiles ajustados con prueba & Todo dentro de un \texttt{Pipeline}, ajustado solo con entrenamiento & Diseño de \texttt{modeling.py} \\
+Objetivo disfrazado en T3 & $x$ = solo métricas de proceso (sin xG, tiros ni OBV) & \texttt{test\_t3\_has\_no\_outcome\_features} \\
+Posesiones de un mismo partido en entrenamiento y prueba & Partición \emph{por partido} & \texttt{test\_temporal\_split\_\dots} \\
+T4 usa lo que ocurre durante la posesión & $x$ = solo información disponible al inicio & Diseño de \texttt{POSS\_NUM}/\texttt{POSS\_CAT} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% =====================================================================
+\section{Partición y validación}\label{sec:particion}
+% =====================================================================
+Los partidos no son independientes ni idénticamente distribuidos: el estilo evoluciona. Una partición aleatoria
+filtraría el futuro al entrenamiento. Por eso se usa una partición \textbf{temporal por partido} 70/15/15
+(Cuadro~\ref{tab:split}). La prueba contiene los \nTest{} partidos más recientes (desde el \testDesde) y se usa
+\textbf{una sola vez}.
+
+\input{tables/split.tex}
+
+\begin{itemize}
+  \item \textbf{Hiperparámetros}: validación cruzada de \emph{ventana creciente} (\texttt{TimeSeriesSplit}, 4 pliegues)
+        sobre entrenamiento + validación, con búsqueda en malla. Siempre se entrena con el pasado y se valida con el
+        futuro inmediato.
+  \item \textbf{Preprocesamiento}: estandarización e imputación con estadísticas de entrenamiento, y one-hot con
+        \texttt{drop="first"} para evitar la trampa de las variables ficticias. Todo va dentro del \texttt{Pipeline}.
+  \item \textbf{Baselines}: en regresión, la media histórica de entrenamiento y la media móvil de los 5 partidos previos
+        (inercia); en clasificación, la clase mayoritaria o la tasa base. Un modelo solo "supera al baseline" si le gana
+        al \emph{mejor} de los dos (criterio conservador).
+\end{itemize}
+
+% =====================================================================
+\section{Tareas, modelos y resultados base}\label{sec:modelos}
+% =====================================================================
+Para cada tarea se reporta la formulación (Cuadro~\ref{tab:tareas}), el desempeño en prueba frente al baseline y, cuando
+aplica, el diagnóstico de supuestos. Los parámetros (coeficientes, cortes del árbol, centroides) se aprenden de los
+datos. Los hiperparámetros (penalización $\alpha$ o $C$, profundidad, número de vecinos, $k$) se eligen por validación
+cruzada.
+
+\subsection{T1 · Ajuste al contexto previo (5.2)}
+\textbf{$y$}: cada una de 12 variables de estilo. \textbf{$x$}: lo que se sabe \emph{antes} del partido (localía, fuerza
+del rival, fase, días de descanso y orden cronológico) más la inercia (media de los 5 partidos previos). \textbf{Modelos}:
+Ridge y LASSO (regresión lineal con penalización L2 y L1, que reducen la varianza), árbol de decisión (no lineal e
+interpretable) y KNN.
+
+\input{tables/t1.tex}
+
+\begin{historia}[Lectura de T1: identidad estable más ruido, con ajustes claros al contexto]
+\begin{itemize}
+  \item El modelo supera al mejor baseline en \nTunoSupera{} de \nTuno{} variables, con mejoras modestas (hasta
+        \tunoMejoraMax\,\%) y un $R^2$ de prueba cercano a 0. La \emph{media histórica} suele ganarle a la inercia: el
+        estilo por partido se comporta como una identidad estable más ruido, no como una tendencia que se arrastra.
+  \item Aun así, el contexto mueve el estilo de forma sistemática (Figura~\ref{fig:t1}). Por cada punto por partido
+        adicional de fuerza del rival, la posesión baja \rivalPos{} puntos, el field tilt \rivalTilt{} y los pases largos
+        suben \rivalLong. De local, el field tilt sube \localTilt{} puntos y las acciones defensivas en campo rival
+        \localPress.
+\end{itemize}
+\end{historia}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{t1_context_effects.png}
+\caption{Efecto de la localía y de la fuerza del rival sobre cada variable de estilo (OLS, en desviaciones estándar de
+la variable; $*$: $p<0.05$).}
+\label{fig:t1}
+\end{figure}
+
+\paragraph{Supuestos del modelo lineal.} Para interpretar coeficientes se ajusta un OLS con las mismas $x$ y se
+diagnostican los supuestos (Cuadro~\ref{tab:t1Assump}):
+\begin{itemize}
+  \item \textbf{Independencia}: el Durbin-Watson ronda 2, porque la inercia absorbe la dependencia temporal.
+  \item \textbf{Homocedasticidad}: Breusch-Pagan no la rechaza en ninguna variable.
+  \item \textbf{Normalidad}: Jarque-Bera la rechaza en las variables con colas pesadas (PPDA, xG propio y xG rival) y,
+        marginalmente, en field tilt. Eso no afecta la
+        predicción, pero sí los intervalos, por lo que se interpreta el tamaño del efecto antes que el valor $p$.
+  \item \textbf{Multicolinealidad}: el VIF máximo es menor que 1.5, así que no hay multicolinealidad entre las $x$.
+\end{itemize}
+
+\input{tables/t1_assumptions.tex}
+
+\subsection{T2 · Ajuste intra-partido: marcador y momento (5.2)}
+\textbf{$y$}: el estilo en cada tramo de 15' con estado del marcador (\nSegmentos{} segmentos). \textbf{$x$}: estado del
+marcador, tramo, localía, fase y fuerza del rival. \textbf{Modelos}: Ridge y árbol.
+
+\input{tables/t2.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\linewidth]{t2_game_state.png}
+\caption{Coeficientes de Ridge del estado del marcador: diferencia respecto al empate, en unidades de cada variable.}
+\label{fig:t2}
+\end{figure}
+
+\begin{historia}[Lectura de T2: el marcador cambia el plan]
+Ridge supera al baseline en las seis variables. El patrón es claro y simétrico: perdiendo por un gol, el field tilt
+sube \tiltPierde{} puntos y la posesión \posPierde; ganando por uno, bajan \tiltGana{} y \posGana. El equipo adelanta la
+presión y el bloque cuando necesita el gol y se repliega cuando lo protege. Parte del efecto es universal en el fútbol
+(el rival también ajusta), por lo que la comparación útil será entre periodos y entrenadores con la misma medida.
+\end{historia}
+
+\subsection{T3 · Principios que generan dominio (5.1, 5.5) y T3b · resultado}
+\textbf{$y$}: OBV neto y diferencial de np xG. \textbf{$x$}: 24 métricas de \emph{proceso}; se excluyen xG, tiros, OBV y
+sus derivados para evitar un objetivo disfrazado. \textbf{Modelos}: LASSO, cuya penalización L1 selecciona variables,
+con estabilidad medida en 100 remuestreos bootstrap; árbol y KNN.
+
+\input{tables/t3.tex}
+\input{tables/t3_lasso.tex}
+
+\begin{itemize}
+  \item \textbf{Diferencial de np xG}: LASSO mejora al baseline ($R^2=\tresRdos$) con \tresNvar{} principios de proceso
+        estables. En orden: más acciones en el área rival, juego más repartido (Gini de toques), precisión bajo presión
+        en la salida y progresión por pase, y menos llegadas del rival al último tercio.
+  \item \textbf{OBV neto}: la validación cruzada elige el modelo nulo, porque ninguna métrica de proceso lo explica mejor
+        que la media. El OBV neto de un partido es muy ruidoso, y el diferencial de xG es mejor objetivo de "dominio".
+  \item \textbf{T3b} (resultado G/E/P, Cuadro~\ref{tab:t3b}): los modelos mejoran el F1 macro frente a predecir siempre
+        victoria, pero el resultado depende de la conversión, que es mayormente azar. Por eso la ficha explica el
+        resultado con la simulación del xG (Sección~\ref{sec:implementacion}) y no con un clasificador.
+\end{itemize}
+
+\input{tables/t3b.tex}
+
+\subsection{T4 · Posesión $\rightarrow$ ocasión (5.1) y T5 · balón parado (5.4)}
+Ambas son clasificaciones binarias desbalanceadas: solo el \cuatroPrev\,\% de las posesiones del equipo termina en
+tiro. Se usa \texttt{class\_weight="balanced"}, que mejora la \emph{discriminación} (ROC-AUC de \cuatroAUC{} en T4) pero
+\emph{descalibra} las probabilidades; por eso el Brier empeora frente a la tasa base. Para comparar posesiones o
+jugadas basta con discriminar bien; para usar la probabilidad como tal habría que recalibrarla (por ejemplo, con
+Platt o isotónica). Las \emph{model cards} lo registran en el campo \texttt{calibrated}.
+
+\input{tables/t4.tex}
+\input{tables/t4_coefs.tex}
+\input{tables/t5.tex}
+\input{tables/t5_rates.tex}
+
+\subsection{T6 · Impacto de las sustituciones (5.3)}
+\textbf{$y$}: el cambio en OBV neto, field tilt y np xG entre los 15' anteriores y los 15' posteriores a cada intervención
+(\nCambios{} intervenciones; los cambios hechos en un mismo minuto cuentan como una). \textbf{$x$}: minuto, marcador,
+número de cambios, líneas que salen, localía y rival.
+
+\input{tables/t6.tex}
+
+Ningún modelo supera a los baselines ("el cambio no altera nada" o el cambio medio). Con la información disponible, el efecto de un cambio es
+\textbf{impredecible} intervención por intervención. Es un resultado honesto: la ficha muestra el antes y el después de
+cada cambio (Figura~\ref{fig:fichaTimeline}), pero no promete su efecto.
+
+\subsection{T7 · Distribución del juego según el contexto (5.3 + 5.2)}
+\input{tables/t7.tex}
+La concentración del juego y la potenciación de los jugadores apenas dependen del contexto previo: solo la dependencia
+de los tres mejores mejora ligeramente a la media histórica. El reparto del juego es un rasgo del partido y no algo
+que se anticipe desde el calendario.
+
+\subsection{U1 / U2 · Ejes de estilo y tipos de partido}
+\textbf{U1}: PCA sobre las 12 variables de estilo, ajustado solo con entrenamiento; se retienen las \nPC{} componentes
+necesarias para superar el 70\,\% de la varianza. La primera (\pcUnoVar\,\%) es un eje de \emph{dominio territorial}:
+field tilt, altura de acciones defensivas y presión alta. \textbf{U2}: K-means sobre las componentes, con $k$ elegido
+por silhouette ($k=2$, silhouette $=\silDos$).
+
+\input{tables/u2_profiles.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{u1u2_style.png}
+\caption{Mapa de estilo (dos primeras componentes) con el tipo de partido, y porcentaje de cada tipo por torneo.}
+\label{fig:u1u2}
+\end{figure}
+
+\begin{historia}[Dos tipos de partido]
+\begin{itemize}
+  \item \textbf{Tipo 1, dominante}: posesión \tipoUnoPos\,\%, field tilt \tipoUnoTilt\,\%, PPDA \tipoUnoPPDA.
+  \item \textbf{Tipo 2, reactivo}: posesión \tipoDosPos\,\%, field tilt \tipoDosTilt\,\%, PPDA \tipoDosPPDA.
+\end{itemize}
+El equipo juega mayormente partidos del tipo 1, pero la proporción cambia por torneo (Cuadro~\ref{tab:u2Torneo}). El
+Apertura 2024, campeón, fue el torneo más reactivo; el Apertura 2025, el más dominante. La silhouette moderada indica un
+\emph{continuo} de estilo más que grupos separados: los tipos son una simplificación útil para la ficha.
+\end{historia}
+
+\input{tables/u2_torneo.tex}
+
+\subsection{U3 · Roles de jugador (5.3)}
+K-means sobre perfiles por 90' (jugador $\times$ partido con al menos 30 minutos, sin porteros; 14 acciones), ajustado
+con entrenamiento. Se identifican \nRoles{} roles (Cuadro~\ref{tab:u3}, Figura~\ref{fig:u3}): un rol de
+\emph{distribución} (muchos toques y pases, dominado por medios defensivos), uno de \emph{recuperación}
+(defensas), uno de \emph{creación} (xA y OBV de pase), uno de \emph{finalización y presión} (delanteros) y uno de
+\emph{regate y conducción} (bandas). La silhouette baja ($\silRoles$) indica que los roles se solapan: un mismo jugador
+cambia de rol entre partidos, que es justo lo que interesa medir en el encaje rol--uso.
+
+\input{tables/u3.tex}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{u3_roles.png}
+\caption{Perfil estandarizado de cada rol de jugador (centroides de K-means).}
+\label{fig:u3}
+\end{figure}
+
+% =====================================================================
+\section{Evaluación en la prueba temporal}\label{sec:evaluacion}
+% =====================================================================
+De \nSupervisados{} modelos supervisados, \nSupera{} superan al mejor baseline en la prueba temporal (Apéndice~\ref{app:cards}).
+El Cuadro~\ref{tab:overfit} compara el error de los modelos de T1 en entrenamiento, validación y prueba:
+\begin{itemize}
+  \item Razones prueba/entrenamiento cercanas a 1 indican que el modelo no memorizó.
+  \item Razones de 1.3--1.4 (los KNN de posesión, saques de meta cortos, transiciones y pases progresivos) son síntoma
+        de sobreajuste o de un cambio de distribución en los partidos recientes. En las dos últimas el modelo tampoco
+        supera al baseline, y la ficha usa el baseline.
+\end{itemize}
+
+\input{tables/overfitting.tex}
+
+% =====================================================================
+\section{Implementación: la ficha como producto}\label{sec:implementacion}
+% =====================================================================
+\subsection{¿Hace falta un \emph{model registry}?}
+Un registry completo (versiones, estados de aprobación, despliegue) no se justifica para un equipo pequeño que trabaja
+en local: git versiona el código y el pipeline regenera todo. Lo mínimo útil es una \textbf{model card} por modelo:
+\texttt{models/<nombre>.joblib} con el pipeline entrenado y \texttt{.json} con la tarea, las variables, los
+hiperparámetros, las fechas de entrenamiento, la métrica frente al baseline y el \emph{hash} de la tabla Gold. La regla
+de uso: si \texttt{beats\_baseline} es falso, la ficha usa el baseline. Ejemplo:
+
+{\footnotesize\VerbatimInput{tables/card_example.txt}}
+
+\subsection{Scoring en batch y ficha automática}
+La etapa \texttt{score} calcula, para cada partido:
+\begin{itemize}
+  \item el estilo esperado según T1 (o el baseline) frente al observado;
+  \item la posición en el mapa de estilo, el tipo de partido y los tres partidos más parecidos (KNN);
+  \item la probabilidad del resultado por \textbf{simulación Monte Carlo del xG}: cada tiro es un Bernoulli con
+        probabilidad igual a su xG y se simulan 10,000 repeticiones del partido.
+\end{itemize}
+La etapa \texttt{report} genera una ficha HTML estática (Jinja2 + matplotlib) que lee solo de Gold, de los scores y de
+las \emph{model cards}. Secciones:
+\begin{enumerate}
+  \item contexto;
+  \item crónica automática;
+  \item el partido en números por criterio (percentil frente a los partidos de entrenamiento);
+  \item uso de jugadores;
+  \item comparación histórica;
+  \item momentos;
+  \item balón parado;
+  \item proyección (esperado frente a observado y siguiente partido);
+  \item monitoreo de drift;
+  \item trazabilidad.
+\end{enumerate}
+Se generaron dos ejemplos: la final de vuelta del Apertura 2024 (Monterrey 1--1, visita) y el partido de fase regular
+con mayor dominio territorial (Santos 3--0, field tilt 91\,\%).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{ficha_percentiles.png}
+\caption{Ficha de la final del Apertura 2024: percentil de cada métrica frente a los partidos de entrenamiento (azul: $\geq80$; naranja: $\leq20$).}
+\label{fig:fichaPct}
+\end{figure}
+
+\begin{historia}[Lo que la ficha cuenta de la final sin haberla visto]
+\begin{itemize}
+  \item Fue un partido reactivo (tipo 2): la posesión estuvo en el percentil 0 y la presión alta en el 2.
+  \item Se defendió abajo y resistió: la precisión bajo presión en la salida estuvo en el percentil 91, y el valor lo
+        generaron defensas y carrileros (54\,\% del OBV positivo).
+  \item El modelo de contexto esperaba acciones defensivas mucho más altas ($-2.1$ desviaciones estándar): el plan se
+        desvió de lo habitual.
+  \item Con los tiros que hubo, el resultado más probable era la derrota (P = 53\,\%); el empate que dio el título fue,
+        según el xG, un resultado favorable.
+\end{itemize}
+\end{historia}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{ficha_players.png}
+\caption{Ficha de la final: OBV por jugador (color = línea) y rendimiento frente a la referencia previa de cada jugador.}
+\label{fig:fichaPlayers}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{ficha_timeline.png}
+\caption{Ficha de la final: xG acumulado, goles y cambios (arriba); field tilt y altura de las acciones defensivas por
+tramo (abajo).}
+\label{fig:fichaTimeline}
+\end{figure}
+
+\subsection{Monitoreo de \emph{drift}}
+El PSI (\emph{Population Stability Index}) compara la distribución reciente de cada variable con la de
+entrenamiento. Con ventanas de 10 partidos, el PSI esperado \emph{sin} drift ya ronda 0.4, así que los umbrales clásicos
+(0.10 y 0.25) marcarían drift siempre. Por eso los umbrales se calibran por remuestreo: 1,000 muestras de 10 partidos de
+entrenamiento dan la distribución nula, y se marca drift moderado por encima del percentil 90 y fuerte por encima del 99
+(Cuadro~\ref{tab:drift}). Con este criterio, en los últimos 10 partidos solo los pases largos muestran un cambio
+moderado.
+
+\input{tables/drift.tex}
+
+% =====================================================================
+\section{Limitaciones y siguientes pasos}\label{sec:limitaciones}
+% =====================================================================
+\begin{itemize}
+  \item \textbf{Muestra}: 222 partidos es poco para modelos flexibles. Por eso se privilegian modelos regularizados e
+        interpretables, y las mejoras sobre el baseline son modestas.
+  \item \textbf{Causalidad}: todos los resultados son asociaciones. El efecto del contexto sobre el estilo (T1, T2) no
+        separa la decisión propia de la respuesta del rival.
+  \item \textbf{Rival}: la fuerza del rival se mide con puntos previos, no con su estilo. Un siguiente paso es
+        caracterizar a cada rival con las mismas variables.
+  \item \textbf{360}: los datos de 360 están en Silver pero aún no se usan en variables (por ejemplo, pases que rompen
+        líneas o presión por compañeros cercanos).
+  \item \textbf{Calibración}: las probabilidades de T4 y T5 deben recalibrarse antes de leerse como tales.
+  \item \textbf{Siguiente fase}: usar este marco para comparar periodos y entrenadores con las variables núcleo,
+        contrastar las hipótesis del EDA y convertir la ficha en la base de la narrativa final.
+\end{itemize}
+
+\appendix
+% =====================================================================
+\section{Supuestos del marco}\label{app:assumptions}
+\input{tables/assumptions.tex}
+
+\section{Catálogo de variables}\label{app:catalog}
+\input{tables/catalog.tex}
+
+\section{Evaluación completa de variables}\label{app:varEval}
+\input{tables/variable_evaluation.tex}
+
+\section{Model cards}\label{app:cards}
+\input{tables/model_cards.tex}
+
+\section{Tablas complementarias}
+\input{tables/u1_loadings.tex}
+\input{tables/u1.tex}
+
+\end{document}

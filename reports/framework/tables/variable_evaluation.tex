@@ -1,0 +1,68 @@
+{\scriptsize
+\begin{longtable}{p{4.2cm} p{2.3cm} rrrrrrc p{2.9cm}}
+\caption{Evaluación de las variables como criterios. Fiab.\ = fiabilidad intra-partido (Spearman-Brown); ICC = ICC(1) con dos tiempos; lag-1 = autocorrelación entre partidos; $R^2$ ctx = variación explicada por localía, rival y fase; máx $|\rho|$ = redundancia; $\rho$ xG = validez frente al diferencial de np xG.}\label{tab:varEval}\\
+\toprule
+\textbf{variable} & \textbf{criterio} & \textbf{fiab.} & \textbf{ICC} & \textbf{lag-1} & \textbf{$R^2$ ctx} & \textbf{máx $|\rho|$} & \textbf{$\rho$ xG} & \textbf{núcleo} & \textbf{motivo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{variable} & \textbf{criterio} & \textbf{fiab.} & \textbf{ICC} & \textbf{lag-1} & \textbf{$R^2$ ctx} & \textbf{máx $|\rho|$} & \textbf{$\rho$ xG} & \textbf{núcleo} & \textbf{motivo} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+xG a balón parado & Balón parado & 0.22 & 0.08 & -0.09 & 0.07 & 0.68 & 0.54 & no & fiabilidad baja \\
+xG rival a balón parado & Balón parado & 0.09 & 0.09 & -0.03 & 0.02 & 0.71 & -0.48 & no & fiabilidad baja \\
+Córners con tiro (\%) & Balón parado & 0.10 & 0.07 & -0.11 & 0.05 & 0.38 & 0.17 & no & fiabilidad baja \\
+Córners rivales con tiro (\%) & Balón parado & 0.07 & 0.02 & 0.05 & 0.05 & 0.49 & -0.28 & no & fiabilidad baja \\
+Precisión bajo presión en tercio propio (\%) & Construcción & 0.19 & 0.11 & 0.20 & 0.00 & 0.24 & 0.24 & no & fiabilidad baja \\
+Saques de meta cortos (\%) & Construcción & 0.45 & 0.31 & 0.14 & 0.06 & 0.46 & 0.17 & sí &  \\
+Pases por construcción & Construcción & 0.40 & 0.22 & 0.05 & 0.09 & 0.60 & 0.28 & sí &  \\
+Construcciones que llegan a campo rival (\%) & Construcción & 0.37 & 0.21 & 0.21 & 0.08 & 0.67 & 0.22 & sí &  \\
+Field tilt (\%) & Dominio & 0.55 & 0.40 & -0.00 & 0.09 & 0.76 & 0.33 & no & VIF 10.1 \\
+Posesión (\% del tiempo) & Dominio & 0.40 & 0.27 & 0.07 & 0.10 & 0.75 & 0.27 & sí &  \\
+np xG por tiro & Ocasiones & 0.23 & 0.13 & 0.14 & 0.00 & 0.69 & 0.56 & no & fiabilidad baja \\
+xG de juego elaborado (\%) & Ocasiones & 0.00 & -0.02 & 0.08 & 0.02 & 0.47 & -0.05 & no & fiabilidad baja \\
+xG en transición (\%) & Ocasiones & 0.24 & 0.15 & 0.00 & 0.05 & 0.79 & 0.07 & no & fiabilidad baja \\
+xG a balón parado (\%) & Ocasiones & 0.19 & 0.09 & -0.08 & 0.02 & 0.68 & 0.04 & no & fiabilidad baja \\
+xG tras centro (\%) & Ocasiones & 0.09 & 0.02 & 0.04 & 0.03 & 0.26 & 0.13 & no & fiabilidad baja \\
+np xG /100 posesiones & Ocasiones & 0.30 & 0.19 & 0.07 & 0.08 & 0.82 & 0.82 & sí &  \\
+Tiros /100 posesiones & Ocasiones & 0.36 & 0.17 & 0.03 & 0.16 & 0.72 & 0.60 & sí &  \\
+Acciones en área rival /100 posesiones & Ocasiones & 0.46 & 0.29 & 0.10 & 0.06 & 0.62 & 0.52 & sí &  \\
+np xG rival /100 pos. rivales & Organización defensiva & 0.09 & 0.03 & -0.09 & 0.01 & 0.71 & -0.57 & no & fiabilidad baja \\
+Tiros rivales /100 pos. rivales & Organización defensiva & 0.09 & 0.10 & -0.11 & 0.04 & 0.64 & -0.45 & no & fiabilidad baja \\
+Posesiones rivales que llegan a último tercio (\%) & Organización defensiva & 0.38 & 0.22 & 0.14 & 0.09 & 0.80 & -0.26 & sí &  \\
+Altura del bloque (x) & Organización defensiva & 0.37 & 0.24 & 0.07 & 0.06 & 0.85 & 0.30 & sí &  \\
+Acciones defensivas en campo rival (\%) & Presión & 0.43 & 0.25 & -0.03 & 0.09 & 0.96 & 0.32 & no & redundante con def\_action\_x\_mean \\
+Recuperaciones altas /100 pos. rivales & Presión & 0.24 & 0.15 & 0.08 & 0.09 & 0.64 & 0.26 & no & fiabilidad baja \\
+PPDA & Presión & 0.50 & 0.14 & 0.22 & 0.07 & 0.41 & -0.06 & sí &  \\
+Altura de acciones defensivas (x) & Presión & 0.44 & 0.28 & 0.00 & 0.08 & 0.96 & 0.35 & sí &  \\
+Contrapresión por pérdida & Presión & 0.32 & 0.19 & 0.12 & 0.01 & 0.26 & 0.07 & sí &  \\
+Progresión por izquierda (\%) & Progresión & 0.10 & 0.07 & 0.07 & 0.02 & 0.48 & -0.08 & no & fiabilidad baja \\
+Progresión por derecha (\%) & Progresión & 0.24 & 0.14 & 0.04 & 0.03 & 0.54 & -0.01 & no & fiabilidad baja \\
+Pases progresivos /100 pases & Progresión & 0.36 & 0.14 & 0.01 & 0.03 & 0.39 & 0.23 & sí &  \\
+Conducciones progresivas /100 pases & Progresión & 0.30 & 0.14 & 0.13 & 0.04 & 0.36 & 0.19 & sí &  \\
+Progresión por el centro (\%) & Progresión & 0.38 & 0.22 & -0.01 & 0.01 & 0.54 & 0.13 & sí &  \\
+Posesiones que progresan a último tercio (\%) & Progresión & 0.45 & 0.26 & 0.21 & 0.03 & 0.67 & 0.25 & sí &  \\
+Altura media de pase (x) & Progresión & 0.47 & 0.31 & 0.12 & 0.03 & 0.76 & 0.25 & sí &  \\
+Pases largos (\%) & Progresión & 0.63 & 0.45 & 0.34 & 0.01 & 0.41 & -0.21 & sí &  \\
+xG rival en transición /100 pos. & Transiciones & 0.13 & -0.03 & -0.03 & 0.01 & 0.58 & -0.37 & no & fiabilidad baja \\
+Pérdidas recuperadas en $\leq$5 s (\%) & Transiciones & -- & -- & -0.04 & 0.03 & 0.28 & 0.14 & no & sin estabilidad (lag-1 $\leq$ 0) \\
+Posesiones en transición (\%) & Transiciones & 0.33 & 0.19 & 0.04 & 0.04 & 0.59 & 0.33 & sí &  \\
+xG en transición /100 posesiones & Transiciones & 0.30 & 0.11 & 0.10 & 0.06 & 0.79 & 0.48 & sí &  \\
+Gini del OBV & Uso de jugadores & -- & -- & -0.00 & 0.03 & 0.95 & -0.19 & no & sin estabilidad (lag-1 $\leq$ 0) \\
+OBV de los 3 mejores (\%) & Uso de jugadores & -- & -- & -0.04 & 0.04 & 0.95 & -0.19 & no & sin estabilidad (lag-1 $\leq$ 0) \\
+OBV de defensas y carrileros (\%) & Uso de jugadores & -- & -- & -0.02 & 0.02 & 0.40 & -0.28 & no & sin estabilidad (lag-1 $\leq$ 0) \\
+OBV de bandas (\%) & Uso de jugadores & -- & -- & -0.11 & 0.06 & 0.36 & 0.34 & no & sin estabilidad (lag-1 $\leq$ 0) \\
+OBV de delanteros (\%) & Uso de jugadores & -- & -- & -0.06 & 0.02 & 0.34 & 0.24 & no & sin estabilidad (lag-1 $\leq$ 0) \\
+Gini de toques & Uso de jugadores & -- & -- & 0.08 & 0.03 & 0.41 & 0.16 & sí &  \\
+Gini de progresión & Uso de jugadores & -- & -- & 0.05 & 0.03 & 0.41 & -0.04 & sí &  \\
+OBV del mejor jugador (\%) & Uso de jugadores & -- & -- & 0.07 & 0.03 & 0.82 & -0.18 & sí &  \\
+OBV de medios (\%) & Uso de jugadores & -- & -- & 0.04 & 0.01 & 0.27 & 0.12 & sí &  \\
+Jugadores sobre su referencia (\%) & Uso de jugadores & -- & -- & 0.11 & 0.06 & 0.67 & 0.32 & sí &  \\
+OBV p90 vs referencia (media) & Uso de jugadores & -- & -- & 0.14 & 0.07 & 0.67 & 0.26 & sí &  \\
+Cambios en el XI & Uso de jugadores & -- & -- & 0.25 & 0.10 & 0.22 & 0.04 & sí &  \\
+Cambios de sistema & Uso de jugadores & -- & -- & 0.17 & 0.01 & 0.22 & -0.06 & sí &  \\
+Minuto del primer cambio & Uso de jugadores & -- & -- & 0.02 & 0.03 & 0.34 & 0.20 & sí &  \\
+\end{longtable}
+}

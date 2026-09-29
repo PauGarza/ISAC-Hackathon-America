@@ -1,0 +1,17 @@
+\begin{table}[H]
+\centering
+\small
+\caption{T7 -- Distribución del juego según el contexto: MAE en prueba.}
+\label{tab:t7}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{variable} & \textbf{modelo} & \textbf{MAE modelo} & \textbf{media móvil 5} & \textbf{media hist.} \\
+\midrule
+Gini de toques & Ridge & 0.036 & 0.039 & 0.033 \\
+Gini de progresión & LASSO & 0.064 & 0.063 & 0.064 \\
+OBV de los 3 mejores (\%) & Árbol & 7.803 & 8.417 & 8.017 \\
+OBV p90 vs referencia (media) & LASSO & 0.101 & 0.102 & 0.101 \\
+\bottomrule
+\end{tabular}}
+\end{table}

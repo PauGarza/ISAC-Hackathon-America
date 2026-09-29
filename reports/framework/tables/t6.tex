@@ -1,0 +1,16 @@
+\begin{table}[H]
+\centering
+\small
+\caption{T6 -- Impacto de las sustituciones: MAE en prueba frente a dos baselines.}
+\label{tab:t6}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{objetivo} & \textbf{Baseline: sin cambio ($\Delta$=0)} & \textbf{Baseline: $\Delta$ medio} & \textbf{Ridge} & \textbf{Árbol} & \textbf{R2 Ridge} \\
+\midrule
+\$\textbackslash\{\}Delta\$ OBV neto & 0.670 & 0.675 & 0.685 & 0.686 & 0.036 \\
+\$\textbackslash\{\}Delta\$ field tilt & 22.003 & 21.994 & 22.340 & 22.277 & -0.044 \\
+\$\textbackslash\{\}Delta\$ np xG & 0.300 & 0.301 & 0.303 & 0.314 & -0.018 \\
+\bottomrule
+\end{tabular}}
+\end{table}

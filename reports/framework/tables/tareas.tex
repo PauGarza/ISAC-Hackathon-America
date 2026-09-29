@@ -1,0 +1,24 @@
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Formulación de las tareas: variable objetivo ($y$), explicativas ($x$), tipo de problema, modelos (del baseline a los candidatos) y medida de desempeño ($P$).}
+\label{tab:tareas}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{l p{2.1cm} p{0.9cm} p{1.8cm} p{2.1cm} p{3.2cm} p{1.5cm} p{2.6cm} p{1.5cm}}
+\toprule
+\textbf{tarea} & \textbf{nombre} & \textbf{reto} & \textbf{unidad (Gold)} & \textbf{y} & \textbf{x} & \textbf{tipo} & \textbf{modelos} & \textbf{P} \\
+\midrule
+T1 & Ajuste al contexto previo & 5.2 & match\_features + dim\_match & 12 variables de estilo & localía, fuerza del rival previa, fase, descanso, orden, inercia (5 previos) & Regresión & Baseline $\rightarrow$ Ridge / LASSO $\rightarrow$ Árbol $\rightarrow$ KNN & MAE, RMSE, R$^2$ \\
+T2 & Ajuste intra-partido & 5.2 & fct\_segment & estilo en el tramo & estado del marcador, tramo de 15', localía, fase, fuerza del rival & Regresión & Baseline $\rightarrow$ Ridge $\rightarrow$ Árbol & MAE, R$^2$ \\
+T3 & Principios que generan dominio & 5.1, 5.5 & match\_features & OBV neto, diferencial np xG & 24 métricas de proceso (sin resultado) & Regresión & Baseline $\rightarrow$ LASSO (+bootstrap) $\rightarrow$ Árbol $\rightarrow$ KNN & MAE, RMSE, R$^2$ \\
+T3b & Resultado & 5.5 & match\_features & G / E / P & 24 métricas de proceso & Multiclase & Clase mayoritaria $\rightarrow$ Logística softmax $\rightarrow$ Árbol & F1 macro, exactitud, matriz de confusión \\
+T4 & Posesión $\rightarrow$ ocasión & 5.1 & fct\_possession & la posesión termina en tiro & inicio (x, y), patrón, recuperación, marcador, minuto, localía, rival & Binaria desbalanceada & Tasa base $\rightarrow$ Logística $\rightarrow$ Árbol $\rightarrow$ KNN & ROC-AUC, F1, Brier \\
+T5 & Balón parado & 5.4 & fct\_set\_piece & el balón parado termina en tiro & tipo, entrega, zona de destino, lado, altura & Binaria & Tasa base $\rightarrow$ Logística $\rightarrow$ Árbol & ROC-AUC, Brier \\
+T6 & Impacto de sustituciones & 5.3 & fct\_substitution & $\Delta$ OBV neto, $\Delta$ field tilt, $\Delta$ np xG (15' después -- antes) & minuto, marcador, n.º de cambios, líneas que salen, localía, rival & Regresión & $\Delta$=0 / $\Delta$ medio $\rightarrow$ Ridge $\rightarrow$ Árbol & MAE, R$^2$ \\
+T7 & Distribución del juego & 5.3, 5.2 & match\_features & Gini de toques/progresión, top-3 OBV, potenciación & contexto previo + inercia & Regresión & Baseline $\rightarrow$ Ridge / LASSO $\rightarrow$ Árbol $\rightarrow$ KNN & MAE, R$^2$ \\
+U1 & Ejes de estilo & 5.1, 5.2 & match\_features & — & 12 variables de estilo & Reducción de dimensión & PCA (70 \% varianza) & varianza explicada \\
+U2 & Tipos de partido & 5.2 & componentes U1 & — & — & Clustering & K-means (k por silhouette) & silhouette \\
+U3 & Roles de jugador & 5.3 & fct\_player\_match ($\geq$30') & — & 14 acciones p90 & Clustering & K-means (k por silhouette) & silhouette, interpretabilidad \\
+\bottomrule
+\end{tabular}}
+\end{table}

@@ -1,0 +1,36 @@
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{Supuestos y umbrales del marco (\texttt{framework.ASSUMPTIONS}).}
+\label{tab:assumptions}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{l p{9cm}}
+\toprule
+\textbf{supuesto} & \textbf{valor} \\
+\midrule
+pitch & (120, 80) \\
+third\_limits & (40, 80) \\
+lane\_limits & (26.666666666666668, 53.333333333333336) \\
+box & \{'x\_min': 102, 'y\_min': 18, 'y\_max': 62\} \\
+danger\_zone & \{'x\_min': 90, 'y\_min': 18, 'y\_max': 62\} \\
+offensive\_sequence\_min\_passes & 3 \\
+build\_up\_start\_x\_max & 40 \\
+progression\_from\_x\_max & 60 \\
+transition\_window\_s & 15 \\
+counterpress\_window\_s & 5 \\
+press\_high\_x & 60 \\
+press\_mid\_x & 40 \\
+ppda\_def\_zone\_x & 48 \\
+ppda\_opp\_pass\_x\_max & 72 \\
+progressive\_min\_gain & 0.25 \\
+progressive\_end\_x\_min & 48 \\
+set\_piece\_throw\_in\_x\_min & 80 \\
+minute\_bins & [0, 15, 30, 45, 60, 75, 90, 200] \\
+minute\_labels & ['0-15', '15-30', '30-45+', '45-60', '60-75', '75-90', '90+'] \\
+player\_min\_minutes & 30 \\
+player\_reference\_window & 10 \\
+rival\_strength\_window & 17 \\
+sub\_window\_min & 15 \\
+\bottomrule
+\end{tabular}}
+\end{table}

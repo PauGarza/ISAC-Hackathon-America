@@ -1,0 +1,26 @@
+{
+ "name": "T1_field_tilt",
+ "task": "T1",
+ "target": "field_tilt",
+ "model": "Ridge",
+ "features": [
+  "rival_ppg_prev",
+  "rest_days",
+  "match_order",
+  "field_tilt__prev5",
+  "is_home",
+  "fase"
+ ],
+ "params": {
+  "m__alpha": 100
+ },
+ "train_dates": [
+  "2021-07-23",
+  "2025-10-19"
+ ],
+ "baseline": "Baseline: media histórica (train)",
+ "test_MAE": 12.537,
+ "baseline_MAE": 13.436,
+ "beats_baseline": true,
+ "data_hash": "7866e1e18299db0b"
+}

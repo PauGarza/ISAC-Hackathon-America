@@ -1,0 +1,21 @@
+\begin{table}[H]
+\centering
+\small
+\caption{Validación del marco analítico contra StatsBomb y contra datos oficiales.}
+\label{tab:validations}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{p{8.5cm}rrc}
+\toprule
+\textbf{validación} & \textbf{valor} & \textbf{criterio} & \textbf{cumple} \\
+\midrule
+Transición ofensiva (propia) marcada también por StatsBomb (\%) & 100.000 & $\geq$ 70 & sí \\
+Posesiones is\_transition de StatsBomb detectadas por la definición propia (\%) & 31.139 & informativo & -- \\
+PPDA propio vs PPDA StatsBomb ($\rho$ Spearman) & 0.959 & > 0.8 & sí \\
+Posesión (tiempo) vs posesión StatsBomb ($\rho$) & 0.836 & > 0.8 & sí \\
+np xG/100 pos. vs np xG StatsBomb ($\rho$) & 0.971 & > 0.8 & sí \\
+Altura acciones def. vs defensive distance SB ($\rho$) & 0.714 & > 0.6 & sí \\
+Marcador reconstruido == oficial (\% partidos) & 100.000 & = 100 & sí \\
+Minutos fct\_player\_match / minutos por alineaciones (mediana) & 1.042 & $\approx$ 1 & sí \\
+\bottomrule
+\end{tabular}}
+\end{table}

@@ -1,0 +1,25 @@
+\begin{table}[H]
+\centering
+\small
+\caption{T1 -- MAE en la prueba temporal: mejor modelo (elegido por validación cruzada) frente a los dos baselines.}
+\label{tab:t1}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{variable} & \textbf{modelo} & \textbf{media hist.} & \textbf{media móvil 5} & \textbf{modelo} & \textbf{$R^2$} & \textbf{mejora (\%)} \\
+\midrule
+Posesión (\% del tiempo) & KNN & 8.27 & 8.92 & 7.46 & 0.05 & 9.73 \\
+Field tilt (\%) & Ridge & 13.44 & 14.97 & 12.54 & 0.02 & 6.69 \\
+PPDA & KNN & 4.75 & 5.48 & 4.66 & 0.06 & 1.91 \\
+Altura de acciones defensivas (x) & LASSO & 4.47 & 5.41 & 4.40 & 0.01 & 1.43 \\
+Acciones defensivas en campo rival (\%) & Ridge & 6.79 & 8.19 & 6.47 & 0.03 & 4.65 \\
+Altura media de pase (x) & LASSO & 4.32 & 4.53 & 4.31 & -0.05 & 0.21 \\
+Pases progresivos /100 pases & KNN & 1.37 & 1.43 & 1.54 & -0.37 & -12.86 \\
+Pases largos (\%) & LASSO & 2.33 & 2.43 & 2.23 & 0.02 & 4.27 \\
+Saques de meta cortos (\%) & KNN & 28.09 & 25.85 & 25.71 & -0.31 & 0.54 \\
+Posesiones en transición (\%) & KNN & 4.01 & 4.17 & 4.99 & -0.57 & -24.37 \\
+np xG /100 posesiones & Árbol & 0.49 & 0.44 & 0.58 & -0.73 & -31.28 \\
+np xG rival /100 pos. rivales & LASSO & 0.44 & 0.46 & 0.44 & -0.07 & -0.09 \\
+\bottomrule
+\end{tabular}}
+\end{table}

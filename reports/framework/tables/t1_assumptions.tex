@@ -1,0 +1,25 @@
+\begin{table}[H]
+\centering
+\small
+\caption{T1 -- Diagnóstico de supuestos del modelo lineal (OLS en entrenamiento + validación).}
+\label{tab:t1Assump}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{variable} & \textbf{$R^2$ train} & \textbf{Durbin-Watson} & \textbf{BP (p)} & \textbf{JB (p)} & \textbf{VIF máx} \\
+\midrule
+Posesión (\% del tiempo) & 0.124 & 2.023 & 0.587 & 0.560 & 1.310 \\
+Field tilt (\%) & 0.135 & 1.963 & 0.321 & 0.035 & 1.242 \\
+PPDA & 0.187 & 1.969 & 0.232 & 0.000 & 1.285 \\
+Altura de acciones defensivas (x) & 0.117 & 2.057 & 0.283 & 0.588 & 1.251 \\
+Acciones defensivas en campo rival (\%) & 0.118 & 2.149 & 0.258 & 0.677 & 1.251 \\
+Altura media de pase (x) & 0.075 & 1.821 & 0.504 & 0.611 & 1.239 \\
+Pases progresivos /100 pases & 0.055 & 2.066 & 0.426 & 0.708 & 1.230 \\
+Pases largos (\%) & 0.277 & 1.792 & 0.708 & 0.153 & 1.360 \\
+Saques de meta cortos (\%) & 0.130 & 1.912 & 0.377 & 0.052 & 1.236 \\
+Posesiones en transición (\%) & 0.072 & 2.131 & 0.293 & 0.213 & 1.234 \\
+np xG /100 posesiones & 0.139 & 2.079 & 0.357 & 0.000 & 1.230 \\
+np xG rival /100 pos. rivales & 0.024 & 2.259 & 0.944 & 0.000 & 1.240 \\
+\bottomrule
+\end{tabular}}
+\end{table}

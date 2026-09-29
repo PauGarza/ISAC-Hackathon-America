@@ -1,0 +1,25 @@
+\begin{table}[H]
+\centering
+\small
+\caption{Diagnóstico de sobreajuste (T1): MAE del modelo elegido en cada conjunto.}
+\label{tab:overfit}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{variable} & \textbf{train} & \textbf{val} & \textbf{test} & \textbf{test / train} \\
+\midrule
+Acciones defensivas en campo rival (\%) & 6.27 & 5.75 & 6.47 & 1.03 \\
+Altura de acciones defensivas (x) & 4.43 & 4.36 & 4.40 & 0.99 \\
+Altura media de pase (x) & 3.71 & 3.76 & 4.31 & 1.16 \\
+Field tilt (\%) & 12.09 & 9.93 & 12.54 & 1.04 \\
+PPDA & 4.47 & 3.49 & 4.66 & 1.04 \\
+Pases largos (\%) & 2.87 & 2.66 & 2.23 & 0.78 \\
+Pases progresivos /100 pases & 1.10 & 1.26 & 1.54 & 1.40 \\
+Posesiones en transición (\%) & 3.60 & 4.73 & 4.99 & 1.38 \\
+Posesión (\% del tiempo) & 5.62 & 7.21 & 7.46 & 1.33 \\
+Saques de meta cortos (\%) & 19.29 & 20.37 & 25.71 & 1.33 \\
+np xG /100 posesiones & 0.52 & 0.43 & 0.58 & 1.11 \\
+np xG rival /100 pos. rivales & 0.35 & 0.33 & 0.44 & 1.25 \\
+\bottomrule
+\end{tabular}}
+\end{table}
