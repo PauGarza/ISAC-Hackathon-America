@@ -38,6 +38,11 @@ ASSUMPTIONS = {
     "player_reference_window": 10,         # partidos previos para la referencia de un jugador
     "rival_strength_window": 17,           # partidos de liga previos para la fuerza del rival
     "sub_window_min": 15,                  # impacto de sustitución: 15' antes vs 15' después
+    # 360 (solo lo que se ve en la toma): forma defensiva del América en pases rivales de juego abierto
+    "shape_line_players": 4,               # última línea = los 4 jugadores de campo visibles más retrasados
+    "shape_block_players": 8,              # bloque = los 8 de campo más retrasados (última línea + la siguiente)
+    "shape_min_visible": 8,                # mínimo de jugadores de campo propios visibles para que un frame cuente
+    "shape_min_behind_yd": 5,              # la toma debe ver ≥ 5 yd detrás del más retrasado (si no, puede haber otro oculto)
 }
 A = ASSUMPTIONS
 

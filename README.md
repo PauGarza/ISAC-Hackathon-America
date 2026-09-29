@@ -139,7 +139,7 @@ Formato de entrega (bases oficiales): **reporte HTML** con selector de partido, 
 | **1 · Entender los datos** | Descarga completa y EDA por columna, calidad, relaciones y contexto; 10 hipótesis | `notebooks/01`, `notebooks/02`, [`reports/eda/eda_report.pdf`](reports/eda/eda_report.pdf) |
 | **2 · Del dato al criterio** | Pipeline medallion local, marco analítico validado, 55 variables por partido (incluido el uso de jugadores) evaluadas como criterios → 27 núcleo (elegidas solo con la ventana oficial), 11 tareas ML (T1–T7, U1–U3) con partición temporal y baselines, model cards, ficha HTML automática por partido y monitoreo de drift | `src/pipeline/`, `notebooks/03`, [`reports/framework/framework_report.pdf`](reports/framework/framework_report.pdf), `reports/match_reports/*.html` |
 | **2b · ADN del Entrenador** | Benchmark de toda la Liga MX (1,789 partidos, 106 técnicos), perfil de 8 rasgos estandarizado contra la liga del mismo torneo y ajustado por rival y localía, consistencia, contexto, evolución, mapa de técnicos, Índice de Encaje, validación con el cambio a Almada, rotación de técnicos y ROI por escenarios. Hipótesis del EDA reescritas hacia el resultado del hackathon | `src/coach_profile.py`, `src/coach_viz.py`, `src/business.py`, `notebooks/04`, `reports/figures/coach/` |
-| 3 · Narrativa y entrega | Reporte HTML interactivo (con selector de partido) en lenguaje de juego, comparación de entrenadores, ROI/activación/escalabilidad, video de 5 min | pendiente, ver [todo.md](todo.md) |
+| 3 · Narrativa y entrega | Historia de Jardine en `notebooks/05` (§3.2 con balón, §3.3 sin balón, §3.4 forma defensiva con 360: defiende más junto, no más arriba). Pendiente: reporte HTML interactivo (con selector de partido), ROI/activación/escalabilidad, video de 5 min | en curso, ver [todo.md](todo.md) |
 
 **Partición oficial.** Entrenamiento = ventana oficial del hackathon (Apertura 2021 – Clausura 2025); validación = Apertura 2025; prueba = 2026 (incluye la llegada de Almada). Constantes `OFFICIAL_END` y `VAL_END` en `src/pipeline/config.py`.
 
@@ -176,7 +176,7 @@ Modelos: `models/<nombre>.joblib` (ignorado) + `models/<nombre>.json` (**model c
 │   ├── 02_exploracion_datos.ipynb         # EDA
 │   ├── 03_formulacion_variables_modelos.ipynb  # ciclo de vida ML: problema, marco, variables, leakage, T1–T7, U1–U3, drift, fichas
 │   ├── 04_adn_entrenador.ipynb            # ADN del entrenador vs la liga, validación del cambio de técnico, valor para el club
-│   └── 05_historia_jardine.ipynb          # la historia de Jardine con balón (§3.2) y sin balón (§3.3), vs Solari, Ortiz y la liga
+│   └── 05_historia_jardine.ipynb          # la historia de Jardine con balón (§3.2), sin balón (§3.3) y su forma con 360 (§3.4), vs Solari, Ortiz y la liga
 ├── src/
 │   ├── pipeline/                          # python -m src.pipeline run --stages ...
 │   │   ├── config.py                      # rutas, temporadas, endpoints, logger (logs/pipeline.log)
@@ -190,7 +190,7 @@ Modelos: `models/<nombre>.joblib` (ignorado) + `models/<nombre>.json` (**model c
 │   ├── coach_profile.py                   # ADN del entrenador: rasgos, ajuste por contexto, percentiles, encaje, validación
 │   ├── coach_viz.py                       # figuras del ADN (radar, mapa de la liga, contexto, cambio de técnico)
 │   ├── business.py                        # rotación de técnicos (dato) y ROI por escenarios (supuestos explícitos)
-│   ├── story.py · story_viz.py            # historia de Jardine: salida, progresión, ocasiones, red de pases, recuperación, presión, transiciones (+ canchas)
+│   ├── story.py · story_viz.py            # historia de Jardine: salida, progresión, ocasiones, red de pases, recuperación, presión, transiciones, forma defensiva 360 (+ canchas)
 │   ├── match_report.py + templates/       # ficha HTML automática por partido
 │   ├── latex.py                           # exportar tablas y cifras a LaTeX
 │   ├── sb_client.py · eda.py · eda_dictionary.py

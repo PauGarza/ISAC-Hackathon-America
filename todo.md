@@ -46,7 +46,7 @@ Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo s
 | Bloque del reto | Sección | ✔ |
 |---|---|---|
 | Ofensivo: construcción, progresión, generación de ocasiones | §3.2 | [x] notebook 05 |
-| Defensivo: presión, organización, transiciones | §3.3, §3.4 | [ ] presión y transiciones ✅ (§3.3) · falta organización con 360 (§3.4) |
+| Defensivo: presión, organización, transiciones | §3.3, §3.4 | [x] presión y transiciones (§3.3) · altura y compactación con 360 (§3.4) |
 | Consistencia e identidad | §3.5, §3.9 | [ ] |
 | Cambios según el contexto (rival, marcador, localía, momento) | §3.5 | [ ] |
 | Evolución en el tiempo | §3.6 | [ ] |
@@ -143,10 +143,12 @@ Hecho en `notebooks/05_historia_jardine.ipynb` con `src/story.py` (cálculos) y 
 - [x] **Presión frente a la liga** (`presion_liga.png`, comparación contra la media de la liga **en el mismo torneo**, 70 técnicos-club con ≥ 15 partidos): Jardine no asfixia (PPDA 1.9 pases por encima de la liga, 11.º más alto de 70; Ortiz −0.6), pero cuando presiona lo hace arriba (+1.7 puntos de presiones en campo rival, percentil 71) y recupera algo más tras perder (+0.2 por partido, percentil 74) aunque contrapresiona menos (−2.3 por partido).
 - [x] **Transiciones** (`transiciones.png`): gana el intercambio: 19.5 a favor por partido (0.54 xG) frente a 17.2 del rival (0.30 xG): 1.8 veces más peligro a favor (Ortiz 1.7, Solari 1.0). Llegan en ~6 s. Concede 0.89 tiros de contraataque por partido, 14.º que menos de 70 técnicos. El % de pérdidas recuperadas en ≤ 5 s (marco) no distingue a los tres técnicos (13–15 %).
 
-### 3.4 360: ¿qué tan alto y qué tan junto defiende? (diferenciador, mínimo una idea)
-- [ ] Altura de la línea defensiva y compactación (distancia entre líneas) por fase: bloque alto, medio o bajo.
-- [ ] ⚪ Pases que rompen líneas.
-- [ ] Declarar el límite: solo cuenta lo que se ve en la toma (`visible_area`).
+### 3.4 360: ¿qué tan alto y qué tan junto defiende? ✅ (29 sep)
+Notebook 05 §3.4 con `story.rival_open_play_passes`, `defensive_shape`, `shape_summary`, `match_level_diff`; figura `forma_bloque.png`; agregados `story_forma_*.parquet`. Supuestos nuevos en `ASSUMPTIONS`: `shape_line_players` (4), `shape_block_players` (8), `shape_min_visible` (8), `shape_min_behind_yd` (5). Solo hay 360 del América: la comparación es entre técnicos.
+- [x] **Altura y compactación por fase** (pases rivales de juego abierto; fase por la altura del balón con los umbrales de presión del marco). En bloque medio, la última línea de Jardine está a **32 yd** de su portería (Ortiz 34, Solari 33; −1.7 yd por partido frente a Ortiz, IC 90 % −2.6 a −0.8) y su bloque mide **20 yd** (Ortiz 23; −2.1 yd, IC 90 % −2.7 a −1.5). En bloque bajo junta a sus 8 en 15 yd (Ortiz 18, Solari 14). El ancho no distingue a los técnicos (~41 yd).
+- [x] **Posesión rival frente a tras pérdida**: tras perder, la línea de Jardine queda en 39 yd (Ortiz 45), pero porque pierde el balón más atrás (54 frente a 59 yd): la distancia balón–línea es casi la misma (12 frente a 11 yd). Lectura: **no adelanta la defensa para asfixiar, la junta** (coherente con la presión media de §3.3).
+- [x] **Límite declarado**: 89 % de los pases rivales tiene 360, pero solo 32 % da un frame útil (≥ 8 jugadores de campo visibles y la toma ve ≥ 5 yd detrás del último); en bloque alto, 17 % (la cámara sigue al balón). Líneas por orden de profundidad (4 + 4), no por posición nominal.
+- [ ] ⚪ Pases que rompen líneas (no entró; queda en §8).
 
 ### 3.5 Contexto: ¿cómo ajusta según el rival, el marcador, la localía y el minuto?
 - [x] Base hecha: T1/T2 y notebook 04 (ADN por contexto).

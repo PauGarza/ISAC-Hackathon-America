@@ -324,3 +324,57 @@ def fig_transitions(grid: pd.DataFrame, summary: pd.DataFrame, scope: pd.DataFra
     _footer(fig, f"Ventana oficial Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · "
             "transición = robo que llega al último tercio o al tiro en ≤ 15 s (marco) · coordenadas del América")
     return fig
+
+
+# ------------------------------------------------------------------ §3.4 forma defensiva (360)
+def fig_block_shape(by_phase: pd.DataFrame, by_situation: pd.DataFrame, scope: pd.DataFrame, title: str):
+    """El bloque defensivo a lo largo de la cancha (yd desde la portería del América; ataca a la derecha). Una fila por
+    técnico dentro de cada situación: la barra va de la última línea (borde izquierdo) al jugador más adelantado de
+    los 8 del bloque; la marca blanca es la segunda línea y el punto de tinta, la mediana de dónde está el balón."""
+    groups = [(p, by_phase[by_phase.fase == p].set_index("coach"), f"{p}: balón {lab}") for p, lab in
+              zip(["Bloque alto", "Bloque medio", "Bloque bajo"], ["en campo rival", "entre 40 y 60 yd", "en su tercio"])]
+    groups.append(("Tras pérdida", by_situation[by_situation.situacion == "Tras pérdida"].set_index("coach"),
+                   "Tras pérdida: primeros 5 s de la posesión rival"))
+    fig, ax = plt.subplots(figsize=(9.6, 6.6))
+    fig.subplots_adjust(left=0.1, right=0.99, top=0.88, bottom=0.12)
+    for x in (0, 18, 40, 60, 80, 102, 120):
+        ax.axvline(x, color=LINE, lw=0.8 if x in (0, 60, 120) else 0.5, ls="-" if x in (0, 60, 120) else ":", zorder=0)
+    y, ticks, labels = 0, [], []
+    for name, d, header in groups:
+        ax.text(-1, y - 0.15, header, fontsize=8, fontweight="bold", color=eda.INK, va="bottom", ha="left")
+        y += 1
+        for c in COACHES:
+            r = d.loc[c]
+            ax.barh(y, r.largo_bloque, left=r.altura_linea, height=0.62, color=COACH_COLOR[c], alpha=0.9,
+                    edgecolor=eda.SURFACE, lw=2, zorder=2)
+            ax.plot([r.altura_linea + r.distancia_lineas] * 2, [y - 0.31, y + 0.31], color=eda.SURFACE, lw=1.6, zorder=3)
+            ax.scatter([r.ball_x], [y], s=34, color=eda.INK, edgecolor=eda.SURFACE, lw=1, zorder=4)
+            ax.text(r.altura_linea + r.largo_bloque + 1.2, y, f"línea {r.altura_linea:.0f} yd · bloque {r.largo_bloque:.0f} yd",
+                    fontsize=6.8, color=eda.INK_2, va="center", zorder=5,
+                    bbox=dict(boxstyle="round,pad=0.1", fc=eda.SURFACE, ec="none", alpha=0.8))
+            ticks.append(y)
+            labels.append(c)
+            y += 1
+        y += 0.6
+    ax.set_yticks(ticks, labels, fontsize=7.5)
+    for t, c in zip(ax.get_yticklabels(), labels):
+        t.set_fontweight("bold" if c == PROTAGONIST else "normal")
+        t.set_color(eda.INK)
+    ax.set_ylim(y - 0.4, -0.9)
+    ax.set_xlim(-2, 122)
+    ax.set_xticks([0, 18, 40, 60, 80, 102, 120], ["su portería", "área", "40", "medio campo", "80", "área rival", "120"])
+    ax.grid(False)
+    ax.spines["left"].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    ax.set_xlabel("yardas desde la portería del América → ataque")
+    handles = [Rectangle((0, 0), 1, 1, color=LEAGUE, alpha=0.9),
+               plt.Line2D([], [], color=eda.INK_2, lw=1.6), plt.scatter([], [], s=34, color=eda.INK)]
+    ax.legend(handles, ["bloque: de la última línea al más adelantado de los 8", "segunda línea (marca blanca)",
+                        "balón (mediana)"], loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3, fontsize=7)
+    _suptitle(fig, title)
+    sit = by_situation.groupby("coach")[["frames_utiles", "pases_rivales"]].sum()
+    util, tot = sit.frames_utiles, sit.pases_rivales
+    _footer(fig, sample_note(scope).split(" · el América")[0] + " · 360 en pases rivales de juego abierto (sin balón parado)\n"
+            "Frames útiles (≥ 8 jugadores de campo visibles y la toma ve ≥ 5 yd detrás del último): "
+            + ", ".join(f"{c} {util[c] / tot[c]:.0%}" for c in COACHES) + " · solo cuenta lo que se ve en la toma")
+    return fig

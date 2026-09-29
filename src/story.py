@@ -1,4 +1,4 @@
-"""LA HISTORIA DE JARDINE (todo.md §3.2 con balón y §3.3 sin balón) — cálculos reutilizables.
+"""LA HISTORIA DE JARDINE (todo.md §3.2 con balón, §3.3 sin balón, §3.4 forma con 360) — cálculos reutilizables.
 
 El notebook 05 y el reporte HTML final consumen estas funciones. Reglas:
 - Todas las definiciones (zonas, carriles, pase progresivo, posesión, transición, recuperación, PPDA,
@@ -57,6 +57,12 @@ def load_story_events(scope: pd.DataFrame) -> pd.DataFrame:
     ev = F.event_flags(fw.add_game_state(ev))
     ev = ev[ev.period < 5]
     return ev.assign(coach=ev.match_id.map(scope.set_index("match_id").coach))
+
+
+def load_story_frames(scope: pd.DataFrame) -> pd.DataFrame:
+    """360 (freeze frames) de los partidos de `scope`. Solo en memoria: nunca se guardan."""
+    from src.pipeline.silver import load_frames
+    return load_frames(scope.match_id)
 
 
 def load_possessions(scope: pd.DataFrame) -> pd.DataFrame:
@@ -467,9 +473,97 @@ def transition_starts(poss: pd.DataFrame) -> pd.DataFrame:
     ], ignore_index=True)
 
 
+# ------------------------------------------------------------------ §3.4 forma defensiva (360)
+SHAPE_METRICS = {"altura_linea": "Altura de la última línea (yd desde su portería)",
+                 "distancia_lineas": "Distancia entre la última línea y la siguiente (yd)",
+                 "largo_bloque": "Largo del bloque (yd)", "ancho_bloque": "Ancho del bloque (yd)",
+                 "distancia_balon_linea": "Distancia del balón a la última línea (yd)"}
+PHASES = ["Bloque alto", "Bloque medio", "Bloque bajo"]
+
+
+def rival_open_play_passes(ev: pd.DataFrame, poss: pd.DataFrame) -> pd.DataFrame:
+    """Pases rivales de juego abierto (en memoria), fuera de posesiones de balón parado, con el balón en coordenadas
+    del América (ataca a la derecha). fase = altura del balón con los umbrales de presión del marco (≥ 60 bloque alto,
+    40–60 medio, < 40 bajo). situacion = 'Tras pérdida' si la posesión rival nació de una del América hace ≤ 5 s
+    (ventana de contrapresión del marco); si no, 'Posesión rival'."""
+    p = poss.sort_values(["match_id", "possession"]).assign(prev_team=lambda d: d.groupby("match_id").team.shift())
+    r = ev[(ev.team != fw.TEAM) & (ev.possession_team != fw.TEAM) & ev.is_pass & ev.pass_type.isna()]
+    r = r.merge(p[["match_id", "possession", "t_start", "prev_team", "is_set_piece"]], on=["match_id", "possession"],
+                how="left")
+    r = r[~r.is_set_piece.fillna(False).astype(bool)]
+    ball_x = 120 - r.location_x
+    after_loss = (r.prev_team == fw.TEAM) & (r.t - r.t_start <= A["counterpress_window_s"])
+    return pd.DataFrame({"id": r.id.values, "match_id": r.match_id.values, "coach": r.coach.values,
+                         "ball_x": ball_x.values, "ball_y": (80 - r.location_y).values,
+                         "fase": np.select([ball_x >= A["press_high_x"], ball_x >= A["press_mid_x"]], PHASES[:2],
+                                           PHASES[2]),
+                         "situacion": np.where(after_loss, "Tras pérdida", "Posesión rival")})
+
+
+def defensive_shape(frames: pd.DataFrame, passes: pd.DataFrame) -> pd.DataFrame:
+    """Forma defensiva del América en cada pase rival (en memoria). Usa solo a sus jugadores de campo VISIBLES en el 360
+    (sin portero), volteados a coordenadas del América. Por frame: jugadores visibles; cuánto ve la toma detrás del más
+    retrasado; altura de la última línea (media de los `shape_line_players` más retrasados); distancia a la siguiente
+    línea (media de los siguientes hasta `shape_block_players`); largo (x del 8.º − x del 1.º) y ancho (rango de y de
+    los 8) del bloque. util = cumple los mínimos del marco (jugadores visibles y vista detrás de la línea)."""
+    fr = frames[frames.id.isin(passes.id)]
+    team = fr.teammate.astype("boolean").fillna(False).astype(bool)
+    gk = fr.keeper.astype("boolean").fillna(False).astype(bool)
+    d = fr[~team & ~gk & fr.location_x.notna()]
+    d = pd.DataFrame({"id": d.id, "x": 120 - d.location_x, "y": 80 - d.location_y}).sort_values(["id", "x"])
+    d["rk"] = d.groupby("id").cumcount()
+    nl, nb = A["shape_line_players"], A["shape_block_players"]
+    line, nxt, blk = d[d.rk < nl], d[(d.rk >= nl) & (d.rk < nb)], d[d.rk < nb]
+    out = pd.DataFrame({"visibles": d.groupby("id").size(), "x_primero": d[d.rk == 0].set_index("id").x,
+                        "altura_linea": line.groupby("id").x.mean(), "siguiente_linea": nxt.groupby("id").x.mean(),
+                        "x_octavo": d[d.rk == nb - 1].set_index("id").x,
+                        "ancho_bloque": blk.groupby("id").y.agg(lambda s: s.max() - s.min())})
+    # punto visible más cercano a la portería del América (visible_area viene en coordenadas del rival: x1, y1, x2, ...)
+    va = fr.drop_duplicates("id").set_index("id").visible_area
+    out["vista_min_x"] = va.reindex(out.index).map(lambda a: 120 - max(a[0::2]) if a is not None and len(a) else np.nan)
+    out["vista_detras"] = out.x_primero - out.vista_min_x
+    out["distancia_lineas"] = out.siguiente_linea - out.altura_linea
+    out["largo_bloque"] = out.x_octavo - out.x_primero
+    out["util"] = (out.visibles >= A["shape_min_visible"]) & (out.vista_detras >= A["shape_min_behind_yd"])
+    out = passes.set_index("id").join(out, how="left")
+    out["distancia_balon_linea"] = out.ball_x - out.altura_linea
+    out["con_360"] = out.visibles.notna()
+    out["util"] = out.util.astype("boolean").fillna(False).astype(bool)
+    return out.reset_index()
+
+
+def shape_summary(shape: pd.DataFrame, by: list[str]) -> pd.DataFrame:
+    """Por técnico × `by` (fase y/o situacion): pases rivales, % con 360, % de frames útiles y mediana (P25–P75) de
+    cada métrica de forma en los frames útiles, más la mediana de la altura del balón."""
+    g = shape.groupby(["coach"] + by)
+    out = pd.DataFrame({"pases_rivales": g.size(), "pct_con_360": g.con_360.mean() * 100,
+                        "frames_utiles": g.util.sum(), "pct_utiles": g.util.mean() * 100})
+    u = shape[shape.util].groupby(["coach"] + by)
+    for m in list(SHAPE_METRICS) + ["ball_x"]:
+        q = u[m].quantile([.25, .5, .75]).unstack()
+        out[m], out[f"{m}_p25"], out[f"{m}_p75"] = q[.5], q[.25], q[.75]
+    return out.reset_index()
+
+
+def match_level_diff(shape: pd.DataFrame, metric: str, a: str, b: str, n: int = 2000, seed: int = 0,
+                     **filters) -> dict:
+    """Diferencia a − b de la media de las medianas por partido de `metric` (frames útiles que cumplen `filters`), con
+    IC 90 % por remuestreo de partidos: el partido es la unidad (los frames de un partido no son independientes)."""
+    d = shape[shape.util]
+    for k, v in filters.items():
+        d = d[d[k] == v]
+    pm = d.groupby(["coach", "match_id"])[metric].median()
+    xa, xb = pm.loc[a].values, pm.loc[b].values
+    rng = np.random.default_rng(seed)
+    boot = [rng.choice(xa, len(xa)).mean() - rng.choice(xb, len(xb)).mean() for _ in range(n)]
+    return {"diferencia": xa.mean() - xb.mean(), "lo": np.percentile(boot, 5), "hi": np.percentile(boot, 95),
+            "partidos_a": len(xa), "partidos_b": len(xb)}
+
+
 # ------------------------------------------------------------------ guardar solo agregados
 FORBIDDEN = {"id", "index", "possession", "timestamp", "related_events", "x", "y", "location_x", "location_y",
-             "pass_end_location_x", "pass_end_location_y", "sx", "sy", "ex", "ey", "end_x", "end_y"}
+             "pass_end_location_x", "pass_end_location_y", "sx", "sy", "ex", "ey", "end_x", "end_y", "ball_y",
+             "visible_area", "x_primero", "x_octavo", "vista_min_x"}
 
 
 def save_story(df: pd.DataFrame, name: str, muestra: str = "ventana") -> str:

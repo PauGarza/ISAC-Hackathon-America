@@ -253,6 +253,61 @@ def test_league_benchmark_relative_to_tournament_and_rank():
     assert S.league_rank(b.reset_index(), "team_match_ppda", coach="A", higher_is_more=False)["lugar"] == 2
 
 
+# ------------------------------------------------------------------ §3.4 forma defensiva (360)
+def test_rival_open_play_passes_phase_and_after_loss():
+    p = _poss()  # posesión 2 del rival nace de una del América en t = 11; la 4, en t = 40, también
+    ev = make_ev([
+        {"team": RIV, "possession": 2, "possession_team": RIV, "minute": 0, "second": 12, "location_x": 30.0},  # 2 s
+        {"team": RIV, "possession": 4, "possession_team": RIV, "minute": 0, "second": 50, "location_x": 70.0},  # 10 s
+        {"team": RIV, "possession": 4, "possession_team": RIV, "minute": 0, "second": 51, "location_x": 90.0,
+         "pass_type": "Free Kick"},                                                   # reinicio: fuera
+        {"team": AM, "possession": 3, "possession_team": AM, "minute": 0, "second": 20},  # pase propio: fuera
+    ])
+    r = S.rival_open_play_passes(ev, p)
+    assert len(r) == 2
+    assert list(r.ball_x) == [90, 50]                        # volteado a coordenadas del América
+    assert list(r.fase) == ["Bloque alto", "Bloque medio"]
+    assert list(r.situacion) == ["Tras pérdida", "Posesión rival"]
+
+
+def _frame(fid, xs, ys=None, visible_max_x=119.0, mates=0):
+    """Frame 360 en coordenadas del RIVAL: jugadores del América (teammate=False) en x_rival = 120 − x_américa."""
+    ys = ys if ys is not None else [10 + 8 * i for i in range(len(xs))]
+    va = [0.0, 0.0, visible_max_x, 0.0, visible_max_x, 80.0, 0.0, 80.0]
+    rows = [{"id": fid, "teammate": False, "keeper": False, "actor": False, "location_x": 120 - x, "location_y": 80 - y,
+             "visible_area": va} for x, y in zip(xs, ys)]
+    rows += [{"id": fid, "teammate": True, "keeper": False, "actor": False, "location_x": 60.0, "location_y": 40.0,
+              "visible_area": va}] * mates
+    rows.append({"id": fid, "teammate": False, "keeper": True, "actor": False, "location_x": 115.0, "location_y": 40.0,
+                 "visible_area": va})  # portero del América: no cuenta
+    return rows
+
+
+def test_defensive_shape_line_block_and_useful_frames():
+    xs = [20, 21, 22, 23, 35, 36, 37, 38]  # 4 atrás (media 21.5) y 4 delante (media 36.5)
+    fr = pd.DataFrame(_frame("a", xs, mates=3) + _frame("b", xs[:6]) + _frame("c", xs, visible_max_x=102.0))
+    passes = pd.DataFrame({"id": ["a", "b", "c", "d"], "match_id": 1, "coach": "Jardine", "ball_x": 50.0,
+                           "fase": "Bloque medio", "situacion": "Posesión rival"})
+    sh = S.defensive_shape(fr, passes).set_index("id")
+    a = sh.loc["a"]
+    assert a.visibles == 8 and a.altura_linea == pytest.approx(21.5) and a.distancia_lineas == pytest.approx(15)
+    assert a.largo_bloque == 18 and a.ancho_bloque == 56 and a.distancia_balon_linea == pytest.approx(28.5)
+    assert a.util and a.vista_detras == pytest.approx(19)          # la toma ve hasta x = 1
+    assert not sh.loc["b", "util"]                                   # solo 6 visibles
+    assert not sh.loc["c", "util"] and sh.loc["c", "vista_detras"] == pytest.approx(2)  # no ve detrás de la línea
+    assert not sh.loc["d", "con_360"] and not sh.loc["d", "util"]   # sin 360
+    s = S.shape_summary(sh.reset_index(), ["fase"]).set_index("coach")
+    assert s.loc["Jardine", "pct_utiles"] == 25 and s.loc["Jardine", "altura_linea"] == pytest.approx(21.5)
+
+
+def test_match_level_diff_uses_match_as_unit():
+    sh = pd.DataFrame({"coach": ["A"] * 4 + ["B"] * 2, "match_id": [1, 1, 1, 2, 3, 4], "util": True,
+                       "altura_linea": [30, 30, 30, 34, 30, 30], "fase": "Bloque medio"})
+    d = S.match_level_diff(sh, "altura_linea", "A", "B", n=200, fase="Bloque medio")
+    assert d["diferencia"] == pytest.approx(2)  # (30 + 34) / 2 − 30: cada partido pesa igual, no cada frame
+    assert d["partidos_a"] == 2 and d["lo"] <= 2 <= d["hi"]
+
+
 # ------------------------------------------------------------------ guardar solo agregados
 def test_save_story_rejects_event_level_columns(tmp_path, monkeypatch):
     monkeypatch.setattr(S, "ANALYSIS", tmp_path)
