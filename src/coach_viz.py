@@ -232,3 +232,36 @@ def fig_coach_change(val: pd.DataFrame, a: str, b: str):
     ax.legend(ncol=3, fontsize=7, loc="upper left", bbox_to_anchor=(0, -0.12))
     fig.tight_layout()
     return fig
+
+
+def fig_league_drift(tml: pd.DataFrame, drift: pd.DataFrame, metrics: dict[str, str], title: str, note: str):
+    """Deriva de la liga: una cancha por métrica (small multiples, cada una con su escala). Líneas grises = media de
+    cada equipo por torneo; línea azul = media de la liga; rótulo = % de equipos que suben en el torneo con el mayor
+    salto. Fondo gris = fuera de la ventana oficial (validación y prueba)."""
+    order = list(tml.groupby("torneo").match_date.min().sort_values().index)
+    x = np.arange(len(order))
+    fig, axs = plt.subplots(1, len(metrics), figsize=(3.6 * len(metrics), 3.3))
+    for ax, (col, lab) in zip(np.atleast_1d(axs), metrics.items()):
+        team = tml.groupby(["team_name", "torneo"])[col].mean().unstack().reindex(columns=order)
+        for _, r in team.iterrows():
+            ax.plot(x, r.values, color=LEAGUE, lw=0.6, alpha=0.35, zorder=1)
+        d = drift[drift.metrica == col].set_index("torneo").reindex(order)
+        ax.plot(x, d.media_liga, color=eda.BLUE, lw=2, marker="o", ms=4, zorder=3)
+        j = int(np.nanargmax(d.media_liga.diff().values))
+        ax.annotate(f"{d.pct_equipos_suben.iat[j]:.0f} % de los equipos sube", (x[j], d.media_liga.iat[j]),
+                    xytext=(-6, 14), textcoords="offset points", ha="right", fontsize=6.5, color=eda.INK, zorder=5,
+                    bbox=dict(boxstyle="round,pad=0.15", fc=eda.SURFACE, ec="none", alpha=0.9),
+                    arrowprops=dict(arrowstyle="-", color=eda.INK_2, lw=0.6))
+        out = d.muestra.ne("ventana").values
+        if out.any():
+            ax.axvspan(x[out].min() - 0.5, x[out].max() + 0.5, color=BAND, alpha=0.6, lw=0, zorder=0)
+            ax.text(x[out].mean(), 0.99, "fuera de la ventana", transform=ax.get_xaxis_transform(), ha="center",
+                    va="top", fontsize=6, color=eda.INK_2)
+        ax.set_title(lab, loc="left", fontsize=8.5)
+        ax.set_xticks(x, [t.replace("Apertura ", "A").replace("Clausura ", "C") for t in order], rotation=60, fontsize=6.5)
+        lo, hi = np.nanpercentile(team.values, [2, 98])
+        ax.set_ylim(min(lo, d.media_liga.min()) * 0.9, max(hi, d.media_liga.max()) * 1.05)
+    fig.suptitle(title, x=0.01, ha="left", fontweight="bold", fontsize=10)
+    fig.text(0.01, 0.01, note, fontsize=6.5, color=eda.MUTED)
+    fig.tight_layout(rect=(0, 0.04, 1, 0.93))
+    return fig

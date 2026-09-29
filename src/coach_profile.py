@@ -4,7 +4,13 @@ Unidad: entrenador × equipo (un "periodo"; p. ej. Almada-Pachuca y Almada-Amér
 Fuente: data/gold/fct_team_match_league.parquet (team-match-stats de TODA la liga + contexto sin leakage).
 
 1. Ejes del ADN (PROFILE_AXES): 8 rasgos de juego; cada eje = media de z-scores de 2–4 métricas con signo
-   orientado a "más = más de ese rasgo". Los z se calculan con la liga en la ventana oficial (train).
+   orientado a "más = más de ese rasgo". Estandarización (parámetro `norm`, por defecto AXIS_NORM):
+   - "ventana": z con la media y la desviación de la liga en toda la ventana oficial (train);
+   - "torneo": z con la media y la desviación de la liga EN EL MISMO TORNEO. Quita la deriva de la liga (el PPDA
+     medio pasa de ~8 a ~12 entre 2021 y 2024; las recuperaciones por contrapresión se duplican en Ap 2024 por un
+     cambio de etiquetado de StatsBomb). Supuesto: la liga de cada torneo es la referencia; en validación
+     (Ap 2025) y prueba (2026) se usa la liga de ESE torneo (media de otros equipos en esas fechas: no usa el
+     resultado del partido; Ap 2026 va en curso, así que su media es parcial).
 2. Perfil AJUSTADO por contexto: a cada eje se le quita el efecto del rival y de la localía (OLS con efectos
    fijos del rival, ajustado en train). Así el perfil es el estilo del entrenador, no a quién enfrentó.
 3. Percentil de liga: el promedio de un entrenador en cada eje se ubica entre los periodos de la liga con
@@ -24,6 +30,8 @@ from src.pipeline.config import GOLD, TEAM
 
 MIN_MATCHES = 15
 RNG = 42
+NORMS = ("ventana", "torneo")
+AXIS_NORM = "torneo"  # estandarización oficial del ADN (decisión con evidencia en el notebook 04, §1b)
 
 # eje -> (métricas con signo, explicación en lenguaje de juego)
 PROFILE_AXES = {
@@ -79,16 +87,26 @@ def load_league() -> pd.DataFrame:
     return pd.read_parquet(GOLD / "fct_team_match_league.parquet")
 
 
-def axis_scores(tml: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    """z-score de cada métrica con la liga en train; eje = media de z con signo. Devuelve ejes por fila y refs."""
+def axis_scores(tml: pd.DataFrame, norm: str = AXIS_NORM) -> tuple[pd.DataFrame, dict]:
+    """z-score de cada métrica con la liga; eje = media de z con signo. Devuelve ejes por fila y refs.
+    norm = "ventana": media y desviación de la liga en train (refs[col] = (mu, sd)).
+    norm = "torneo": media y desviación de la liga en el torneo de cada partido (refs[col] = DataFrame por torneo),
+    para torneos de train, validación o prueba por igual (ver el docstring del módulo)."""
+    if norm not in NORMS:
+        raise ValueError(f"norm debe ser uno de {NORMS}, no {norm!r}")
     tr = tml[tml.split == "train"]
     refs, out = {}, pd.DataFrame(index=tml.index)
     for ax, (metrics, _) in PROFILE_AXES.items():
         zs = []
         for m, sign in metrics.items():
             col = f"team_match_{m}"
-            mu, sd = tr[col].mean(), tr[col].std()
-            refs[col] = (mu, sd)
+            if norm == "ventana":
+                mu, sd = tr[col].mean(), tr[col].std()
+                refs[col] = (mu, sd)
+            else:
+                g = tml.groupby("torneo")[col]
+                mu, sd = g.transform("mean"), g.transform("std").replace(0, np.nan)
+                refs[col] = g.agg(["mean", "std"])
             zs.append(sign * (tml[col] - mu) / sd)
         out[ax] = pd.concat(zs, axis=1).mean(axis=1)
     return out, refs
@@ -109,10 +127,11 @@ def adjust_context(tml: pd.DataFrame, axes: pd.DataFrame) -> pd.DataFrame:
     return adj
 
 
-def build_match_axes(tml: pd.DataFrame | None = None) -> pd.DataFrame:
-    """Tabla por equipo-partido con ejes crudos (raw__) y ajustados (adj__) + contexto."""
+def build_match_axes(tml: pd.DataFrame | None = None, norm: str = AXIS_NORM) -> pd.DataFrame:
+    """Tabla por equipo-partido con ejes crudos (raw__) y ajustados (adj__) + contexto.
+    norm = estandarización de las métricas ("torneo" o "ventana", ver axis_scores)."""
     tml = load_league() if tml is None else tml
-    raw, _ = axis_scores(tml)
+    raw, _ = axis_scores(tml, norm)
     adj = adjust_context(tml, raw)
     keep = ["match_id", "match_date", "torneo", "fase", "split", "team_name", "opponent", "is_home", "manager",
             "coach_team", "rival_ppg_prev", "goals_for", "goals_against"]
@@ -260,3 +279,58 @@ def coach_logodds(clf, cols, d: pd.DataFrame, a: str, b: str) -> pd.Series:
     """log(P(a) / P(b)) por partido: > 0 = el partido se parece más al ADN de `a` que al de `b`."""
     P = pd.DataFrame(clf.predict_proba(d[cols]), columns=clf.classes_, index=d.index)
     return np.log(P[a] / P[b])
+
+
+# ------------------------------------------------------------------ deriva de la liga y elección de la estandarización
+AMERICA_COACHES = {"Solari": "Santiago Hernán Solari Poggio", "Ortiz": "Fernando Ortiz",
+                   "Jardine": "André Soares Jardine", "Almada": "Jorge Guillermo Almada Álves"}
+
+
+def league_drift(tml: pd.DataFrame, cols) -> pd.DataFrame:
+    """Deriva de la liga por torneo: media de cada métrica y % de equipos cuya media sube respecto al torneo
+    anterior. Un salto con ~todos los equipos subiendo a la vez y que luego se queda (escalón) apunta a un
+    cambio de etiquetado; un cambio que se reparte en varios torneos, a un cambio real de la liga."""
+    order = tml.groupby("torneo").match_date.min().sort_values().index
+    rows = []
+    for col in cols:
+        by_team = tml.groupby(["team_name", "torneo"])[col].mean().unstack()[order]
+        up = (by_team.diff(axis=1) > 0).where(by_team.diff(axis=1).notna())
+        rows.append(pd.DataFrame({"metrica": col, "torneo": order,
+                                  "media_liga": tml.groupby("torneo")[col].mean().reindex(order).values,
+                                  "pct_equipos_suben": up.mean().reindex(order).values * 100}))
+    out = pd.concat(rows, ignore_index=True)
+    out["muestra"] = out.torneo.map(tml.groupby("torneo").split.agg(lambda s: SPLIT_LABEL[s.mode()[0]]))
+    return out
+
+
+def america_percentiles(ma: pd.DataFrame, ref: pd.DataFrame, coaches: dict = AMERICA_COACHES) -> pd.DataFrame:
+    """Percentil de liga de los técnicos del América: Solari, Ortiz y Jardine con la ventana; Almada con 2026 (prueba)."""
+    rows = {k: (ma.team_name == TEAM) & (ma.manager == v) & ma.split.eq("test" if k == "Almada" else "train")
+            for k, v in coaches.items()}
+    means = pd.DataFrame({k: ma.loc[r, [f"adj__{a}" for a in AXES]].mean().set_axis(AXES) for k, r in rows.items()}).T
+    means["partidos"] = [int(r.sum()) for r in rows.values()]
+    return to_percentile(means, ref)
+
+
+def norm_comparison(tml: pd.DataFrame, norms=NORMS) -> dict[str, pd.DataFrame]:
+    """Compara las estandarizaciones del ADN en lo que importa: percentiles del América, varianza de cada eje explicada
+    por el torneo (η², ventana), Índice de Encaje de los técnicos del América y top-k del clasificador (val y prueba)."""
+    pct, eta, fit, acc, am = {}, {}, {}, {}, {}
+    for n in norms:
+        ma = build_match_axes(tml, n)
+        ref = coach_profiles(ma)
+        pct[n] = america_percentiles(ma, ref)[AXES]
+        tr = ma[ma.split == "train"]
+        eta[n] = pd.Series({a: tr.groupby("torneo")[f"adj__{a}"].transform("mean").var() / tr[f"adj__{a}"].var()
+                            for a in AXES})
+        f = fit_index(ref, club_identity(ma))
+        fit[n] = f[f.index.str.endswith(TEAM)].rename(index=label)
+        clf, cols = coach_classifier(ma)
+        rk = rank_of_true_coach(clf, cols, ma)
+        acc[n] = pd.DataFrame({s: topk_accuracy(rk[rk.split == s]) for s in ["val", "test"]}).T
+        r = rk[(rk.team_name == TEAM) & (rk.split != "train")]
+        am[n] = r.groupby(["manager", "split"]).rank_real.median().rename(index=short, level=0)
+    return {"percentiles": pd.concat(pct, names=["norm", "tecnico"]),
+            "eta_torneo": pd.DataFrame(eta), "encaje": pd.concat(fit, names=["norm", "tecnico"]),
+            "topk": pd.concat(acc, names=["norm", "muestra"]),
+            "america_rank": pd.concat(am, names=["norm"]).rename("posicion_mediana").to_frame()}

@@ -106,9 +106,14 @@ Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo s
   | Efecto del marcador (+9.5 / −13.7 field tilt) | ✅ Ya era solo de la ventana (Ridge de T2). |
   | Reporte EDA (fase 1) | Se queda con los 222 partidos: es una descripción de los datos, no un hallazgo titular. **No citar sus cifras en el HTML** sin recalcularlas. |
 
-- [ ] Hallazgo honesto para §3.9: el clasificador del ADN en **validación** (Ap 2025) acierta top-5 en 22 % frente a 16 % por azar, más débil que en prueba (35 %). Contarlo así, sin inflarlo.
+- [ ] Hallazgo honesto para §3.9: el clasificador del ADN en **validación** (Ap 2025) acierta top-5 en 23 % frente a 16 % por azar, más débil que en prueba (31 %). Contarlo así, sin inflarlo. (Cifras con el ADN por torneo; con z de ventana eran 22 % y 35 %.)
 - [ ] Etiquetar con su muestra las figuras nuevas (§3) y el explorador de partidos (§5). Las de §3.2–§3.3 (`reports/figures/story/`) ya llevan la muestra al pie.
-- [ ] **Revisar el ADN por deriva de la liga** (visto al hacer §3.3). En la ventana, el PPDA medio de la liga pasa de ~8 (Ap 2021) a ~12 (2024) y las recuperaciones por contrapresión se duplican desde Ap 2024 (parece cambio de etiquetado). El ADN ajusta por rival y localía, **no por torneo**: "Presión alta" y "Reacción tras pérdida" pueden estar sesgadas contra/a favor de los técnicos recientes (Jardine). En §3.3 la comparación con la liga ya se hace contra la media del mismo torneo (`story.league_benchmark`); decidir si el ADN también.
+- [x] **ADN por deriva de la liga** (29 sep; notebook 04 §1b, `liga_deriva.png`, `coach_norm_*.parquet`).
+  - **Diagnóstico**: la tasa de recuperación tras contrapresión es estable en ~12 por cada 100 contrapresiones hasta el Cl 2024 y salta a 22 en el Ap 2024 (89 % de los equipos a la vez) y a 30 en el Ap 2025: **escalón simultáneo = cambio de etiquetado de StatsBomb**. El PPDA sube **gradual** (~1 pase por torneo de Ap 2022 a Ap 2023, 72–78 % de los equipos por paso) y se estabiliza desde el Cl 2024: parece cambio real de la liga.
+  - **Cambio**: `coach_profile.axis_scores(norm=...)` con `"torneo"` (z contra la liga del mismo torneo; en validación y prueba, la liga de ese torneo, declarado) o `"ventana"`. **Oficial: `AXIS_NORM = "torneo"`.**
+  - **Evidencia**: con z de ventana el torneo explicaba el 12 % de la variación de *Reacción tras pérdida* (resto ≤ 3 %); con z por torneo, 0 %. Clasificador igual (top-5 val 22 → 23 %, prueba 35 → 31 %; Almada sigue en posición mediana 2 de 31). Encaje: Jardine 97 → 99 (ahora el n.º 1), Ortiz 99 → 96.
+  - **Qué cambió en el relato**: Almada ya no es "reacción tras pérdida" (percentil 79 → 30) sino **presión alta** (67 → 86); Jardine sigue siendo "control y peligro con presión media" (presión alta 37; reacción tras pérdida 69 → 46). README, reporte del marco y notebook 05 revisados: coherentes.
+  - **En una frase de fútbol**: a cada técnico se le compara con la liga que le tocó; desde mediados de 2024 StatsBomb cuenta más balones recuperados tras perder en todos los equipos, y eso inflaba a los técnicos recientes.
 
 ---
 

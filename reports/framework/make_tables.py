@@ -208,7 +208,7 @@ t(dr, "drift", "Monitoreo de drift: PSI de los últimos 10 partidos frente a ent
 cp = rd("coach_america_percentiles")
 cp.index.name = "técnico"
 t(cp, "coach_percentiles", "ADN de los técnicos del América: percentil de cada rasgo frente a los técnicos de la Liga MX "
-  "(ajustado por rival y localía). Almada, con sus partidos de 2026 (prueba).", "tab:coachPct", digits=0,
+  "(estandarizado contra la liga del mismo torneo y ajustado por rival y localía). Almada, con sus partidos de 2026 (prueba).", "tab:coachPct", digits=0,
   size=r"\footnotesize")
 axt = rd("coach_axes")
 t(axt, "coach_axes", r"Los 8 rasgos del ADN del entrenador y sus métricas de StatsBomb.", "tab:coachAxes",

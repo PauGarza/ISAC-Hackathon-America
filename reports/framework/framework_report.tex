@@ -533,6 +533,12 @@ definen''}), es el \textbf{perfil promedio de un técnico frente a la liga}. Con
 \begin{itemize}
   \item \textbf{8 rasgos de juego} (Tabla~\ref{tab:coachAxes}). Cada rasgo es el promedio de 2 a 4 métricas
         estandarizadas con la liga, orientadas para que ``más'' signifique ``más de ese rasgo''.
+  \item \textbf{Estandarización por torneo}: cada métrica se compara con la media y la desviación de la liga
+        \emph{en el mismo torneo}. La liga se mueve: el PPDA medio sube de forma gradual de $\sim$8 a $\sim$12 entre
+        2021 y 2024, y en el Apertura 2024 las recuperaciones por cada 100 contrapresiones saltan de 12 a 22 en casi
+        todos los equipos a la vez (cambio de etiquetado de StatsBomb). Con la media de toda la ventana, el torneo
+        explicaba el 12\,\% de la variación de \emph{Reacción tras pérdida}; con la del torneo, nada. El clasificador de
+        la validación rinde igual con ambas. En validación y prueba se usa la liga de ese torneo (Notebook 04, §1b).
   \item \textbf{Ajuste por contexto}: a cada rasgo se le quita el efecto del rival (efecto fijo) y de la localía,
         estimados con la ventana oficial. Así se mide el estilo \emph{del técnico} y no el del calendario.
   \item \textbf{Percentil de liga}: cada rasgo del técnico se ubica entre los técnicos-club con 15 partidos o más en la
@@ -558,8 +564,8 @@ con la ventana oficial; Almada con sus 9 partidos de 2026 (prueba).}
   \item \textbf{Ortiz}: \emph{presión y llegada}. Presión alta, llegada al área y peligro muy por encima de la liga.
   \item \textbf{Jardine}: \emph{control y peligro}. Balón, llegada, peligro y solidez en la cima de la liga, con una
         presión alta de nivel medio: domina con el balón más que presionando.
-  \item \textbf{Almada} (2026, 9 partidos): llegada al área y balón parado máximos, más reacción tras pérdida y más
-        verticalidad que Jardine, pero menos solidez defensiva.
+  \item \textbf{Almada} (2026, 9 partidos): llegada al área y balón parado máximos, mucha más presión alta y algo
+        más de verticalidad que Jardine, pero menos solidez defensiva.
 \end{itemize}
 \end{historia}
 

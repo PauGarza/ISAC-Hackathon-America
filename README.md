@@ -138,13 +138,14 @@ Formato de entrega (bases oficiales): **reporte HTML** con selector de partido, 
 |---|---|---|
 | **1 · Entender los datos** | Descarga completa y EDA por columna, calidad, relaciones y contexto; 10 hipótesis | `notebooks/01`, `notebooks/02`, [`reports/eda/eda_report.pdf`](reports/eda/eda_report.pdf) |
 | **2 · Del dato al criterio** | Pipeline medallion local, marco analítico validado, 55 variables por partido (incluido el uso de jugadores) evaluadas como criterios → 27 núcleo (elegidas solo con la ventana oficial), 11 tareas ML (T1–T7, U1–U3) con partición temporal y baselines, model cards, ficha HTML automática por partido y monitoreo de drift | `src/pipeline/`, `notebooks/03`, [`reports/framework/framework_report.pdf`](reports/framework/framework_report.pdf), `reports/match_reports/*.html` |
-| **2b · ADN del Entrenador** | Benchmark de toda la Liga MX (1,789 partidos, 106 técnicos), perfil de 8 rasgos ajustado por rival y localía, consistencia, contexto, evolución, mapa de técnicos, Índice de Encaje, validación con el cambio a Almada, rotación de técnicos y ROI por escenarios. Hipótesis del EDA reescritas hacia el resultado del hackathon | `src/coach_profile.py`, `src/coach_viz.py`, `src/business.py`, `notebooks/04`, `reports/figures/coach/` |
+| **2b · ADN del Entrenador** | Benchmark de toda la Liga MX (1,789 partidos, 106 técnicos), perfil de 8 rasgos estandarizado contra la liga del mismo torneo y ajustado por rival y localía, consistencia, contexto, evolución, mapa de técnicos, Índice de Encaje, validación con el cambio a Almada, rotación de técnicos y ROI por escenarios. Hipótesis del EDA reescritas hacia el resultado del hackathon | `src/coach_profile.py`, `src/coach_viz.py`, `src/business.py`, `notebooks/04`, `reports/figures/coach/` |
 | 3 · Narrativa y entrega | Reporte HTML interactivo (con selector de partido) en lenguaje de juego, comparación de entrenadores, ROI/activación/escalabilidad, video de 5 min | pendiente, ver [todo.md](todo.md) |
 
 **Partición oficial.** Entrenamiento = ventana oficial del hackathon (Apertura 2021 – Clausura 2025); validación = Apertura 2025; prueba = 2026 (incluye la llegada de Almada). Constantes `OFFICIAL_END` y `VAL_END` en `src/pipeline/config.py`.
 
 **Hallazgos de la fase 2 (versiones base).** Cifras de la ventana oficial (175 partidos), salvo donde se indica validación o prueba.
-- **ADN del entrenador**: Solari = solidez; Ortiz = presión alta y llegada; Jardine = control del balón y peligro con presión media; Almada (2026, prueba) = llegada, balón parado y reacción tras pérdida. El modelo reconoce a Almada en el América sin haberlo visto ahí (posición mediana 2 de 31 técnicos): **el estilo sigue al técnico, no a la plantilla**.
+- **ADN del entrenador** (cada métrica contra la liga del mismo torneo, ajustada por rival y localía): Solari = solidez; Ortiz = presión alta y llegada; Jardine = control del balón y peligro con presión media; Almada (2026, prueba) = llegada, balón parado y presión alta. El modelo reconoce a Almada en el América sin haberlo visto ahí (posición mediana 2 de 31 técnicos): **el estilo sigue al técnico, no a la plantilla**.
+- **La liga se mueve**: el PPDA medio sube de forma gradual de ~8 a ~12 (2021–2024) y en el Apertura 2024 las recuperaciones por cada 100 contrapresiones saltan de 12 a 22 en casi todos los equipos a la vez (cambio de etiquetado de StatsBomb). Por eso el ADN compara a cada técnico con la liga de su torneo; con la media de toda la ventana, Almada parecía un equipo que muerde tras perder cuando era la época.
 - El estilo *por partido* se comporta como una **identidad estable más ruido**: predecir un partido de 2026 desde el contexto apenas mejora a la media histórica, pero los efectos del contexto son claros (frente a rivales fuertes el equipo cede posesión y territorio; de local sube el field tilt y la presión).
 - **El marcador cambia el plan**: perdiendo por un gol, el field tilt sube ~9 puntos; ganando por uno, baja ~13.
 - Los principios de proceso que acompañan al diferencial de xG son pisar el área rival, repartir los toques, resistir la presión en la salida y progresar por pase.
@@ -195,6 +196,7 @@ Modelos: `models/<nombre>.joblib` (ignorado) + `models/<nombre>.json` (**model c
 │   ├── sb_client.py · eda.py · eda_dictionary.py
 ├── tests/test_framework.py                # definiciones del marco + reglas anti-leakage (pytest)
 ├── tests/test_story.py                    # funciones de la historia con datos sintéticos
+├── tests/test_coach_profile.py            # ADN: estandarización por torneo y deriva de la liga (sintéticos)
 ├── models/                                # model cards (.json versionadas; .joblib ignorados)
 ├── reports/
 │   ├── eda/                               # reporte fase 1 (make_tables.py → eda_report.pdf)
