@@ -103,11 +103,16 @@ def fig_league_heatmap(pct: pd.DataFrame, highlight: list[str], top: int = 40):
     return fig
 
 
-def fig_style_map(prof: pd.DataFrame, highlight: dict[str, str], moves: list[tuple[str, str]]):
-    """Mapa de estilo de la liga: PCA de los ejes. Flechas = mismo entrenador en dos clubes."""
+def fig_style_map(prof: pd.DataFrame, highlight: dict[str, str], moves: list[tuple[str, str]],
+                  fit_rows: list[str] | None = None, notes: dict[str, str] | None = None):
+    """Mapa de estilo de la liga: PCA de los ejes. Flechas = mismo entrenador en dos clubes.
+    fit_rows = periodos con los que se ajustan escala y PCA (p. ej., solo la ventana oficial); el resto solo se proyecta.
+    notes = texto extra en la etiqueta de un periodo (p. ej., 'prueba')."""
     from sklearn.decomposition import PCA
-    X = (prof[AXES] - prof[AXES].mean()) / prof[AXES].std()
-    pca = PCA(2).fit(X)
+    notes = notes or {}
+    base = prof.loc[fit_rows] if fit_rows is not None else prof
+    X = (prof[AXES] - base[AXES].mean()) / base[AXES].std()
+    pca = PCA(2).fit(X.loc[base.index])
     Z = pd.DataFrame(pca.transform(X), index=prof.index, columns=["PC1", "PC2"])
     fig, ax = plt.subplots(figsize=(7.8, 5.6))
     ax.scatter(Z.PC1, Z.PC2, s=18, color=LEAGUE, alpha=0.45, lw=0)
@@ -120,7 +125,8 @@ def fig_style_map(prof: pd.DataFrame, highlight: dict[str, str], moves: list[tup
             while any(abs(x - px) < 1.6 and abs((y + dy / 40) - py) < 0.22 for px, py in placed):
                 dy -= 11  # etiqueta cercana ya colocada: bajar esta
             placed.append((x, y + dy / 40))
-            ax.annotate(label(idx), (x, y), xytext=(6, dy), textcoords="offset points", fontsize=7.5, color=eda.INK)
+            txt = label(idx) + (f" · {notes[idx]}" if idx in notes else "")
+            ax.annotate(txt, (x, y), xytext=(6, dy), textcoords="offset points", fontsize=7.5, color=eda.INK)
     for a, b in moves:
         if a in Z.index and b in Z.index:
             ax.annotate("", xy=Z.loc[b], xytext=Z.loc[a],
@@ -192,9 +198,18 @@ def fig_evolution(ev: pd.DataFrame, axes_show: list[str]):
             ax.plot(g._x, g[a], marker="o", ms=4, lw=2, color=COACH_COLOR.get(name, eda.BLUE), label=name)
         ax.set_title(a, loc="left")
         ax.set_xticks(x, [t.replace("Apertura ", "A").replace("Clausura ", "C") for t in ev.index], rotation=60, fontsize=6.5)
+        if "muestra" in ev:  # fondo en los torneos fuera de la ventana oficial (validación y prueba)
+            outside = [(m, g) for m, g in ev.assign(_x=x).groupby("muestra", sort=False) if m != "ventana"]
+            for j, (m, g) in enumerate(outside):
+                ax.axvspan(g._x.min() - 0.5, g._x.max() + 0.5, color=BAND, alpha=0.6, lw=0, zorder=0)
+                if j:
+                    ax.axvline(g._x.min() - 0.5, color=eda.SURFACE, lw=1.2, zorder=0)
+                ax.text(g._x.mean(), 0.99 - 0.07 * j, m, transform=ax.get_xaxis_transform(), ha="center", va="top",
+                        fontsize=6.5, color=eda.INK_2)
     np.atleast_1d(axs)[0].set_ylabel("desv. est. frente a la liga")
     np.atleast_1d(axs)[-1].legend(fontsize=7)
-    fig.suptitle("Evolución del ADN del América por torneo (color = entrenador)", x=0.01, ha="left", fontweight="bold", fontsize=10)
+    fig.suptitle("Evolución del ADN del América por torneo (color = entrenador; fondo gris = fuera de la ventana oficial)",
+                 x=0.01, ha="left", fontweight="bold", fontsize=10)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     return fig
 

@@ -75,7 +75,19 @@ Nuestras credenciales dan acceso a **Liga MX** (comp 73, con 360) y **Liga MX Fe
 
 - **222 partidos jugados**, todos con eventos + 360. Incluye fase regular y liguilla.
 - Una "temporada" StatsBomb = **Apertura + Clausura**; para cortar por torneo usar `match_date` (Apertura ≈ jul–dic, Clausura ≈ ene–may).
-- Jardine concentra la muestra más grande (~129 partidos, 3 temporadas) → candidato natural para la narrativa; los demás entrenadores sirven como **punto de comparación** ("qué cambió cuando llegó Jardine") y Almada como epílogo/contraste.
+- **Protagonista: André Jardine.**
+  - Tiene 91 partidos en la ventana oficial y 129 en total.
+  - Solari (27) y Ortiz (55) son el "antes" ("qué cambió cuando llegó Jardine").
+  - Almada (9, prueba) es el epílogo.
+- **Ventana de datos (decisión firme)**:
+
+  | Muestra | Periodo | Partidos |
+  |---|---|---|
+  | Núcleo | Ap 2021 – Cl 2025 (ventana oficial) | 175 |
+  | Validación | Ap 2025 | 19 |
+  | Prueba | 2026 | 28 |
+
+  **Toda cifra titular sale solo de la ventana oficial.** Validación y prueba se muestran aparte y con su etiqueta.
 
 ## 4. Ruta de solución propuesta
 
@@ -125,18 +137,18 @@ Formato de entrega (bases oficiales): **reporte HTML** con selector de partido, 
 | Fase | Qué se hizo | Entregables |
 |---|---|---|
 | **1 · Entender los datos** | Descarga completa y EDA por columna, calidad, relaciones y contexto; 10 hipótesis | `notebooks/01`, `notebooks/02`, [`reports/eda/eda_report.pdf`](reports/eda/eda_report.pdf) |
-| **2 · Del dato al criterio** | Pipeline medallion local, marco analítico validado, 55 variables por partido (incluido el uso de jugadores) evaluadas como criterios → 29 núcleo, 11 tareas ML (T1–T7, U1–U3) con partición temporal y baselines, model cards, ficha HTML automática por partido y monitoreo de drift | `src/pipeline/`, `notebooks/03`, [`reports/framework/framework_report.pdf`](reports/framework/framework_report.pdf), `reports/match_reports/*.html` |
+| **2 · Del dato al criterio** | Pipeline medallion local, marco analítico validado, 55 variables por partido (incluido el uso de jugadores) evaluadas como criterios → 27 núcleo (elegidas solo con la ventana oficial), 11 tareas ML (T1–T7, U1–U3) con partición temporal y baselines, model cards, ficha HTML automática por partido y monitoreo de drift | `src/pipeline/`, `notebooks/03`, [`reports/framework/framework_report.pdf`](reports/framework/framework_report.pdf), `reports/match_reports/*.html` |
 | **2b · ADN del Entrenador** | Benchmark de toda la Liga MX (1,789 partidos, 106 técnicos), perfil de 8 rasgos ajustado por rival y localía, consistencia, contexto, evolución, mapa de técnicos, Índice de Encaje, validación con el cambio a Almada, rotación de técnicos y ROI por escenarios. Hipótesis del EDA reescritas hacia el resultado del hackathon | `src/coach_profile.py`, `src/coach_viz.py`, `src/business.py`, `notebooks/04`, `reports/figures/coach/` |
 | 3 · Narrativa y entrega | Reporte HTML interactivo (con selector de partido) en lenguaje de juego, comparación de entrenadores, ROI/activación/escalabilidad, video de 5 min | pendiente, ver [todo.md](todo.md) |
 
 **Partición oficial.** Entrenamiento = ventana oficial del hackathon (Apertura 2021 – Clausura 2025); validación = Apertura 2025; prueba = 2026 (incluye la llegada de Almada). Constantes `OFFICIAL_END` y `VAL_END` en `src/pipeline/config.py`.
 
-**Hallazgos de la fase 2 (versiones base)**
-- **ADN del entrenador**: Solari = solidez; Ortiz = presión alta y llegada; Jardine = control del balón y peligro con presión media; Almada (2026) = llegada, balón parado y reacción tras pérdida. El modelo reconoce a Almada en el América sin haberlo visto ahí (posición mediana 2 de 31 técnicos): **el estilo sigue al técnico, no a la plantilla**.
+**Hallazgos de la fase 2 (versiones base).** Cifras de la ventana oficial (175 partidos), salvo donde se indica validación o prueba.
+- **ADN del entrenador**: Solari = solidez; Ortiz = presión alta y llegada; Jardine = control del balón y peligro con presión media; Almada (2026, prueba) = llegada, balón parado y reacción tras pérdida. El modelo reconoce a Almada en el América sin haberlo visto ahí (posición mediana 2 de 31 técnicos): **el estilo sigue al técnico, no a la plantilla**.
 - El estilo *por partido* se comporta como una **identidad estable más ruido**: predecir un partido de 2026 desde el contexto apenas mejora a la media histórica, pero los efectos del contexto son claros (frente a rivales fuertes el equipo cede posesión y territorio; de local sube el field tilt y la presión).
 - **El marcador cambia el plan**: perdiendo por un gol, el field tilt sube ~9 puntos; ganando por uno, baja ~13.
 - Los principios de proceso que acompañan al diferencial de xG son pisar el área rival, repartir los toques, resistir la presión en la salida y progresar por pase.
-- **El juego está repartido y se construye desde atrás**: los 3 mejores generan ~62 % del OBV positivo, y defensas y carrileros ~35 %.
+- **El juego está repartido y se construye desde atrás**: en el partido mediano, los 3 mejores generan ~61 % del OBV positivo, y defensas y carrileros ~33 %.
 - Balón parado y xG concedido son **demasiado ruidosos por partido** para usarse como criterio. El efecto de las sustituciones no es predecible con esta información.
 
 ## 6. Arquitectura de datos (medallion, local)

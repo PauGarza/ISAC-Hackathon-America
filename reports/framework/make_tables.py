@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from src import features as F  # noqa: E402
 from src.latex import esc, write_numbers, write_table  # noqa: E402
+from src.modeling import temporal_split  # noqa: E402
 from src.pipeline.config import GOLD, MODELS, REPORTS  # noqa: E402
 
 A = GOLD / "analysis"
@@ -117,7 +118,7 @@ N.update(nTunoSupera=str(int(t1.supera.sum())), nTuno=str(len(t1)),
          tunoMejoraMax=f"{t1['mejora vs mejor baseline (%)'].max():.0f}")
 la = rd("t1_assumptions")
 t(la.set_index("etiqueta")[["R2_train", "Durbin_Watson", "BP_p", "JB_p", "VIF_max"]], "t1_assumptions",
-  "T1 -- Diagnóstico de supuestos del modelo lineal (OLS en entrenamiento + validación).", "tab:t1Assump",
+  "T1 -- Diagnóstico de supuestos del modelo lineal (OLS en la ventana oficial = entrenamiento).", "tab:t1Assump",
   header=["variable", r"$R^2$ train", "Durbin-Watson", "BP (p)", "JB (p)", "VIF máx"], digits=3)
 N.update(rivalPos=f"{la.loc['possession_time_pct', 'coef_rival']:.1f}", rivalTilt=f"{la.loc['field_tilt', 'coef_rival']:.1f}",
          localTilt=f"{la.loc['field_tilt', 'coef_local']:.1f}", localPress=f"{la.loc['high_press_pct', 'coef_local']:.1f}",
@@ -256,7 +257,8 @@ t(hy, "coach_hypotheses", "Veredicto preliminar de hipótesis del EDA con el ADN
 
 # ------------------------------------------------------------------ cifras de jugadores y fichas
 mf = pd.read_parquet(GOLD / "match_features.parquet")
-N.update(medTopTres=f"{mf.top3_obv_share.median():.0f}", medTopUno=f"{mf.top1_obv_share.median():.0f}",
+mf = mf[mf.match_id.map(temporal_split(pd.read_parquet(GOLD / "dim_match.parquet"))) == "train"]  # cifras titulares: solo la ventana oficial
+N.update(nVentana=str(len(mf)),medTopTres=f"{mf.top3_obv_share.median():.0f}", medTopUno=f"{mf.top1_obv_share.median():.0f}",
          medBoost=f"{mf.boost_pct.median():.0f}", medShareDef=f"{mf.obv_share_def.median():.0f}",
          medShareMid=f"{mf.obv_share_mid.median():.0f}", medShareFwd=f"{mf.obv_share_fwd.median():.0f}",
          medShareWide=f"{mf.obv_share_wide.median():.0f}", medGiniTouch=f"{mf.gini_touches.median():.2f}")

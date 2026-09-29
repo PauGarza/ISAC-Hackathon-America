@@ -143,16 +143,7 @@ def to_percentile(prof: pd.DataFrame, reference: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def america_profile(ma: pd.DataFrame, kind: str = "adj", min_matches: int = 5) -> pd.DataFrame:
-    """Perfil de cada entrenador del América con TODOS sus partidos (incluye 2026) + n por conjunto."""
-    d = ma[ma.team_name == TEAM]
-    cols = [f"{kind}__{a}" for a in AXES]
-    g = d.groupby("manager")
-    prof = g[cols].mean().set_axis(AXES, axis=1)
-    prof["partidos"] = g.size()
-    prof["desde"], prof["hasta"] = g.match_date.min(), g.match_date.max()
-    prof.index = [short(m) for m in prof.index]
-    return prof[prof.partidos >= min_matches].sort_values("desde")
+SPLIT_LABEL = {"train": "ventana", "val": "validación", "test": "prueba"}
 
 
 def bootstrap_ci(ma: pd.DataFrame, rows: pd.Series, kind: str = "adj", n: int = 1000, seed: int = RNG) -> pd.DataFrame:
@@ -184,12 +175,15 @@ def context_profile(ma: pd.DataFrame, rows: pd.Series, by: str, kind: str = "adj
 
 
 def evolution(ma: pd.DataFrame, team: str = TEAM, kind: str = "adj") -> pd.DataFrame:
+    """Ejes por torneo. `muestra` dice si el torneo es de la ventana oficial, de validación o de prueba:
+    solo los de la ventana cuentan para las cifras titulares."""
     d = ma[ma.team_name == team]
     order = d.groupby("torneo").match_date.min().sort_values().index
     cols = [f"{kind}__{a}" for a in AXES]
     ev = d.groupby("torneo")[cols].mean().set_axis(AXES, axis=1).reindex(order)
     ev["entrenador"] = d.groupby("torneo").manager.agg(lambda s: ", ".join(short(m) for m in dict.fromkeys(s))).reindex(order)
     ev["partidos"] = d.groupby("torneo").size().reindex(order)
+    ev["muestra"] = d.groupby("torneo").split.agg(lambda s: SPLIT_LABEL[s.mode()[0]]).reindex(order)
     return ev
 
 
