@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ficha · América vs {{ ctx.opponent }} · {{ fecha }}</title>
+<style>
+  :root { --bg:#f9f9f7; --card:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781; --line:#e1e0d9; --blue:#2a78d6; --orange:#eb6834; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1080px; margin:0 auto; padding:24px 20px 60px; }
+  header { border-bottom:3px solid var(--blue); padding-bottom:12px; margin-bottom:20px; }
+  h1 { font-size:26px; margin:0; } h2 { font-size:18px; margin:28px 0 8px; border-left:4px solid var(--blue); padding-left:8px; }
+  .sub { color:var(--ink2); }
+  .kpis { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:8px 14px; min-width:120px; }
+  .kpi b { display:block; font-size:22px; } .kpi span { color:var(--muted); font-size:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:10px 0; }
+  img { max-width:100%; display:block; margin:6px auto; }
+  table { border-collapse:collapse; width:100%; font-size:12.5px; }
+  th,td { padding:4px 8px; border-bottom:1px solid var(--line); text-align:right; } th:first-child,td:first-child { text-align:left; }
+  th { color:var(--ink2); font-weight:600; }
+  .tw { overflow-x:auto; }
+  .cronica li { margin:4px 0; }
+  .pos { color:var(--blue); font-weight:600; } .neg { color:var(--orange); font-weight:600; }
+  .note { color:var(--muted); font-size:12px; }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
+  details summary { cursor:pointer; color:var(--ink2); }
+</style>
+</head>
+<body><main>
+<header>
+  <div class="sub">Ficha automática de partido · ISAC Hackathon 2026 · marco analítico v1</div>
+  <h1>América {{ ctx.goals_for|int }}–{{ ctx.goals_against|int }} {{ ctx.opponent }}</h1>
+  <div class="sub">{{ fecha }} · {{ 'Local' if ctx.is_home else 'Visita' }} · {{ ctx.torneo }} · {{ ctx.fase }} ({{ ctx.competition_stage }}) · match_id {{ match_id }}</div>
+  <div class="kpis">
+    <div class="kpi"><span>Fuerza del rival (pts/partido previos)</span><b>{{ '%.2f'|format(ctx.rival_ppg_prev) }}</b></div>
+    <div class="kpi"><span>Días de descanso</span><b>{{ ctx.rest_days|int if ctx.rest_days == ctx.rest_days else '—' }}</b></div>
+    <div class="kpi"><span>xG propio / rival</span><b>{{ '%.2f'|format(sim['xG_propio']) }} / {{ '%.2f'|format(sim['xG_rival']) }}</b></div>
+    <div class="kpi"><span>P(G / E / P) simulada</span><b>{{ '%.0f'|format(100*sim['P(G)']) }} / {{ '%.0f'|format(100*sim['P(E)']) }} / {{ '%.0f'|format(100*sim['P(P)']) }}</b></div>
+    <div class="kpi"><span>Tipo de partido (clúster U2)</span><b style="font-size:14px">{{ tipo }}</b></div>
+  </div>
+</header>
+
+<h2>Crónica automática</h2>
+<div class="card"><ul class="cronica">{% for s in cronica %}<li>{{ s }}</li>{% endfor %}</ul>
+<p class="note">Frases generadas con reglas a partir de percentiles frente a los partidos de entrenamiento y de la desviación respecto a lo esperado por el modelo de contexto (T1). Descriptivo, no causal.</p></div>
+
+<h2>1 · El partido en números (criterios 5.1–5.5)</h2>
+<div class="card"><img src="data:image/png;base64,{{ fig_pct }}" alt="percentiles por criterio">
+<p class="note">Azul: percentil ≥ 80 · naranja: ≤ 20. Definiciones en el catálogo FEATURES (src/features.py) y umbrales en ASSUMPTIONS (src/framework.py).</p></div>
+
+<h2>2 · Uso de jugadores (5.3)</h2>
+<div class="card"><img src="data:image/png;base64,{{ fig_players }}" alt="jugadores">
+<div class="grid2">
+  <div class="tw"><table><tr><th>Distribución del juego</th><th>valor</th></tr>
+  {% for k, v in dist.items() %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
+  <div class="tw"><table><tr><th>Jugador</th><th>línea</th><th>min</th><th>OBV</th><th>ref. p90</th><th>Δ p90</th></tr>
+  {% for p in players %}<tr><td>{{ p.player_name }}</td><td>{{ p.position_group }}</td><td>{{ p.minutes|round(0)|int }}</td><td>{{ p.obv }}</td>
+  <td>{{ p.obv_p90_ref_prev if p.obv_p90_ref_prev == p.obv_p90_ref_prev else '—' }}</td>
+  <td class="{{ 'pos' if p.obv_p90_resid > 0 else 'neg' }}">{{ p.obv_p90_resid if p.obv_p90_resid == p.obv_p90_resid else '—' }}</td></tr>{% endfor %}</table></div>
+</div>
+<p class="note">Gini: 0 = juego repartido, 1 = concentrado en un jugador. Referencia = OBV p90 medio de los partidos previos del jugador (sin información futura).</p></div>
+
+<h2>3 · Comparación histórica: estilo y partidos similares</h2>
+<div class="card"><img src="data:image/png;base64,{{ fig_map }}" alt="mapa de estilo">
+<div class="tw"><table><tr><th>Partidos más parecidos (KNN en el mapa de estilo)</th><th>torneo</th><th>localía</th><th>marcador</th></tr>
+{% for s in similares %}<tr><td>{{ s.match_date }} vs {{ s.opponent }}</td><td>{{ s.torneo }}</td><td>{{ 'L' if s.is_home else 'V' }}</td><td>{{ s.goals_for|int }}–{{ s.goals_against|int }}</td></tr>{% endfor %}</table></div></div>
+
+<h2>4 · Momentos del partido (marcador y minuto)</h2>
+<div class="card"><img src="data:image/png;base64,{{ fig_time }}" alt="línea de tiempo"></div>
+
+<h2>5 · Balón parado (5.4)</h2>
+<div class="card"><img src="data:image/png;base64,{{ fig_sp }}" alt="balón parado">
+<p class="note">Punto = destino del envío (córner, tiro libre o saque de banda en último tercio). Rojo = la jugada terminó en tiro.</p></div>
+
+<h2>6 · Proyección: esperado vs observado y siguiente partido</h2>
+<div class="grid2">
+<div class="card tw"><table><tr><th>Variable (T1)</th><th>esperado</th><th>observado</th><th>desvío (z)</th><th>fuente</th></tr>
+{% for r in proj %}<tr><td>{{ r.etiqueta }}</td><td>{{ r.esperado }}</td><td>{{ r.observado }}</td><td class="{{ 'pos' if r.desvio_z > 0 else 'neg' }}">{{ r.desvio_z }}</td><td class="note">{{ r.fuente }}</td></tr>{% endfor %}</table>
+<p class="note">Esperado = modelo de contexto previo (localía, fuerza del rival, fase, descanso, inercia de 5 partidos). z = (observado − esperado) / desv. est. de entrenamiento. Si el modelo no supera al baseline en la prueba temporal, se usa el baseline (fuente).</p></div>
+<div class="card tw">{% if next_proj %}<b>Siguiente partido:</b> {{ next_proj.fecha }} · {{ next_proj.localia }} vs {{ next_proj.rival }}
+<table><tr><th>Variable</th><th>proyección</th></tr>{% for r in next_proj.tabla %}<tr><td>{{ r.variable }}</td><td>{{ r.esperado }}</td></tr>{% endfor %}</table>
+{% else %}<p>No hay siguiente partido jugado en los datos.</p>{% endif %}</div>
+</div>
+
+<h2>7 · Monitoreo de drift (10 partidos hasta esta fecha vs entrenamiento)</h2>
+<div class="card tw"><table><tr><th>Variable</th><th>PSI</th><th>umbral moderado (p90 nulo)</th><th>umbral fuerte (p99 nulo)</th><th>media train</th><th>media reciente</th><th>estado</th></tr>
+{% for d in drift %}<tr><td>{{ d.variable }}</td><td>{{ d.PSI }}</td><td>{{ d.p90_nulo }}</td><td>{{ d.p99_nulo }}</td><td>{{ d.media_train }}</td><td>{{ d.media_reciente }}</td><td>{{ d.estado }}</td></tr>{% endfor %}</table>
+<p class="note">Con solo 10 partidos, el PSI sin drift ya es alto por azar; por eso los umbrales se calibran remuestreando 10 partidos de entrenamiento 1,000 veces. Estado "fuerte" = el estilo reciente ya no se parece al de entrenamiento: re-entrenar.</p></div>
+
+<h2>Trazabilidad</h2>
+<div class="card"><details><summary>Model cards ({{ n_cards }}) y supuestos del marco</summary>
+<div class="tw"><table><tr><th>modelo</th><th>tarea</th><th>tipo</th><th>MAE test</th><th>MAE baseline</th><th>supera baseline</th><th>hash datos</th></tr>
+{% for n, c in cards.items() %}<tr><td>{{ n }}</td><td>{{ c.task }}</td><td>{{ c.get('model','') }}</td><td>{{ '%.3f'|format(c.test_MAE) if c.get('test_MAE') is not none else '' }}</td>
+<td>{{ '%.3f'|format(c.baseline_MAE) if c.get('baseline_MAE') is not none else '' }}</td><td>{{ c.get('beats_baseline','') }}</td><td>{{ c.data_hash }}</td></tr>{% endfor %}</table></div>
+<pre style="white-space:pre-wrap;font-size:11px">{{ assumptions }}</pre></details></div>
+</main></body></html>
