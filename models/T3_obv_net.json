@@ -1,0 +1,43 @@
+{
+  "name": "T3_obv_net",
+  "created_at": "2026-09-29T20:39:57.225514+00:00",
+  "data_hash": "7866e1e18299db0b",
+  "task": "T3",
+  "target": "obv_net",
+  "model": "LASSO",
+  "features": [
+    "gk_short_goal_kick_pct",
+    "buildup_passes_per_seq",
+    "buildup_success_pct",
+    "press_resistance_own_third",
+    "prog_passes_per100",
+    "prog_carries_per100",
+    "progression_rate",
+    "pass_x_mean",
+    "long_pass_pct",
+    "box_touches_per100poss",
+    "ppda",
+    "def_action_x_mean",
+    "high_press_pct",
+    "high_regains_per100opp",
+    "counterpress_per_loss",
+    "opp_f3_entry_pct",
+    "block_x_mean",
+    "transition_poss_pct",
+    "quick_regain_pct",
+    "possession_time_pct",
+    "field_tilt",
+    "gini_touches",
+    "gini_prog",
+    "tactical_shifts"
+  ],
+  "params": null,
+  "train_dates": [
+    "2021-07-23",
+    "2025-10-19"
+  ],
+  "baseline": "Baseline: media",
+  "test_MAE": 1.408135176207009,
+  "baseline_MAE": 1.408135176207009,
+  "beats_baseline": false
+}

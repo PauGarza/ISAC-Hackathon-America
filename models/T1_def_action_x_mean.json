@@ -1,0 +1,27 @@
+{
+  "name": "T1_def_action_x_mean",
+  "created_at": "2026-09-29T20:39:47.133872+00:00",
+  "data_hash": "7866e1e18299db0b",
+  "task": "T1",
+  "target": "def_action_x_mean",
+  "model": "LASSO",
+  "features": [
+    "rival_ppg_prev",
+    "rest_days",
+    "match_order",
+    "def_action_x_mean__prev5",
+    "is_home",
+    "fase"
+  ],
+  "params": {
+    "m__alpha": 1.0
+  },
+  "train_dates": [
+    "2021-07-23",
+    "2025-10-19"
+  ],
+  "baseline": "Baseline: media histórica (train)",
+  "test_MAE": 4.404772751027051,
+  "baseline_MAE": 4.468721887356666,
+  "beats_baseline": true
+}

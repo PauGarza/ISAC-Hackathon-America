@@ -1,0 +1,18 @@
+{
+  "name": "T6_d_obv_net",
+  "created_at": "2026-09-29T20:39:58.719997+00:00",
+  "data_hash": "de6585e2e1526aed",
+  "task": "T6",
+  "target": "d_obv_net",
+  "model": "Ridge",
+  "features": null,
+  "params": null,
+  "train_dates": [
+    "2021-07-23",
+    "2025-10-19"
+  ],
+  "baseline": "Baseline: Δ medio",
+  "test_MAE": 0.6853882884676813,
+  "baseline_MAE": 0.6751313381054657,
+  "beats_baseline": false
+}

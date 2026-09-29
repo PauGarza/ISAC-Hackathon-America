@@ -1,0 +1,24 @@
+{
+  "name": "T2_high_press_pct",
+  "created_at": "2026-09-29T20:39:53.404807+00:00",
+  "data_hash": "6db1f88d21b7c6e8",
+  "task": "T2",
+  "target": "high_press_pct",
+  "model": "Ridge",
+  "features": [
+    "rival_ppg_prev",
+    "game_state",
+    "minute_bin",
+    "is_home",
+    "fase"
+  ],
+  "params": null,
+  "train_dates": [
+    "2021-07-23",
+    "2025-10-19"
+  ],
+  "baseline": "Baseline: media",
+  "test_MAE": 13.464386192019782,
+  "baseline_MAE": 13.894323845381038,
+  "beats_baseline": true
+}

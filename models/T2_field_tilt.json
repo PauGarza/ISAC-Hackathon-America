@@ -1,0 +1,24 @@
+{
+  "name": "T2_field_tilt",
+  "created_at": "2026-09-29T20:39:53.364408+00:00",
+  "data_hash": "6db1f88d21b7c6e8",
+  "task": "T2",
+  "target": "field_tilt",
+  "model": "Ridge",
+  "features": [
+    "rival_ppg_prev",
+    "game_state",
+    "minute_bin",
+    "is_home",
+    "fase"
+  ],
+  "params": null,
+  "train_dates": [
+    "2021-07-23",
+    "2025-10-19"
+  ],
+  "baseline": "Baseline: media",
+  "test_MAE": 21.037247825650365,
+  "baseline_MAE": 23.233780967799646,
+  "beats_baseline": true
+}

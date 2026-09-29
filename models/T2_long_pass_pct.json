@@ -1,0 +1,24 @@
+{
+  "name": "T2_long_pass_pct",
+  "created_at": "2026-09-29T20:39:53.415137+00:00",
+  "data_hash": "6db1f88d21b7c6e8",
+  "task": "T2",
+  "target": "long_pass_pct",
+  "model": "Ridge",
+  "features": [
+    "rival_ppg_prev",
+    "game_state",
+    "minute_bin",
+    "is_home",
+    "fase"
+  ],
+  "params": null,
+  "train_dates": [
+    "2021-07-23",
+    "2025-10-19"
+  ],
+  "baseline": "Baseline: media",
+  "test_MAE": 5.675151064436797,
+  "baseline_MAE": 5.702956101583502,
+  "beats_baseline": true
+}

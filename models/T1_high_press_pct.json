@@ -1,0 +1,27 @@
+{
+  "name": "T1_high_press_pct",
+  "created_at": "2026-09-29T20:39:47.145885+00:00",
+  "data_hash": "7866e1e18299db0b",
+  "task": "T1",
+  "target": "high_press_pct",
+  "model": "Ridge",
+  "features": [
+    "rival_ppg_prev",
+    "rest_days",
+    "match_order",
+    "high_press_pct__prev5",
+    "is_home",
+    "fase"
+  ],
+  "params": {
+    "m__alpha": 100
+  },
+  "train_dates": [
+    "2021-07-23",
+    "2025-10-19"
+  ],
+  "baseline": "Baseline: media histórica (train)",
+  "test_MAE": 6.473469810424948,
+  "baseline_MAE": 6.788894325795991,
+  "beats_baseline": true
+}

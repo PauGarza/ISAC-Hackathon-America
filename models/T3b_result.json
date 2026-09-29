@@ -1,0 +1,41 @@
+{
+  "name": "T3b_result",
+  "created_at": "2026-09-29T20:39:59.247845+00:00",
+  "data_hash": "7866e1e18299db0b",
+  "task": "T3b",
+  "target": "result",
+  "model": "Logística softmax",
+  "features": [
+    "gk_short_goal_kick_pct",
+    "buildup_passes_per_seq",
+    "buildup_success_pct",
+    "press_resistance_own_third",
+    "prog_passes_per100",
+    "prog_carries_per100",
+    "progression_rate",
+    "pass_x_mean",
+    "long_pass_pct",
+    "box_touches_per100poss",
+    "ppda",
+    "def_action_x_mean",
+    "high_press_pct",
+    "high_regains_per100opp",
+    "counterpress_per_loss",
+    "opp_f3_entry_pct",
+    "block_x_mean",
+    "transition_poss_pct",
+    "quick_regain_pct",
+    "possession_time_pct",
+    "field_tilt",
+    "gini_touches",
+    "gini_prog",
+    "tactical_shifts"
+  ],
+  "train_dates": [
+    "2021-07-23",
+    "2025-10-19"
+  ],
+  "test_F1_macro": 0.2888888888888889,
+  "baseline_F1_macro": 0.21333333333333335,
+  "beats_baseline": true
+}

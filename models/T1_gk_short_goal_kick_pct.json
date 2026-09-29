@@ -1,0 +1,27 @@
+{
+  "name": "T1_gk_short_goal_kick_pct",
+  "created_at": "2026-09-29T20:39:47.197193+00:00",
+  "data_hash": "7866e1e18299db0b",
+  "task": "T1",
+  "target": "gk_short_goal_kick_pct",
+  "model": "KNN",
+  "features": [
+    "rival_ppg_prev",
+    "rest_days",
+    "match_order",
+    "gk_short_goal_kick_pct__prev5",
+    "is_home",
+    "fase"
+  ],
+  "params": {
+    "m__n_neighbors": 20
+  },
+  "train_dates": [
+    "2021-07-23",
+    "2025-10-19"
+  ],
+  "baseline": "Baseline: media móvil 5",
+  "test_MAE": 25.706365169816728,
+  "baseline_MAE": 25.846179963827023,
+  "beats_baseline": true
+}
