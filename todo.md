@@ -1,139 +1,254 @@
 # TODO · ISAC Hackathon 2026 · Club América
 
-> Actualizado: 29 sep 2026 (ADN del Entrenador, partición oficial, benchmark de toda la liga).
-> Fuentes: bases oficiales en [isac-app.com](https://www.isac-app.com/competitions/hackathon-america) y [página del reto](https://mr2293.github.io/hackathon_isac/).
+> Actualizado: 29 sep 2026. Reorientado al reto y a los pesos de la evaluación.
+>
+> Fuentes:
+> - [página del reto](https://mr2293.github.io/hackathon_isac/): **qué** analizar;
+> - [bases oficiales](https://www.isac-app.com/competitions/hackathon-america): **cómo nos califican**.
 >
 > Prioridad:
 > - 🔴 antes del **9 oct** (entrega);
 > - 🟡 del 10 oct al 9 nov (final, si pasamos);
 > - ⚪ opcional.
+>
+> Regla de trabajo: **si una tarea no mueve un criterio con peso o un bloque del reto, no va antes del 9 oct.**
 
 ---
 
-## 0. Bases oficiales
+## 0. Qué nos evalúan y cómo lo respondemos
 
 | Hito | Fecha |
 |---|---|
 | Cierre de convocatoria (registro de equipo) | **7 oct 2026** |
-| **Entrega de proyectos** | **9 oct 2026** |
+| **Entrega: reporte HTML + video (máximo 5 min)** | **9 oct 2026** |
 | Anuncio de finalistas | 27 oct 2026 |
-| Presentaciones finales (CDMX) | **9 nov 2026** |
+| Final en CDMX (máximo 10 diapositivas) | **9 nov 2026** |
 
-**Entregables obligatorios** (en español):
-1. **Reporte en formato HTML** con metodología, visualizaciones y resultados. El PDF en LaTeX no es el formato de entrega; queda como anexo.
-2. **Video de máximo 5 minutos** con una demostración.
-3. Solo finalistas: **presentación de máximo 10 diapositivas**.
+**Reglas de datos:**
+- se pueden mostrar resultados, **nunca datos crudos**;
+- ISAC puede publicar el proyecto.
 
-**Reto:** "contar la historia de un entrenador a través de los datos" y "construir una **metodología que permita al club entender los estilos de juego de entrenadores** y las características que los definen".
+### 0.a Tabla maestra: criterio → nuestra respuesta
 
-**Equipo:** 2 a 4 integrantes, todos inscritos en licenciatura o maestría (a los ganadores se les pide evidencia).
+| Criterio | Peso | Qué pide el jurado | Nuestra respuesta | Dónde | Estado |
+|---|---|---|---|---|---|
+| Análisis estratégico | **25 %** | Comprensión profunda del valor estratégico, criterios de selección claros | **La historia táctica de Jardine** en 5 principios + criterios explícitos para entender y elegir técnicos (ADN) | §3 | parcial: falta la historia |
+| Justificación con datos | **20 %** | Uso riguroso de datos, comparación sólida | Marco analítico validado; ADN ajustado por rival y localía frente a 106 técnicos; comparación con Solari, Ortiz y Almada; validación fuera de muestra | §3.9, §3.10 | ✅ base · falta contarlo |
+| ROI estimado | **20 %** | Proyección prudente y defendible, varios escenarios | Piso: horas de analista ahorradas. Beneficio adicional: mejores decisiones de técnico. 3 escenarios + sensibilidad | §4.1 | parcial (`src/business.py`) |
+| Creatividad en activación | **15 %** | Coherente con la marca, plataforma escalable | Interno: cuerpo técnico y dirección deportiva. Afición: "El ADN del partido" | §4.2 | **no** |
+| Escalabilidad | **10 %** | De México a otros mercados | El ADN ya corre para toda la Liga MX; Femenil y otras ligas StatsBomb con solo cambiar la configuración | §4.3 | parcial |
+| Calidad de presentación | **10 %** | Claridad lógica, comunicación ejecutiva | HTML con resumen de 1 pantalla, lenguaje de juego, video de 5 min | §5, §6, §7 | **no** |
 
-**Datos:**
-- Oficiales: "8 temporadas, Apertura 2021 – Clausura 2025".
-- Nosotros tenemos hasta 2026 (222 partidos). Hay que decidir si el análisis principal usa la ventana oficial o si se declaran los partidos extra.
-- Se pueden presentar **resultados, pero no datos crudos**, y ISAC puede publicar los proyectos.
+### 0.b Checklist de bloques del reto (control final antes de entregar)
 
-**Criterios de evaluación:**
+Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo se manifiestan a lo largo del tiempo y cómo ajusta el entrenador según el contexto?*
 
-| Criterio | Peso | ¿Lo cubrimos hoy? |
+| Bloque del reto | Sección | ✔ |
 |---|---|---|
-| Análisis estratégico | 25 % | parcial (falta la narrativa del entrenador) |
-| Justificación con datos | 20 % | sí (marco validado, modelos con baseline) |
-| ROI estimado realista (escenarios y sensibilidad) | 20 % | **no** |
-| Creatividad en activación (coherente con la marca) | 15 % | **no** |
-| Escalabilidad (replicable a otros mercados) | 10 % | parcial (pipeline parametrizable) |
-| Calidad de presentación | 10 % | parcial |
-
-> ⚠️ ROI, activación y escalabilidad (45 %) parecen venir de una plantilla de reto de negocio. Hay que confirmarlo con los organizadores, pero conviene cubrirlos de todos modos (ver §4).
-
----
-
-## 0.b Lecciones de los 13 proyectos ganadores anteriores
-
-Retos anteriores, con los mismos datos de Liga MX 2021–2025:
-- 2024: balón parado ("¿qué aumenta la probabilidad de gol?");
-- 2025: *scouting* ("¿qué jugador encaja mejor?").
-
-| # | Proyecto | Formato | Qué hace |
-|---|---|---|---|
-| 1 | Optimización de Tiros de Esquina | PDF | Casos de estudio + densidad en el área chica (360) → recomendación con jugadores del América |
-| 2 | Set-Piece Optimization | Diapositivas | "¿Qué hace peligroso un córner?": 360 en 2 momentos, CatBoost + SHAP → "del modelo al entrenamiento" |
-| 3 | AEGIS | Paper | Simulador de eventos con XGBoost para proyectar un fichaje |
-| 4 | LAP | Paper | **Métrica propia con nombre** (a partir del USG del básquet) |
-| 5 | Club América – Player Scouting System | Streamlit | (no accesible) |
-| 6 | Ojos Diamantes | Streamlit | (no accesible) |
-| 7 | Scouting del Club América | Diapositivas | Caso de negocio (Brentford, Brighton) → plataforma con "xG Impact", radares y simulador |
-| 8 | Player Style Explorer | Streamlit | Embeddings de estilo de jugador |
-| 9 | El Fútbol como Sistema Predictivamente Inteligible | Web React + paper | "OBV Predictor": ensamble, simulador, importancia de variables |
-| 10 | Análisis y Metodología de Scouting | Reporte | PCA + K-means de roles, split temporal, sensibilidad |
-| 11 | Offside.exe | Reporte + web | "Amazon para jugadores": PCA, clústeres, Word2Vec |
-| 12 | Águila Analytics | Video | (solo título) |
-| 13 | Análisis Corners Liga MX | R Shiny + GitHub | Dashboard; "3 atacantes en área chica = 14.4 % de gol por remate" |
-
-**Lo que tienen en común:**
-1. Un **producto con nombre**, no "un análisis".
-2. Una **herramienta interactiva** (6 de 13): se elige un jugador o escenario y el resultado se genera solo.
-3. Un **caso de negocio al inicio** (Moneyball, Brentford, Liverpool, Brighton), con valor en millones de dólares.
-4. **Recomendaciones con nombres del plantel** y en lenguaje de cancha.
-5. **Una pregunta de fútbol como título** y **un hallazgo con número**.
-6. **Modelos explicados** (SHAP, importancia de variables, roles con PCA + K-means), con visuales de cancha, radares y mapas de calor.
-7. **360** como diferenciador.
-8. **Debilidades frecuentes que podemos superar**:
-   - partición aleatoria (se cuela información del futuro);
-   - poca comparación con un modelo de referencia;
-   - ningún marco analítico explícito.
-
-   Nuestro rigor es la diferencia, **pero hay que contarlo en simple**.
-
-Tareas:
-- [x] 🔴 **Nombre del producto** → **"ADN del Entrenador"** (`src/coach_profile.py`, notebook 04). Antes: (p. ej., "Radar del Entrenador" o "ADN Azulcrema") y una línea de valor: "entiende el estilo de cualquier entrenador partido por partido".
-- [ ] 🔴 **Una pregunta de fútbol como título de cada sección** y **un hallazgo titular con número** (p. ej., "Perdiendo por 1, el América inclina la cancha 9 puntos más").
-- [ ] 🔴 (parcial: rotación de técnicos + ROI en el notebook 04) **Caso de negocio breve al inicio**, conectado con el ROI (§4).
-- [ ] 🔴 **Recomendaciones con nombres del plantel** (p. ej., "Juárez y Calderón generan más valor que los medios: la salida pasa por atrás").
-- [ ] 🔴 El rigor en una frase y sin jerga: "probamos con los partidos más recientes, que el modelo nunca vio".
-- [x] 🟡 **Métrica propia con nombre** → **Índice de Encaje** con la identidad del América (notebook 04). Antes: que resuma el estilo, p. ej., un "Índice de Identidad": qué tan parecido es el partido al "América típico" en el mapa de estilo.
-- [ ] 🟡 **SHAP o importancia de variables** explicada en lenguaje simple.
-- [ ] 🟡 Una idea visible con **360** (altura de la línea defensiva o compactación).
+| Ofensivo: construcción, progresión, generación de ocasiones | §3.2 | [ ] |
+| Defensivo: presión, organización, transiciones | §3.3, §3.4 | [ ] |
+| Consistencia e identidad | §3.5, §3.9 | [ ] |
+| Cambios según el contexto (rival, marcador, localía, momento) | §3.5 | [ ] |
+| Evolución en el tiempo | §3.6 | [ ] |
+| Uso de jugadores: roles, alineaciones, sustituciones | §3.7 | [ ] |
+| Balón parado ofensivo: córners, tiros libres, saques de banda; movimientos y zonas de remate | §3.8 | [ ] |
+| Balón parado defensivo: organización, marcaje, zonas vulnerables | §3.8 | [ ] |
+| Evidencia cuantitativa: xG, OBV, pases progresivos, presión + métrica propia | §3 (todo) | [ ] |
+| **Marco analítico**: definiciones, supuestos, coherencia, alcance y límites | §5 (metodología) | [x] `src/framework.py` |
+| Modelos o simulaciones **para explicar, no para predecir** | §1 | [ ] |
 
 ---
 
-## 1. 🔴 Administrativo (antes del 7 oct)
+## 1. Decisiones tomadas
+
+- **Ventana de datos.** Constantes `OFFICIAL_END = "2025-06-30"` y `VAL_END = "2025-12-31"` en `src/pipeline/config.py`.
+
+  | Muestra | Periodo | Partidos |
+  |---|---|---|
+  | **Núcleo** (ventana oficial) | Ap 2021 – Cl 2025 | 175: Jardine 91 · Ortiz 55 · Solari 27 · Cervantes 2 |
+  | **Validación** | Ap 2025 | 19, todos de Jardine |
+  | **Prueba** | 2026 | 28: Cl 2026 de Jardine 19 · Almada 9 |
+
+  - **Toda cifra titular sale solo de la ventana oficial.**
+  - Validación y prueba aparecen solo en "¿Se sostiene el ADN?" (§3.9) y en el explorador de partidos, siempre con su etiqueta.
+- **Protagonista: André Jardine.**
+  - Tiene 91 partidos en la ventana y el tricampeonato como gancho.
+  - Solari y Ortiz son el "antes"; Almada, el "después" (prueba).
+- **Producto: "ADN del Entrenador"** (`src/coach_profile.py`, notebook 04), con el **Índice de Encaje** como métrica propia.
+  - Encuadre: *la historia de Jardine contada con una metodología que sirve para cualquier técnico*.
+  - La historia responde al reto táctico; la metodología responde a ROI, activación y escalabilidad.
+- **Modelos para explicar, no para predecir.**
+  - T1–T7 y U1–U3 se presentan como "evidencia de que el patrón es real" (p. ej., "el marcador cambia el plan").
+  - Nunca como pronóstico.
+  - El ajuste fino de ML pasa a 🟡 (§8).
+
+---
+
+## 2. 🔴 Administrativo y auditoría (29–30 sep)
+
 - [ ] Confirmar el registro del equipo (2–4 integrantes) y juntar la constancia de inscripción de cada uno.
 - [ ] Preguntar a los organizadores:
-  - si los criterios de ROI, activación y escalabilidad aplican a este reto;
   - dónde se suben los entregables;
-  - si se pueden usar partidos posteriores al Clausura 2025.
-- [x] Ventana de datos: **entrenamiento = ventana oficial (Ap 2021–Cl 2025); validación = Ap 2025; prueba = 2026** (`OFFICIAL_END`, `VAL_END`).
+  - si se pueden usar partidos posteriores al Clausura 2025 como validación y prueba declaradas.
+- [x] **Auditoría de la ventana** (29 sep). Qué estaba bien y qué se corrigió:
+
+  | Pieza | Estado |
+  |---|---|
+  | Partición de modelos (`split_by_date`) | ✅ Correcta: T1–T7 y U1–U3 se ajustan con la ventana; val = 19, prueba = 28. El "34" era un error del todo viejo. Las model cards no cambiaron. |
+  | ADN (percentiles, identidad η², consistencia, contexto, encaje, clasificador) | ✅ Ya usaba la ventana; Almada = prueba, etiquetado. |
+  | Evolución por torneo (`evolution`, `evolucion.png`) | 🔧 Mezclaba muestras sin etiqueta → columna `muestra` y fondo gris en validación y prueba. |
+  | Mapa de estilo de la liga (`liga_mapa_estilo.png`) | 🔧 Usaba todos los partidos (2025–26 incluidos) → ajuste solo con la ventana; Almada-América se proyecta como "2026, prueba". |
+  | Selección de variables núcleo (notebook 03) | 🔧 Usaba los 222 partidos (validación y prueba influían) → solo ventana: **27 variables núcleo** (antes 29). |
+  | Cifras de jugadores (README, reporte) | 🔧 222 partidos → ventana: top-3 = **61 %** (antes 62), defensas y carrileros = **33 %** (antes 35). |
+  | Evolución por partido (`framework/evolution.png`) | 🔧 Fondo gris en validación y prueba. |
+  | `america_profile` (sin uso, mezclaba 2026) | 🔧 Eliminada. |
+  | Pie de tabla T1 "OLS en train + val" | 🔧 Corregido: el código usa solo la ventana. |
+  | Efecto del marcador (+9.5 / −13.7 field tilt) | ✅ Ya era solo de la ventana (Ridge de T2). |
+  | Reporte EDA (fase 1) | Se queda con los 222 partidos: es una descripción de los datos, no un hallazgo titular. **No citar sus cifras en el HTML** sin recalcularlas. |
+
+- [ ] Hallazgo honesto para §3.9: el clasificador del ADN en **validación** (Ap 2025) acierta top-5 en 22 % frente a 16 % por azar, más débil que en prueba (35 %). Contarlo así, sin inflarlo.
+- [ ] Etiquetar con su muestra las figuras nuevas (§3) y el explorador de partidos (§5).
 
 ---
 
-## 2. 🔴 Reporte HTML entregable
+## 3. 🔴 La historia del entrenador (25 % + 20 %)
 
-**Decisión:** un solo **HTML autocontenido e interactivo**, `reports/final/reporte_america.html`, generado con `python -m src.pipeline run --stages final`.
-- Cumple el formato oficial y permite **elegir un partido** sin servidor.
-- La app en Streamlit queda para la final (🟡) y se construye sobre las mismas funciones.
+Formato de cada sección:
+- **una pregunta de fútbol como título**;
+- **un hallazgo con número**;
+- 1–2 visuales;
+- comparación con la liga, con otros técnicos o con el "América típico".
 
-Estructura:
-1. **Resumen para el club** (1 pantalla): la historia del entrenador en 5 ideas, con una visual cada una.
-2. **Identidad**: con balón, sin balón, transiciones y balón parado.
-3. **Evolución**: por torneo y por entrenador.
-4. **Adaptación al contexto**: rival, marcador, localía y minuto.
-5. **Jugadores**: cómo se reparte el juego, roles y quién hace funcionar el sistema.
-6. **Explorador de partidos**: un **desplegable con los 222 partidos** que actualiza la ficha, los mapas y la crónica.
-7. **Metodología** (plegable): pipeline, marco, variables, modelos, validación y limitaciones (resumen del PDF actual).
-8. **Valor para el club**: ROI, activación y escalabilidad.
-9. **Glosario**.
+Todo se calcula sobre los 91 partidos de Jardine en la ventana, salvo que se indique otra cosa. Los análisis nuevos con eventos van en un notebook `05_historia_jardine.ipynb` y en funciones reutilizables de `src/story.py`, para que el HTML las consuma.
+
+### 3.1 Identidad en 5 ideas (resumen para el club)
+- [ ] 5 principios de Jardine sacados del ADN (p. ej., control del balón, peligro con presión media, juego repartido, construcción desde atrás), cada uno con un número y una visual.
+- [ ] Una frase por principio que entienda alguien que no vio los partidos.
+
+### 3.2 Con balón: ¿cómo sale, por dónde progresa y cómo genera ocasiones? (nuevo, con eventos)
+- [ ] **Salida**: saques de meta y del portero, % en corto y en largo, zona del primer receptor. Comparar con Ortiz y Solari.
+- [ ] **Progresión**:
+  - pases y conducciones progresivas por carril (izquierda, centro, derecha);
+  - entradas al último tercio y al área por zona.
+- [ ] **Ocasiones**:
+  - origen del xG: juego posicional, transición o balón parado (`xg_share_*` ya existe en `src/features.py`);
+  - tipo de pase previo al tiro: centro, filtrado, pase atrás al área, jugada individual;
+  - mapa de tiros con tamaño = xG.
+- [ ] **Red de pases** con posiciones medias del 11 típico.
+
+### 3.3 Sin balón: ¿dónde y cómo recupera?
+- [ ] Mapa de zonas de recuperación y altura media de recuperación.
+- [ ] PPDA, % de presiones en campo rival y contrapresión, **frente a la liga** (ya están en los ejes del ADN).
+- [ ] Transiciones ofensivas y defensivas con las definiciones del marco (`src/framework.py`): cuántas, qué tan rápido llegan y qué xG generan o conceden.
+
+### 3.4 360: ¿qué tan alto y qué tan junto defiende? (diferenciador, mínimo una idea)
+- [ ] Altura de la línea defensiva y compactación (distancia entre líneas) por fase: bloque alto, medio o bajo.
+- [ ] ⚪ Pases que rompen líneas.
+- [ ] Declarar el límite: solo cuenta lo que se ve en la toma (`visible_area`).
+
+### 3.5 Contexto: ¿cómo ajusta según el rival, el marcador, la localía y el minuto?
+- [x] Base hecha: T1/T2 y notebook 04 (ADN por contexto).
+- [ ] Redactar los titulares:
+  - "perdiendo por 1, el América inclina la cancha ~9 puntos más; ganando por 1, baja ~13";
+  - "frente a rivales fuertes cede balón y territorio";
+  - "de local sube la presión".
+- [ ] Recalcular esos números solo con la ventana (§2).
+
+### 3.6 Evolución: ¿qué cambió cuando llegó Jardine?
+- [x] Base hecha: ADN por periodo y figura `evolucion.png`.
+- [ ] Solari → Ortiz → Jardine por torneo (ventana), con un titular por cambio.
+- [ ] Almada como epílogo (prueba): "el estilo sigue al técnico, no a la plantilla".
+
+### 3.7 Jugadores: ¿quién hace funcionar el sistema?
+- [ ] 11 más usado, formaciones por torneo y rotación (minutos, estabilidad de la alineación).
+- [ ] Reparto del juego: los 3 mejores generan ~61 % del OBV positivo; defensas y carrileros, ~33 % (ventana oficial). **Con nombres del plantel.**
+- [ ] Roles U3 nombrados con jugadores conocidos.
+- [ ] **Sustituciones (describir, no predecir)**: minuto, marcador al momento del cambio y perfil que sale y que entra. Usar `fct_substitution`.
+
+### 3.8 Balón parado: ¿cómo ataca y cómo defiende las jugadas a balón parado?
+El balón parado por partido es ruido. Se analiza **agregado de toda la era** (`fct_set_piece`):
+- [ ] **A favor**:
+  - córners y tiros libres: zonas de entrega, zonas de remate, xG por jugada y % que termina en tiro;
+  - saques de banda en el último tercio.
+- [ ] **En contra**:
+  - zonas de remate rival y zonas vulnerables;
+  - con 360 en el saque, cuántos defienden el área y cómo se reparten (zonal o al hombre, si se puede inferir).
+- [ ] Comparar con la liga (eje "Balón parado" del ADN).
+
+### 3.9 ¿Se sostiene el ADN? (justificación con datos)
+- [x] Base hecha: validación del cambio a Almada en el notebook 04 (posición mediana 2 de 31 técnicos).
+- [ ] Validación, Ap 2025: ¿el Jardine de 2025 sigue siendo el de la ventana?
+- [ ] Prueba, 2026: Cl 2026 de Jardine y llegada de Almada.
+- [ ] El rigor en una frase y sin jerga: "probamos con partidos que el modelo nunca vio".
+
+### 3.10 Hipótesis del EDA
+- [ ] Tabla hipótesis → evidencia → veredicto.
+  - H1, H2, H3, H9 y H10 ya tienen veredicto (notebook 04).
+  - **Faltan H4–H8.**
+
+### 3.11 Recomendaciones
+- [ ] 3–5 recomendaciones con nombres del plantel y en lenguaje de cancha:
+  - para el cuerpo técnico;
+  - para la dirección deportiva: qué perfil de técnico encaja, según el Índice de Encaje.
+
+---
+
+## 4. 🔴 Valor para el club (45 % de la nota)
+
+### 4.1 ROI (20 %)
+Base en `src/business.py`: `scenario_table`, `sensitivity`, `coach_stints`, `turnover_summary`.
+- [ ] **Caso de negocio al inicio**: rotación de técnicos en la Liga MX (dato real de `turnover_summary`) → el costo de elegir mal.
+- [ ] **Piso defendible**: horas de analista ahorradas (la ficha se genera en menos de 1 minuto frente a varias horas manuales) × partidos por año.
+- [ ] **Beneficio adicional**: reducción del error al elegir técnico, con la tabla de sensibilidad. Decir explícitamente que es un supuesto.
+- [ ] 3 escenarios (conservador, base y optimista) con los supuestos visibles.
+- [ ] Costos:
+  - stack local y gratuito;
+  - horas de mantenimiento;
+  - los datos ya se pagan a StatsBomb.
+
+### 4.2 Activación (15 %)
+- [ ] **Uso interno**:
+  - ficha antes y después de cada partido para el cuerpo técnico;
+  - *scouting* de rivales y de técnicos;
+  - evaluación de candidatos a técnico con el ADN y el Índice de Encaje.
+- [ ] **Afición**: "El ADN del partido", una tarjeta por partido para redes con el radar del partido frente al ADN del técnico. Ya existe en la ficha: `feat(ficha): radar del partido frente al ADN`. Solo agregados.
+- [ ] 1–2 **maquetas visuales**: tarjeta para redes y vista para el cuerpo técnico.
+- [ ] Cómo escala la plataforma: calendario (por jornada), formatos y métricas de éxito (interacción, uso interno).
+
+### 4.3 Escalabilidad (10 %)
+- [ ] Demostrarla con lo que ya existe:
+  - ADN para los 106 técnicos de la Liga MX;
+  - ficha automática para un **segundo equipo**.
+- [ ] Liga MX Femenil (comp 1438, sin 360): qué funciona y qué no.
+- [ ] Otras ligas StatsBomb cambiando `TEAM` y `COMPETITION_ID` (`src/pipeline/config.py`).
+- [ ] Una visual "México → otros mercados".
+
+---
+
+## 5. 🔴 Reporte HTML entregable
+
+**Decisión:** un solo HTML autocontenido e interactivo, `reports/final/reporte_america.html`, generado con `python -m src.pipeline run --stages final`.
+- Jinja2 + Plotly.
+- Reutiliza `src/match_report.py` (`percentiles`, `chronicle`), `src/coach_viz.py` y `src/templates/`.
+
+Estructura (orden según el peso de cada criterio):
+1. **Resumen para el club** (1 pantalla): la historia de Jardine en 5 ideas + el caso de negocio en una línea.
+2. **La historia**: §3.2–§3.8.
+3. **¿Se sostiene?**: §3.9.
+4. **Valor para el club**: ROI, activación y escalabilidad (§4).
+5. **Explorador de partidos**: desplegable que actualiza la ficha, los mapas y la crónica. Cada partido lleva la etiqueta de su muestra.
+6. **Metodología** (plegable): marco analítico (definiciones, supuestos, coherencia, alcance y límites), pipeline, variables, validación.
+7. **Glosario**.
 
 Tareas:
-- [ ] Plantilla Jinja2 (se reutiliza `src/templates/`) con gráficas **Plotly** interactivas (tooltips con explicación).
-- [ ] Reutilizar `percentiles` y `chronicle` de `src/match_report.py`, más Gold, `scores` y `analysis`.
-- [ ] Embeber **solo agregados** (métricas por partido, percentiles, agregados por jugador, tiros y pases resumidos), **nunca eventos crudos**. Presupuesto: menos de 15 MB.
-- [ ] Validar la paleta (daltonismo) y probarla en el celular.
+- [ ] Esqueleto de la plantilla y la etapa `final` del pipeline.
+- [ ] Embeber **solo agregados**, nunca eventos crudos. Presupuesto: menos de 15 MB.
+- [ ] Paleta apta para daltonismo; el color dice "bueno o malo para el América"; probar en el celular.
 - [ ] Prueba de lectura con alguien que no sepa de datos.
 
 ---
 
-## 3. 🔴 Lenguaje de juego (para quien no sabe de ML)
+## 6. 🔴 Lenguaje de juego (para quien no sabe de ML)
 
 Regla: **primero el fútbol, después el número y al final (plegado) el método.**
 
@@ -147,129 +262,101 @@ Regla: **primero el fútbol, después el número y al final (plegado) el método
 | PSI / drift | "¿el equipo juega distinto últimamente?" |
 | MAE, R², model cards | solo en "Metodología" |
 
-- [ ] Nuevo campo `explicacion` en el catálogo de `src/features.py`, con una frase de fútbol por métrica. Ejemplo — PPDA: "pases que el rival da antes de que intentemos recuperar; menos = presionamos más". Se usa en el reporte, los tooltips y el glosario.
-- [ ] Reemplazar la gráfica de 55 barras por **8–10 indicadores clave** frente al "América típico" (pizza o barras). El detalle completo va plegado.
-- [ ] **Mapas de cancha**:
-  - tiros con tamaño = xG;
-  - pases progresivos y entradas al área;
-  - zonas de recuperación y presión;
-  - red de pases con posiciones medias.
-- [ ] El color dice **"bueno o malo para el América"**, no "alto o bajo" (p. ej., un PPDA alto es "presionó poco").
-- [ ] Crónica de máximo 6 frases naturales, comparada con el América típico y con lo típico contra rivales de este nivel.
+- [ ] Nuevo campo `explicacion` en el catálogo de `src/features.py`, con una frase de fútbol por métrica. Se usa en el reporte, los tooltips y el glosario.
+- [ ] Reemplazar la gráfica de 55 barras por **8–10 indicadores clave** frente al "América típico".
+- [ ] Crónica de máximo 6 frases naturales por partido.
 
 ---
 
-## 4. 🔴 Valor para el club: ROI, activación y escalabilidad (45 % de la nota)
-- [x] (base en `src/business.py`; validar los supuestos con el club) **ROI prudente con 3 escenarios** (conservador, base y optimista) y tabla de sensibilidad:
-  - **Costos**:
-    - stack local y gratuito (Python, sin nube ni licencias);
-    - horas de mantenimiento;
-    - datos (el club ya paga a StatsBomb).
-  - **Beneficios**:
-    - horas de analista ahorradas (la ficha se genera en menos de 1 minuto frente a varias horas manuales);
-    - más partidos y rivales analizados;
-    - apoyo para evaluar entrenadores candidatos con la misma metodología.
-  - Supuestos explícitos.
-- [ ] **Activación** coherente con la marca:
-  - uso interno: fichas antes y después de cada partido para el cuerpo técnico, y *scouting* de entrenadores y rivales;
-  - afición: "la historia del partido en datos", una gráfica por partido en redes, solo con resultados agregados.
-- [ ] **Escalabilidad**:
-  - el pipeline está parametrizado (`TEAM` y `COMPETITION_ID` en `src/pipeline/config.py`);
-  - otro club, la Liga MX Femenil (comp 1438) u otra liga con datos StatsBomb es cambiar la configuración;
-  - **demostrarlo con un segundo equipo**.
+## 7. 🔴 Video de 5 minutos
+
+- [ ] Guion (unas 750 palabras), con tiempos según el peso de cada criterio:
+  1. problema y caso de negocio, 30 s;
+  2. la historia de Jardine en 3–5 ideas, 2 min;
+  3. demo del explorador y del ADN de otro técnico, 1 min;
+  4. valor para el club (ROI, activación y escalabilidad), 1 min;
+  5. metodología en 1 diagrama, 30 s.
+- [ ] Grabación de pantalla con narración y subtítulos en español.
+- [ ] Revisar que no aparezcan datos crudos.
 
 ---
 
-## 5. 🔴 Video de 5 minutos
-- [ ] Guion (unas 750 palabras):
-  1. el problema, 30 s;
-  2. la historia del entrenador en 3 ideas, 90 s;
-  3. demo del explorador de partidos, 90 s;
-  4. metodología en 1 diagrama, 45 s;
-  5. valor para el club, 45 s.
-- [ ] Grabación de pantalla con narración y subtítulos en español; revisar que no aparezcan datos crudos.
+## 8. 🟡 Después del 9 oct
 
----
+**Metodología ML** (se presenta como rigor, no es prioridad para la entrega):
+- [ ] Óptimos en el borde de la malla (Ridge α = 100, LASSO α = 1.0) → ampliar con `np.logspace`.
+- [ ] `TimeSeriesSplit(n_splits=5, gap=2)`; comparar ventana creciente con ventana deslizante.
+- [ ] Validación anidada.
+- [ ] Intervalos bootstrap en la prueba y prueba pareada frente al baseline.
+- [ ] Calibrar T4 y T5.
+- [ ] Efectos aleatorios del rival (`MixedLM`).
+- [ ] Coeficientes con intervalos y SHAP o dependencia parcial explicados en simple.
+- [ ] Estabilidad de clústeres U2 y U3 (bootstrap + ARI).
+- [ ] Sensibilidad de la selección del núcleo a sus umbrales.
+- [ ] Commit, versiones y semilla en cada model card.
 
-## 6. 🟡 Metodología ML: hiperparámetros, validación y robustez
+**Análisis extra:**
+- [ ] Encaje rol–uso por jugador.
+- [ ] Estilo del rival con las mismas variables.
+- [ ] Pases que rompen líneas con 360, si no entró en §3.4.
 
-**Cómo se eligieron hoy:**
-- `GridSearchCV` con mallas pequeñas definidas a mano (`REG_CANDIDATES` y `CLF_CANDIDATES` en `src/modeling.py`):
-  - Ridge: α ∈ {0.1, 1, 10, 30, 100};
-  - LASSO: α ∈ {0.01…1};
-  - árbol: profundidad ∈ {2, 3, 4} y hoja mínima ∈ {10, 20};
-  - KNN: k ∈ {5, 10, 20}.
-- Cada combinación se evalúa con **validación cruzada temporal de ventana creciente** (`TimeSeriesSplit(4)`) sobre entrenamiento + validación: siempre se entrena con el pasado y se valida con los partidos siguientes.
-- La prueba (los 34 partidos más recientes) se usa una sola vez.
-
-**¿Vale la pena random search + CV?**
-- **Validación cruzada**: ya se hace, en su versión temporal, que es la correcta para estos datos. Lo que falta es hacerla más honesta (ver tareas).
-- **Random search**: no aporta para Ridge, LASSO y KNN (1–2 hiperparámetros). Conviene más una malla amplia o `RidgeCV`/`LassoCV`.
-- Solo conviene si se agregan modelos con muchos hiperparámetros (gradient boosting, random forest): `RandomizedSearchCV` con distribuciones `loguniform`, unas 50–100 iteraciones y la misma CV temporal.
-
-Tareas:
-- [ ] **Óptimos en el borde de la malla** (Ridge α = 100, LASSO α = 1.0) → ampliar con `np.logspace` y agregar una prueba que avise.
-- [ ] `TimeSeriesSplit(n_splits=5, gap=2)`; comparar ventana creciente con ventana deslizante (el estilo cambia con cada entrenador).
-- [ ] **Validación anidada** para estimar sin optimismo el procedimiento de selección.
-- [ ] **Incertidumbre en la prueba** (solo 34 partidos): intervalos bootstrap del MAE y prueba pareada frente al baseline. "Supera al baseline" solo si la mejora es significativa; agregarlo a las model cards.
-- [ ] Documentar o separar el rol del conjunto de validación (hoy se funde con la CV).
-- [ ] Calibrar T4 y T5 (`CalibratedClassifierCV`) y mostrar la curva de calibración.
-- [ ] Efectos aleatorios del rival (`MixedLM`) en T1: los rivales se repiten.
-- [ ] Coeficientes con intervalos (bootstrap); SHAP o dependencia parcial si se agregan árboles o boosting.
-- [ ] Estabilidad de clústeres U2 y U3 (bootstrap + ARI; comparar con GMM y jerárquico) y nombres de roles validados con jugadores conocidos.
-- [ ] Sensibilidad de la selección del núcleo a sus umbrales (fiabilidad 0.30, |ρ| 0.85, VIF 10).
-- [ ] Registrar commit, versiones de librerías y semilla en cada model card.
-
----
-
-## 7. Análisis para la historia del entrenador
-- [x] 🔴 (ADN ajustado por rival y localía frente a toda la liga, notebook 04) **Comparar entrenadores y periodos** con las 29 variables núcleo, controlando por rival y localía (regresión con efecto de periodo, no medias crudas).
-- [ ] 🔴 (hipótesis reescritas hacia el resultado del hackathon; veredicto de H1, H2, H3, H9 y H10 en el notebook 04; faltan H4–H8) **Contrastar las 10 hipótesis del EDA**: tabla hipótesis → evidencia → veredicto.
-- [ ] 🟡 **Encaje rol–uso** (estaba en el plan de la fase 2 y no se implementó): el perfil histórico del jugador frente a su perfil en el partido.
-- [ ] 🟡 **360**: pases que rompen líneas, compactación y altura de la línea defensiva.
-- [ ] 🟡 Estilo del rival con las mismas variables (no solo sus puntos).
-- [ ] 🟡 Balón parado agregado por torneo (por partido es ruido).
-- [ ] 🟡 Sustituciones: describir patrones (quién sale, quién entra, con qué marcador) en lugar de predecir su efecto.
-
----
-
-## 8. 🟡 Profesionalismo del repo
-- [ ] Migrar los notebooks 01–02 a leer de Silver/Gold y retirar `data/raw` y `data/processed`.
-- [ ] Hacer que `reports/eda/make_tables.py` use `src/latex.py` (hoy duplica `write_table`).
-- [ ] Contratos de datos con `pandera` en Silver y Gold.
-- [ ] Más tests con datos sintéticos: `aggregate`, `possessions`, `psi`, compuertas y generación del HTML.
-- [ ] GitHub Actions (solo tests unitarios, sin datos ni credenciales) + `ruff` + `pre-commit`.
-- [ ] `pyproject.toml` con versiones fijadas y un `Makefile` (`make pipeline`, `make final`, `make app`).
+**Profesionalismo del repo:**
+- [ ] Notebooks 01–02 que lean de Silver/Gold; retirar `data/raw` y `data/processed`.
+- [ ] `reports/eda/make_tables.py` → `src/latex.py`.
+- [ ] Contratos de datos con `pandera`.
+- [ ] Más tests con datos sintéticos.
+- [ ] GitHub Actions + `ruff` + `pre-commit`.
+- [ ] `pyproject.toml` con versiones fijadas y un `Makefile`.
 - [ ] `docs/arquitectura.md` y `docs/glosario.md`.
 - [ ] Registro de corridas en `logs/runs.parquet`.
-- [ ] Commits por fase. Verificar que nada versionado contenga datos crudos.
 
 ---
 
 ## 9. 🟡 Final (9 nov, si somos finalistas)
-- [ ] Máximo 10 diapositivas:
-  1. problema;
-  2–4. la historia del entrenador;
-  5. adaptación al contexto;
-  6. jugadores;
-  7. demo;
-  8. metodología;
-  9. valor para el club;
-  10. cierre.
-- [ ] Demo en vivo (HTML o app en Streamlit).
-- [ ] Ensayo con cronómetro y preguntas probables del jurado (ROI, metodología, datos).
+
+- [ ] Máximo 10 diapositivas, en proporción al peso de cada criterio:
+  1. caso de negocio;
+  2–4. la historia de Jardine (identidad, contexto, jugadores y balón parado);
+  5. ¿se sostiene? (validación y Almada);
+  6. demo;
+  7. ROI;
+  8. activación y escalabilidad;
+  9. metodología;
+  10. cierre y recomendaciones.
+- [ ] Demo en vivo (HTML o app en Streamlit sobre las mismas funciones).
+- [ ] Ensayo con cronómetro y preguntas probables del jurado (ROI, metodología, datos, por qué Jardine).
 
 ---
 
-## 10. Calendario
+## 10. Lecciones de los 13 proyectos ganadores anteriores (lo que falta aplicar)
+
+Lo que tienen en común:
+- un producto con nombre ✅ (ADN del Entrenador);
+- una métrica propia ✅ (Índice de Encaje);
+- una herramienta interactiva (§5);
+- un caso de negocio al inicio (§4.1);
+- recomendaciones con nombres del plantel (§3.11);
+- una pregunta de fútbol como título y un hallazgo con número (§3);
+- 360 como diferenciador (§3.4);
+- visuales de cancha (§3.2, §3.3).
+
+Sus debilidades frecuentes, que en nosotros son fortalezas **que hay que contar en simple**:
+- partición aleatoria;
+- poca comparación con un modelo de referencia;
+- ningún marco analítico explícito.
+
+---
+
+## 11. Calendario
 
 | Fecha | Foco |
 |---|---|
-| 29 sep – 1 oct | §1 administrativo · §0.b nombre del producto, preguntas-título y hallazgos · §3 catálogo con `explicacion` · ventana de datos |
-| 2 – 5 oct | §2 reporte HTML (resumen, identidad, contexto, jugadores, explorador) · §7 comparación de entrenadores |
-| 6 – 7 oct | §4 ROI, activación y escalabilidad · §7 hipótesis · **7 oct: cierre de convocatoria** |
-| 8 oct | §5 video · revisión final del HTML (tamaño, sin datos crudos, lectura no técnica) |
+| 29–30 sep | §2 administrativo y auditoría de la ventana · §3.1 identidad en 5 ideas |
+| 1–3 oct | §3.2 con balón · §3.3 sin balón · §3.4 360 · §3.7 jugadores · §3.8 balón parado |
+| 4–5 oct | §5 HTML (esqueleto, historia, explorador) · §6 lenguaje · §3.5–3.6 titulares |
+| 6–7 oct | §4 ROI, activación y escalabilidad · §3.9–3.11 · **7 oct: cierre de convocatoria** |
+| 8 oct | §7 video · revisión con el checklist de §0.b (sin datos crudos, lectura no técnica, tamaño del HTML) |
 | **9 oct** | **Entrega: HTML + video** |
-| 10 – 27 oct | §6 metodología · §8 profesionalismo · §7 360 y roles |
+| 10–27 oct | §8 metodología y repo |
 | 28 oct – 8 nov | §9 diapositivas, demo y ensayo |
-| **9 nov** | **Presentación final** |
+| **9 nov** | **Final** |
