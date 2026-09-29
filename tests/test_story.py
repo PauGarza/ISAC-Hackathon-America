@@ -200,6 +200,59 @@ def test_most_used_xi_and_pass_network():
     assert not {"x", "y"} & set(nodes.columns)  # nodos agregados: se pueden guardar
 
 
+# ------------------------------------------------------------------ §3.3 sin balón
+def _poss():
+    """Partido 1 del América (Jardine): pérdida → robo rival → robo propio en 3 s → transición propia."""
+    return pd.DataFrame({
+        "match_id": 1, "possession": [1, 2, 3, 4], "coach": "Jardine",
+        "team": [AM, RIV, AM, RIV], "is_team": [True, False, True, False],
+        "play_pattern": ["Regular Play"] * 4, "t_start": [0, 11, 14, 40], "t_end": [10, 13, 30, 50],
+        "regain": [False, True, True, True], "transition": [False, True, True, False],
+        "start_x": [30, 70, 65, 50], "start_y": [40, 20, 60, 40], "shot": [False, True, True, False],
+        "xg": [0, .1, .3, 0], "t_reach_f3": [np.nan, 4, 6, np.nan], "is_set_piece": False})
+
+
+def test_recoveries_and_summary():
+    p = _poss()
+    rec = S.recoveries(p)
+    assert list(rec.x) == [65]
+    rs = S.recovery_summary(rec, p, scope({"Jardine": 1})).set_index("coach")
+    assert rs.loc["Jardine", "pct_campo_rival"] == 100 and rs.loc["Jardine", "por_100_pos_rivales"] == 50
+    assert rs.loc["Jardine", "pct_a_transicion"] == 100
+
+
+def test_transitions_and_counterpress():
+    p = _poss()
+    sc = scope({"Jardine": 1})
+    t = S.transition_summary(p, sc).set_index(["coach", "lado"])
+    assert t.loc[("Jardine", "A favor"), "transiciones"] == 1 and t.loc[("Jardine", "A favor"), "xg_por_partido"] == pytest.approx(.3)
+    assert t.loc[("Jardine", "En contra"), "segundos_mediana"] == 4
+    assert t.loc[("Jardine", "En contra"), "pct_de_recuperaciones"] == 50
+    cp = S.counterpress_summary(p, sc).set_index("coach")
+    assert cp.loc["Jardine", "losses"] == 2 and cp.loc["Jardine", "quick_regains"] == 1  # 10 → 14 s: ≤ 5 s
+    st = S.transition_starts(p)
+    against = st[st.lado == "En contra"]
+    assert against.x.iat[0] == 50 and against.y.iat[0] == 60  # volteado a coordenadas del América
+
+
+def test_league_benchmark_relative_to_tournament_and_rank():
+    rows = []
+    for torneo, base in [("T1", 8.0), ("T2", 12.0)]:  # la liga sube 4 pases de un torneo a otro
+        for coach, delta in [("A", 0), ("B", 1), ("C", -1)]:
+            rows += [{"torneo": torneo, "split": "train", "manager": coach, "team_name": AM if coach == "A" else f"E{coach}",
+                      "coach_team": f"{coach} · x", "team_match_ppda": base + delta} for _ in range(2)]
+    tml = pd.DataFrame(rows)
+    b = S.league_benchmark(tml, cols=("team_match_ppda",), min_matches=1).set_index("manager")
+    assert b.loc["A", "team_match_ppda"] == pytest.approx(0)  # igual a la liga de su torneo, pese a la época
+    assert b.loc["B", "team_match_ppda"] == pytest.approx(1)
+    assert b.loc["A", "coach"] == "A" and pd.isna(b.loc["B", "coach"])
+    raw = S.league_benchmark(tml, cols=("team_match_ppda",), min_matches=1, relative=False).set_index("manager")
+    assert raw.loc["A", "team_match_ppda"] == pytest.approx(10)
+    r = S.league_rank(b.reset_index(), "team_match_ppda", coach="A")
+    assert r["lugar"] == 2 and r["de"] == 3 and r["percentil"] == pytest.approx(100 / 3 + 100 / 6)
+    assert S.league_rank(b.reset_index(), "team_match_ppda", coach="A", higher_is_more=False)["lugar"] == 2
+
+
 # ------------------------------------------------------------------ guardar solo agregados
 def test_save_story_rejects_event_level_columns(tmp_path, monkeypatch):
     monkeypatch.setattr(S, "ANALYSIS", tmp_path)

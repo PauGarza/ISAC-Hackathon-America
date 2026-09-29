@@ -353,6 +353,120 @@ def pass_network(ev: pd.DataFrame, lu: pd.DataFrame, xi: pd.DataFrame, min_passe
     return nodes.reset_index(), edges[edges.pases_por_partido >= min_passes].reset_index(drop=True)
 
 
+# ------------------------------------------------------------------ §3.3 recuperaciones y presión
+def recoveries(poss: pd.DataFrame) -> pd.DataFrame:
+    """Recuperaciones = posesiones propias que nacen de un robo (marco: `regain`), con su ubicación."""
+    r = poss[poss.is_team & poss.regain & poss.start_x.notna()]
+    return r[["match_id", "coach", "start_x", "start_y", "transition", "shot", "xg"]].rename(
+        columns={"start_x": "x", "start_y": "y"})
+
+
+def recovery_summary(rec: pd.DataFrame, poss: pd.DataFrame, scope: pd.DataFrame) -> pd.DataFrame:
+    """Por técnico: recuperaciones por partido y por 100 posesiones rivales, altura media, % en campo rival y en
+    último tercio, y % que se convierten en transición o en tiro."""
+    g = rec.groupby("coach")
+    opp = poss[~poss.is_team].groupby("coach").size()
+    out = pd.DataFrame({"recuperaciones": g.size(), "altura_media_x": g.x.mean(),
+                        "pct_campo_rival": g.x.apply(lambda s: (s >= A["press_high_x"]).mean() * 100),
+                        "pct_ultimo_tercio": g.x.apply(lambda s: (s >= A["third_limits"][1]).mean() * 100),
+                        "pct_a_transicion": g.transition.mean() * 100, "pct_a_tiro": g.shot.mean() * 100})
+    out["por_partido"] = per_match(out.recuperaciones, scope)
+    out["por_100_pos_rivales"] = out.recuperaciones / opp * 100
+    return out.reindex(COACHES).reset_index()
+
+
+PRESS_METRICS = ["ppda", "high_press_pct", "def_action_x_mean", "high_regains_per100opp",
+                 "counterpress_per_loss", "quick_regain_pct"]
+
+
+def pressing_by_coach(mf: pd.DataFrame, scope: pd.DataFrame, cols=PRESS_METRICS) -> pd.DataFrame:
+    """Métricas de presión del marco (match_features): mediana por partido de cada técnico (y P25–P75)."""
+    d = mf[mf.match_id.isin(scope.match_id)].assign(coach=lambda x: x.match_id.map(scope.set_index("match_id").coach))
+    q = d.groupby("coach")[list(cols)].quantile([.25, .5, .75]).unstack()
+    out = pd.DataFrame({c: q[(c, .5)] for c in cols})
+    for c in cols:
+        out[f"{c}_p25"], out[f"{c}_p75"] = q[(c, .25)], q[(c, .75)]
+    return out.reindex(COACHES).reset_index()
+
+
+LEAGUE_METRICS = {  # métrica de team-match-stats (toda la liga) -> (etiqueta, "más = ...")
+    "team_match_ppda": ("PPDA (pases rivales por acción defensiva)", "menos = presión más intensa"),
+    "team_match_fhalf_pressures_ratio": ("% de presiones en campo rival", "más = presiona más arriba"),
+    "team_match_counterpressures": ("Contrapresiones por partido", "más = reacciona más tras perder"),
+    "team_match_counterpressure_regains": ("Recuperaciones por contrapresión por partido", "más = recupera al reaccionar"),
+    "team_match_defensive_distance": ("Distancia media de las acciones defensivas a su portería (m)", "más = defiende más arriba"),
+    "team_match_counter_attacking_shots": ("Tiros de contraataque por partido", "más = castiga en transición"),
+    "team_match_counter_attacking_shots_conceded": ("Tiros de contraataque concedidos por partido", "menos = controla la transición defensiva"),
+}
+
+
+def league_benchmark(tml: pd.DataFrame, cols=tuple(LEAGUE_METRICS), min_matches: int = MIN_MATCHES,
+                     relative: bool = True) -> pd.DataFrame:
+    """Media por periodo de técnico (técnico × equipo) en la ventana oficial, para toda la Liga MX (≥ min_matches).
+    Misma fuente (team-match-stats de StatsBomb) para el América y para la liga.
+    relative=True: cada partido se expresa como diferencia con la media de la liga EN ESE TORNEO. Hace falta
+    porque la liga entera se mueve (el PPDA medio pasa de ~8 en 2021 a ~12 en 2024 y las recuperaciones por
+    contrapresión se duplican desde Ap 2024): sin esto, un técnico reciente parece presionar menos solo por la época."""
+    d = tml[(tml.split == "train") & (tml.manager != "")].copy()
+    if relative:
+        cols = list(cols)
+        d[cols] = d[cols] - tml[tml.split == "train"].groupby("torneo")[cols].transform("mean").loc[d.index]
+    g = d.groupby("coach_team")
+    out = g[list(cols)].mean()
+    out["partidos"] = g.size()
+    out["manager"], out["team"] = g.manager.first(), g.team_name.first()
+    out = out[out.partidos >= min_matches]
+    out["coach"] = np.where(out.team == fw.TEAM, out.manager.map(short), None)
+    return out.reset_index()
+
+
+def league_rank(bench: pd.DataFrame, col: str, coach: str = PROTAGONIST, higher_is_more: bool = True) -> dict:
+    """Posición de un técnico del América entre los periodos de la liga: percentil (0–100) y lugar (1 = el que más)."""
+    v = bench.loc[bench.coach == coach, col].iat[0]
+    ref = bench[col].dropna()
+    pct = (ref < v).mean() * 100 + (ref == v).mean() * 50
+    place = int((ref > v).sum() + 1) if higher_is_more else int((ref < v).sum() + 1)
+    return {"valor": v, "percentil": pct, "lugar": place, "de": len(ref), "mediana_liga": ref.median()}
+
+
+# ------------------------------------------------------------------ §3.3 transiciones
+def transition_summary(poss: pd.DataFrame, scope: pd.DataFrame) -> pd.DataFrame:
+    """Transiciones ofensivas (a favor) y defensivas (del rival) con la definición del marco: cuántas por partido,
+    qué tan rápido llegan al último tercio o al tiro (mediana, s), % que termina en tiro y xG por partido."""
+    rows = []
+    for side, mask in [("A favor", poss.is_team), ("En contra", ~poss.is_team)]:
+        t = poss[mask & poss.transition].groupby("coach")
+        base = poss[mask & poss.regain].groupby("coach").size()
+        out = pd.DataFrame({"transiciones": t.size(), "segundos_mediana": t.t_reach_f3.median(),
+                            "pct_tiro": t.shot.mean() * 100, "xg": t.xg.sum(), "xg_por_transicion": t.xg.mean(),
+                            "pct_de_recuperaciones": t.size() / base * 100})
+        out["por_partido"] = per_match(out.transiciones, scope)
+        out["xg_por_partido"] = per_match(out.xg, scope)
+        rows.append(out.reindex(COACHES).reset_index().assign(lado=side))
+    return pd.concat(rows, ignore_index=True)
+
+
+def counterpress_summary(poss: pd.DataFrame, scope: pd.DataFrame) -> pd.DataFrame:
+    """Transición defensiva inmediata (marco: losses_and_regains): pérdidas en juego y % recuperado en ≤ 5 s."""
+    lr = fw.losses_and_regains(poss).join(scope.set_index("match_id").coach)
+    g = lr.groupby("coach")[["losses", "quick_regains"]].sum()
+    g["pct_recuperado_5s"] = g.quick_regains / g.losses * 100
+    g["perdidas_por_partido"] = per_match(g.losses, scope)
+    return g.reindex(COACHES).reset_index()
+
+
+def transition_starts(poss: pd.DataFrame) -> pd.DataFrame:
+    """Dónde nacen las transiciones, SIEMPRE en coordenadas del América (ataca a la derecha):
+    a favor = donde recupera; en contra = donde pierde el balón (se voltea la ubicación del rival)."""
+    t = poss[poss.transition & poss.start_x.notna()]
+    fav = t[t.is_team]
+    con = t[~t.is_team]
+    return pd.concat([
+        pd.DataFrame({"coach": fav.coach, "lado": "A favor", "x": fav.start_x, "y": fav.start_y, "xg": fav.xg}),
+        pd.DataFrame({"coach": con.coach, "lado": "En contra", "x": 120 - con.start_x, "y": 80 - con.start_y, "xg": con.xg}),
+    ], ignore_index=True)
+
+
 # ------------------------------------------------------------------ guardar solo agregados
 FORBIDDEN = {"id", "index", "possession", "timestamp", "related_events", "x", "y", "location_x", "location_y",
              "pass_end_location_x", "pass_end_location_y", "sx", "sy", "ex", "ey", "end_x", "end_y"}

@@ -14,7 +14,7 @@ from matplotlib.colors import Normalize
 from matplotlib.patches import Arc, Circle, FancyArrow, Rectangle
 
 from src import eda
-from src.coach_viz import COACH_COLOR
+from src.coach_viz import COACH_COLOR, LEAGUE
 from src.story import COACHES, PROTAGONIST
 
 eda.set_style()
@@ -255,4 +255,72 @@ def fig_pass_network(nodes: pd.DataFrame, edges: pd.DataFrame, xi: pd.DataFrame,
              f"hasta el primer cambio · tamaño = pases por partido · líneas = parejas con ≥ {min_edge:.0f} pases por "
              "partido juntos", fontsize=7, color=eda.INK_2)
     _footer(fig, note)
+    return fig
+
+
+# ------------------------------------------------------------------ §3.3 sin balón
+def fig_recoveries(grid: pd.DataFrame, summary: pd.DataFrame, scope: pd.DataFrame, title: str):
+    fig, axes = _panels(3)
+    vmax = grid.por_partido.max()
+    sm = summary.set_index("coach")
+    for ax, c in zip(axes, COACHES):
+        draw_pitch(ax)
+        norm = zone_heat(ax, grid[grid.coach == c], "por_partido", vmax, fmt="{:.1f}", min_label=1)
+        h = sm.loc[c, "altura_media_x"]
+        ax.plot([h, h], [0, 80], color=eda.INK, lw=1.2, zorder=5)
+        ax.text(h + 1, 78, f"altura media {h:.0f} yd", fontsize=6.5, color=eda.INK, zorder=6, va="bottom",
+                bbox=dict(boxstyle="round,pad=0.15", fc=eda.SURFACE, ec="none", alpha=0.85))
+        _coach_title(ax, c, f"{sm.loc[c, 'por_partido']:.0f} por partido · {sm.loc[c, 'pct_campo_rival']:.0f} % en campo rival")
+    _colorbar(fig, norm, "recuperaciones por partido en cada zona")
+    _suptitle(fig, title)
+    _footer(fig, sample_note(scope) + " · recuperación = posesión propia que nace de un robo, intercepción o bloqueo (marco)")
+    return fig
+
+
+def fig_press_league(bench: pd.DataFrame, metrics: dict[str, tuple[str, str, float]], title: str, note: str):
+    """Tira por métrica: cada punto gris = un técnico de la liga (≥ 15 partidos en la ventana); en color, los del
+    América. Eje = diferencia con la media de la liga en el mismo torneo (0 = liga)."""
+    fig, axes = plt.subplots(len(metrics), 1, figsize=(8.2, 1.25 * len(metrics) + 1.0))
+    rng = np.random.default_rng(0)
+    for ax, (col, (lab, better, scale)) in zip(axes, metrics.items()):
+        v = bench[col] * scale
+        lg = bench.coach.isna()
+        ax.scatter(v[lg], rng.uniform(-0.25, 0.25, lg.sum()), s=16, color=LEAGUE, alpha=0.45, lw=0)
+        ax.axvline(0, color=eda.INK_2, lw=0.8)
+        for c in COACHES:
+            x = v[bench.coach == c].iat[0]
+            ax.scatter([x], [0], s=70, color=COACH_COLOR[c], edgecolor=eda.SURFACE, lw=1.5, zorder=3)
+            ax.annotate(c, (x, 0), xytext=(0, 9 if c != "Ortiz" else -13), textcoords="offset points", ha="center",
+                        fontsize=7, color=eda.INK, fontweight="bold" if c == PROTAGONIST else "normal")
+        ax.set_yticks([])
+        ax.set_ylim(-0.6, 0.6)
+        ax.grid(axis="y", visible=False)
+        ax.spines["left"].set_visible(False)
+        ax.set_title(f"{lab}  ·  {better}", loc="left", fontsize=8, fontweight="normal", color=eda.INK)
+    axes[-1].set_xlabel("diferencia con la media de la liga en el mismo torneo (0 = liga)")
+    fig.suptitle(title, x=0.01, ha="left", fontsize=11, fontweight="bold")
+    fig.tight_layout(rect=(0, 0.04, 1, 0.97))
+    _footer(fig, note)
+    return fig
+
+
+def fig_transitions(grid: pd.DataFrame, summary: pd.DataFrame, scope: pd.DataFrame, title: str, coach: str = PROTAGONIST):
+    """Dónde nacen las transiciones de Jardine: a favor (donde recupera) y en contra (donde pierde)."""
+    fig, axes = _panels(2, w=10.5, h=4.9, top=0.78, bottom=0.19)
+    g = grid[grid.coach == coach]
+    vmax = g.por_partido.max()
+    sm = summary[summary.coach == coach].set_index("lado")
+    labels = {"A favor": "A favor: dónde recupera el América", "En contra": "En contra: dónde pierde el balón el América"}
+    for ax, side in zip(axes, ["A favor", "En contra"]):
+        draw_pitch(ax)
+        norm = zone_heat(ax, g[g.lado == side], "por_partido", vmax, fmt="{:.1f}", min_label=0.8)
+        r = sm.loc[side]
+        ax.text(-2, -14, labels[side], fontsize=9, fontweight="bold", color=eda.INK)
+        ax.text(-2, -4, f"{r.por_partido:.1f} por partido · llegan en {r.segundos_mediana:.0f} s (mediana)\n"
+                f"{r.pct_tiro:.0f} % termina en tiro · {r.xg_por_partido:.2f} xG por partido", fontsize=7,
+                color=eda.INK_2)
+    _colorbar(fig, norm, "transiciones por partido que nacen en cada zona", rect=(0.33, 0.08, 0.34, 0.022))
+    _suptitle(fig, title)
+    _footer(fig, f"Ventana oficial Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · "
+            "transición = robo que llega al último tercio o al tiro en ≤ 15 s (marco) · coordenadas del América")
     return fig
