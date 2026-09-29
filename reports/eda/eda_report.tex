@@ -428,22 +428,30 @@ Juntando las piezas, los datos esbozan un relato. Por ahora es una \textbf{hipó
 \end{historia}
 
 \subsection{Hipótesis para la fase de análisis}
-\begin{longtable}{p{0.6cm}p{5.6cm}p{4.3cm}p{4.3cm}}
-\caption{Hipótesis derivadas del EDA y cómo contrastarlas. Entre paréntesis se indica el componente del reto al que responden, con la numeración de la convocatoria: 5.1 estilo de juego, 5.2 consistencia y variabilidad, 5.3 uso de jugadores, 5.4 balón parado y 5.5 evidencia cuantitativa.}\label{tab:hipotesis}\\
-\toprule \textbf{H} & \textbf{Hipótesis} & \textbf{Evidencia descriptiva} & \textbf{Cómo contrastarla}\\\midrule\endfirsthead
-\toprule \textbf{H} & \textbf{Hipótesis} & \textbf{Evidencia descriptiva} & \textbf{Cómo contrastarla}\\\midrule\endhead
+El entregable del hackathon es una \textbf{metodología que permita al club entender el estilo de un entrenador y las
+características que lo definen}, evaluada por su análisis estratégico, su justificación con datos, su valor para el
+club (ROI y activación) y su escalabilidad. Las hipótesis se reformulan con ese fin: cada una dice qué se espera
+encontrar, qué evidencia descriptiva la sugiere, cómo se contrastará y \emph{para qué le sirve al club}. Todas se
+contrastan con la \textbf{partición oficial}: la ventana del hackathon (Apertura 2021 -- Clausura 2025) para construir
+y los partidos de 2025--2026 para validar y probar.
+
+{\small
+\begin{longtable}{p{0.55cm}p{4.4cm}p{3.6cm}p{3.6cm}p{3.2cm}}
+\caption{Hipótesis orientadas al resultado del hackathon. Entre paréntesis, el componente del reto (5.1 estilo, 5.2 consistencia y contexto, 5.3 jugadores, 5.4 balón parado, 5.5 evidencia) y el criterio de evaluación.}\label{tab:hipotesis}\\
+\toprule \textbf{H} & \textbf{Hipótesis} & \textbf{Evidencia del EDA} & \textbf{Cómo contrastarla} & \textbf{Valor para el club}\\\midrule\endfirsthead
+\toprule \textbf{H} & \textbf{Hipótesis} & \textbf{Evidencia del EDA} & \textbf{Cómo contrastarla} & \textbf{Valor para el club}\\\midrule\endhead
 \bottomrule\endfoot
-H1 & La posesión no distingue a los entrenadores; la intensidad de la presión sí (5.1 defensa, 5.2). & Posesión mediana de 0.53 a 0.56; PPDA de 8.2 a 12.2 (Tabla~\ref{tab:ctx_coach}). & Modelo mixto de PPDA y posesión por entrenador con efecto aleatorio del rival.\\
-H2 & Jardine presiona de forma selectiva según el rival (5.2 contexto). & PPDA 15.2 contra rivales Alto y 11 contra Medio o Bajo (Tabla~\ref{tab:ctx_rival}). & Interacción entrenador $\times$ nivel del rival, controlando la localía.\\
-H3 & En liguilla, Jardine cambia a un plan reactivo sin conceder más (5.2, 5.1 organización defensiva). & PPDA 14.1 contra 11.6 y posesión 0.52 contra 0.58, con el mismo xG concedido (Tabla~\ref{tab:ctx_fase}). & Comparar secuencias de presión y altura del bloque con 360 entre fases.\\
-H4 & El marcador cambia el plan igual con todos los entrenadores: ganando se cede el balón y perdiendo se presiona arriba. Con Jardine el cambio es más fuerte (5.2 marcador). & Tabla~\ref{tab:ctx_marcador}. & Modelo por posesión con el estado del marcador y el minuto como covariables.\\
-H5 & Jardine construye con más precisión y menos riesgo (5.1 construcción). & Precisión de 0.85, la máxima; el éxito del pase baja cuanto más adelante termina. & Pases progresivos ajustados por la probabilidad de éxito (riesgo asumido).\\
-H6 & El dominio territorial de Jardine dejó de traducirse en ocasiones con el tiempo (5.2 evolución). & Field tilt de 0.61 a 0.68 y np xG de 1.34 a 1.04 (Tabla~\ref{tab:ctx_torneo}). & Tendencia por torneo de xG por posesión en último tercio; perfil de las secuencias.\\
-H7 & El balón parado es un pilar ofensivo con Jardine y un punto débil en córners defensivos (5.4). & 39\% del xG propio de reanudaciones y 18.4\% del xG rival de córners (Tabla~\ref{tab:ctx_bp}). & Mapas de remate con \col{shot_freeze_frame}; xG por córner a favor y en contra.\\
-H8 & Jardine es un entrenador de ajustes en vivo (5.3). & 1.8 cambios tácticos por partido, 10\% de sustituciones al descanso, 9 formaciones. & Comparar métricas antes y después de cada cambio táctico o sustitución.\\
-H9 & La localía cambia dónde juega el equipo, no cuánto balón tiene (5.2). & Con Jardine, field tilt 0.66 contra 0.60 y xG concedido 0.66 contra 0.90 (Tabla~\ref{tab:ctx_localia}). & Mismo modelo que H1 con la localía como efecto.\\
-H10 & OBV mide el dominio mejor que la posesión o el xG (5.5). & $\rho$ con la diferencia de goles: OBV 0.70, xGD 0.54, posesión $-0.10$. & Descomponer OBV por fase (construcción, progresión, finalización, defensa).\\
-\end{longtable}
+H1 & \textbf{Cada entrenador tiene un ADN distinguible}: su perfil de juego lo separa de la liga y de los otros técnicos del América (5.1; análisis estratégico). & La posesión no los separa (0.53--0.56), pero el PPDA, la precisión y la progresión sí (Tabla~\ref{tab:ctx_coach}). & Perfil de 8 ejes frente a la liga ajustado por rival y localía; clasificador ``¿qué técnico dirigió este partido?''. & Describir a cualquier técnico con el mismo lenguaje y en un solo gráfico.\\
+H2 & \textbf{Identidad del club frente a identidad del técnico}: algunos rasgos se mantienen con todos (control del balón) y otros cambian con el técnico (presión) (5.2; estratégico). & Posesión estable entre técnicos; PPDA de 8.2 a 12.2 (Figura~\ref{fig:box}). & Varianza de cada eje entre técnicos frente a dentro del técnico, sobre el perfil ajustado. & Saber qué exigir a cualquier técnico (lo innegociable) y qué depende de su idea.\\
+H3 & \textbf{Jardine adapta su plan al rival} más que Solari y Ortiz (5.2 contexto). & PPDA 15.2 contra rivales fuertes y 11 contra el resto; sin cambio con Ortiz (Tabla~\ref{tab:ctx_rival}). & Perfil por tercil de fuerza del rival (previa, sin leakage) con intervalos bootstrap. & Anticipar cómo jugará el equipo según el rival.\\
+H4 & \textbf{El marcador cambia el plan}: ganando se cede el balón y perdiendo se presiona arriba; en Jardine el ajuste es mayor (5.2). & Tabla~\ref{tab:ctx_marcador}. & Modelo por tramo y estado del marcador (T2). & Leer las decisiones en vivo del técnico.\\
+H5 & \textbf{En liguilla el equipo se vuelve reactivo sin conceder más} (5.2). & PPDA 14.1 contra 11.6; posesión 0.52 contra 0.58; mismo xG concedido (Tabla~\ref{tab:ctx_fase}). & Perfil por fase (regular o liguilla). & Planear el cierre de torneo.\\
+H6 & \textbf{El dominio territorial dejó de convertirse en ocasiones} al final de la etapa de Jardine (5.2 evolución). & Field tilt de 0.61 a 0.68 y np xG de 1.34 a 1.04 (Tabla~\ref{tab:ctx_torneo}). & Evolución del ADN por torneo, validada con 2025--2026 (datos no vistos). & Señal temprana de desgaste de un proyecto.\\
+H7 & \textbf{El juego se construye desde atrás y está repartido}: ningún jugador lo sostiene solo (5.3). & 10 de los 15 jugadores con más minutos tienen un OBV/90 de 0.18 a 0.31; ninguno se despega (Tabla~\ref{tab:player_min}). & Gini y reparto del OBV por línea; roles de jugador. & Saber qué perfiles necesita el sistema de cada técnico.\\
+H8 & \textbf{El balón parado es pilar ofensivo y punto débil defensivo} (5.4). & 39\% del xG propio de reanudaciones y 18.4\% del xG rival de córners (Tabla~\ref{tab:ctx_bp}). & Eje de balón parado del ADN frente a la liga; mapas de entrega y remate. & Priorizar entrenamiento específico.\\
+H9 & \textbf{La metodología detecta un cambio de entrenador que nunca vio}: los partidos de Almada en 2026 salen del ADN de Jardine y se parecen a su propio ADN en Pachuca (5.5; escalabilidad). & El EDA ya muestra a Almada distinto (línea más alta, salida corta), con 9 partidos. & Distancia al ADN de Jardine en validación y prueba; clasificador entrenado con toda la liga en la ventana oficial. & Monitorear si un técnico mantiene su identidad y evaluar a un técnico por su historial en otro club.\\
+H10 & \textbf{Un Índice de Encaje ordena a los técnicos de la liga por parecido con la identidad del América} (negocio; ROI). & Los técnicos del América difieren en presión y precisión, no en posesión (H1, H2). & Distancia del ADN de cada técnico de la liga al ADN histórico del club. & Reducir el riesgo de una contratación fallida (ROI) y dar una lista corta de candidatos.\\
+\end{longtable}}
 
 % =====================================================================
 \section{Implicaciones para el marco analítico}\label{sec:marco}
@@ -478,11 +486,14 @@ El reto exige definir los objetos antes del análisis. Con base en lo observado 
 \section{Siguientes pasos}
 % =====================================================================
 \begin{enumerate}
-  \item Fijar a \textbf{Jardine} como protagonista y usar a Solari, Ortiz y Almada como contraste.
-  \item Formalizar el marco analítico (Sección~\ref{sec:marco}) en un documento propio.
-  \item Construir una \textbf{tabla de posesiones con contexto} (marcador, minuto, localía, rival, fase) como base común de todas las métricas.
-  \item Contrastar H1--H10 con modelos que controlen por rival y localía.
-  \item Profundizar con 360 en presión y organización defensiva, con \col{shot_freeze_frame} en balón parado y con perfiles de rol en el uso de jugadores.
+  \item Construir el \textbf{ADN del entrenador}: un perfil de 8 ejes de juego para cualquier técnico de la Liga MX,
+        comparado con toda la liga y ajustado por rival y localía (H1, H2, H10).
+  \item Usar la \textbf{partición oficial}: la ventana del hackathon para construir; 2025--2026 para validar y probar,
+        incluido el cambio a Almada (H9).
+  \item Formalizar el marco analítico y contrastar H3--H8 con modelos que controlen por rival y localía.
+  \item Traducir los resultados al \textbf{valor para el club}: contratación y seguimiento de técnicos, preparación de
+        partidos y un ROI con escenarios.
+  \item Entregar en el formato oficial: un \textbf{reporte HTML} interactivo y un video de 5 minutos.
 \end{enumerate}
 
 \appendix
