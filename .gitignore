@@ -1,0 +1,32 @@
+# Credenciales (NUNCA subir)
+secrets.md
+.env
+
+# Datos StatsBomb: uso exclusivo de la competencia, no se comparten
+data/
+
+# Modelos entrenados (se regeneran con el pipeline; las model cards .json sí se versionan) y logs
+models/*.joblib
+logs/
+.pytest_cache/
+
+# LaTeX (auxiliares de compilación)
+reports/**/*.aux
+reports/**/*.log
+reports/**/*.toc
+reports/**/*.out
+reports/**/*.fls
+reports/**/*.fdb_latexmk
+reports/**/*.synctex.gz
+
+# Python / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.vscode/
