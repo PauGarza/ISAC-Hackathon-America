@@ -378,3 +378,89 @@ def fig_block_shape(by_phase: pd.DataFrame, by_situation: pd.DataFrame, scope: p
             "Frames útiles (≥ 8 jugadores de campo visibles y la toma ve ≥ 5 yd detrás del último): "
             + ", ".join(f"{c} {util[c] / tot[c]:.0%}" for c in COACHES) + " · solo cuenta lo que se ve en la toma")
     return fig
+
+
+# ------------------------------------------------------------------ §3.8 balón parado
+ZONE_RECTS = {"Área chica": [(114, 30, 6, 20)], "Zona de penal": [(102, 30, 12, 20)],
+              "Área (costados)": [(102, 18, 18, 12), (102, 50, 18, 12)]}
+
+
+def _sp_shots(ax, d: pd.DataFrame, color: str):
+    miss, goal = d[~d.goal], d[d.goal]
+    ax.scatter(miss.x, miss.y, s=miss.xg * 500 + 6, color=color, alpha=0.4, lw=0, zorder=5)
+    ax.scatter(goal.x, goal.y, s=goal.xg * 500 + 6, color=eda.INK, alpha=0.85, edgecolor=eda.SURFACE, lw=0.8, zorder=6)
+
+
+def _panel_title(ax, title: str, text: str, view: str = "box"):
+    x0, _, _, yt = VIEWS[view]
+    ax.text(x0 + 1, yt - 8.5, title, fontsize=9, fontweight="bold", color=eda.INK, va="center")
+    ax.text(x0 + 1, yt - 3.5, text, fontsize=6.8, color=eda.INK_2, va="center")
+
+
+def fig_set_pieces(deliv: pd.DataFrame, summary: pd.DataFrame, shots: pd.DataFrame, scope: pd.DataFrame, title: str,
+                   coach: str = PROTAGONIST):
+    """Balón parado de un técnico en tres vistas del área (la portería atacada, a la derecha):
+    (1) dónde cae el envío de sus córners (% por zona del marco); (2) remates a favor y (3) remates en contra en
+    córners, tiros libres y saques de banda del último tercio (tamaño = xG; relleno de tinta = gol)."""
+    fig, axes = _panels(3, w=11.5, h=4.9, top=0.8, bottom=0.17)
+    sm = summary.set_index(["coach", "lado", "kind"])
+    z = deliv[(deliv.coach == coach) & (deliv.lado == "A favor") & (deliv.kind == "Córner")
+              & (deliv.dimension == "Zona de entrega")].set_index("valor").share
+    norm = Normalize(0, max(z.max(), 0.01))
+    ax = axes[0]
+    draw_pitch(ax, view="box", arrow=False)
+    for zone, rects in ZONE_RECTS.items():
+        v = z.get(zone, 0.0)
+        c = eda.SEQ(norm(v))
+        for i, (x, y, w, h) in enumerate(rects):
+            ax.add_patch(Rectangle((x, y), w, h, facecolor=c, edgecolor=eda.SURFACE, lw=2, zorder=1))
+            if i == 0:
+                ax.text(x + w / 2, y + h / 2, f"{v:.0%}", ha="center", va="center", fontsize=8, color=_text_color(c),
+                        zorder=4)
+    ax.text(79, 66, f"en corto: {z.get('Corto', 0):.0%} · fuera del área: {z.get('Fuera del área', 0):.0%}", fontsize=7,
+            color=eda.INK, va="center")
+    c = sm.loc[(coach, "A favor", "Córner")]
+    _panel_title(ax, "Córners a favor: dónde cae el envío", f"{c.por_partido:.1f} por partido · {c.pct_tiro:.0f} % termina "
+                 f"en tiro · {c.xg_por_jugada:.3f} xG por córner")
+    for ax, side, color in [(axes[1], "A favor", COACH_COLOR[coach]), (axes[2], "En contra", LEAGUE)]:
+        draw_pitch(ax, view="box", arrow=False)
+        _sp_shots(ax, shots[(shots.coach == coach) & (shots.lado == side) & (shots.x >= 77)], color)
+        t = sm.loc[(coach, side, "Total")]
+        _panel_title(ax, f"Remates {side.lower()}", f"{t.por_partido:.1f} jugadas y {t.xg_por_partido:.2f} xG por partido · "
+                     f"{t.goles:.0f} goles")
+    handles = [plt.scatter([], [], s=x * 500 + 6, color=eda.MUTED, alpha=0.5, lw=0) for x in (0.05, 0.2, 0.5)]
+    handles.append(plt.scatter([], [], s=0.2 * 500 + 6, color=eda.INK, edgecolor=eda.SURFACE))
+    fig.legend(handles, ["xG 0.05", "xG 0.20", "xG 0.50", "gol"], loc="lower center", ncol=4,
+               bbox_to_anchor=(0.66, 0.05), fontsize=7)
+    _suptitle(fig, title)
+    _footer(fig, f"Ventana oficial Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · córners, tiros "
+            "libres y saques de banda desde el último tercio (toda la jugada, sin penales) · la portería atacada, a la derecha "
+            "(en contra: la del América) · Datos: StatsBomb")
+    return fig
+
+
+def fig_corner_defense(grid: pd.DataFrame, cd_sum: pd.DataFrame, marking: pd.DataFrame, scope: pd.DataFrame, title: str):
+    """Córners en contra con 360 en el momento del saque: dónde se paran los defensores del América en su área
+    (promedio por córner en cada celda), un panel por técnico; el saque, siempre desde la esquina de arriba."""
+    fig, axes = _panels(3, w=11.5, h=5.2, top=0.78, bottom=0.24)
+    vmax = grid.por_corner.max()
+    cs, mk = cd_sum.set_index("coach"), marking.set_index("coach")
+    for ax, c in zip(axes, COACHES):
+        draw_pitch(ax, view="box", arrow=False)
+        norm = zone_heat(ax, grid[grid.coach == c], "por_corner", vmax, fmt="{:.1f}", min_label=np.inf)
+        ax.annotate("saque", xy=(120, 8.4), xytext=(113, 11), fontsize=6.5, color=eda.INK_2, ha="right", va="center",
+                    arrowprops=dict(arrowstyle="->", color=eda.INK_2, lw=0.7))
+        r, m = cs.loc[c], mk.loc[c]
+        x0, _, _, yt = VIEWS["box"]
+        ax.text(x0 + 1, yt - 12, "●", color=COACH_COLOR[c], fontsize=10, va="center", ha="left")
+        ax.text(x0 + 4, yt - 12, c, fontsize=9, fontweight="bold", color=eda.INK, va="center", ha="left")
+        ax.text(x0 + 1, yt - 4.5, f"{r.defensores_area_media:.1f} en el área · {r.defensores_chica:.1f} en el área chica\n"
+                f"{m.pct_pegados:.0f} % pegados a un rival (azar: {m.pct_pegados_azar:.0f} %)", fontsize=7,
+                color=eda.INK_2, va="center", ha="left")
+    _colorbar(fig, norm, "defensores del América por córner en cada zona", rect=(0.33, 0.12, 0.34, 0.022))
+    _suptitle(fig, title)
+    util = ", ".join(f"{c} {int(cs.loc[c, 'utiles'])} de {int(cs.loc[c, 'corners'])}" for c in COACHES)
+    _footer(fig, "Ventana oficial Ap 2021 – Cl 2025 · córners rivales no jugados en corto, con 360 que ve ≥ 90 % del área y toda el "
+            f"área chica: {util}\npegado = a ≤ 2 yd de un atacante; azar = mismo cálculo con los atacantes de otro córner · "
+            "solo cuenta lo que se ve en la toma · Datos: StatsBomb")
+    return fig

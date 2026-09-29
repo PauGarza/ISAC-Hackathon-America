@@ -308,6 +308,83 @@ def test_match_level_diff_uses_match_as_unit():
     assert d["partidos_a"] == 2 and d["lo"] <= 2 <= d["hi"]
 
 
+# ------------------------------------------------------------------ §3.8 balón parado
+def _sp(**kw):
+    base = {"match_id": 1, "possession": 1, "coach": "Jardine", "team": AM, "is_team": True, "kind": "Córner",
+            "play_pattern": "From Corner", "start_type": "Pass", "start_pass_type": "Corner", "start_x": 120.0,
+            "location_y": 0.0, "delivery": "Cerrado", "target_zone": "Zona de penal", "xg": 0.0, "shot": False}
+    return {**base, **kw}
+
+
+def test_set_piece_plays_keeps_only_direct_restarts():
+    sp = pd.DataFrame([
+        _sp(possession=1),                                                                  # córner propio
+        _sp(possession=2, team=RIV, is_team=False, start_type="Goal Keeper", start_pass_type=None),  # hereda la etiqueta
+        _sp(possession=3, kind="Tiro libre", play_pattern="From Free Kick", start_pass_type="Free Kick", start_x=50.0),
+        _sp(possession=4, kind="Tiro libre", play_pattern="From Free Kick", start_type="Shot", start_pass_type=None,
+            start_x=95.0),                                                                  # tiro libre directo
+        _sp(possession=5, team=RIV, is_team=False, kind="Saque de banda", play_pattern="From Throw In",
+            start_pass_type="Throw-in", start_x=85.0),
+    ])
+    ev = make_ev([{"possession": 1}, {"possession": 2, "team": RIV, "possession_team": RIV},
+                  {"possession": 4, "type": "Shot"}, {"possession": 5, "team": RIV, "possession_team": RIV}])
+    pl = S.set_piece_plays(sp, ev).set_index("possession")
+    assert list(pl.index) == [1, 4, 5]                      # fuera: etiqueta heredada y tiro libre en campo propio
+    assert pl.loc[1, "restart_id"] == "e1" and pl.loc[4, "tiro_directo"] and pl.loc[5, "lado"] == "En contra"
+
+
+def test_set_piece_shots_direct_second_ball_and_post():
+    plays = pd.DataFrame([_sp(restart_id="e1", lado="A favor", location_y=0.0)])
+    ev = make_ev([
+        {"possession": 1, "location_y": 0.0, "location_x": 120.0},                          # e1: el córner
+        {"possession": 1, "type": "Shot", "location_x": 115.0, "location_y": 35.0, "shot_key_pass_id": "e1",
+         "shot_statsbomb_xg": 0.3, "shot_outcome": "Goal", "shot_type": "Open Play"},     # remate directo, primer palo
+        {"possession": 1, "type": "Shot", "location_x": 100.0, "location_y": 50.0, "shot_statsbomb_xg": 0.05,
+         "shot_type": "Open Play"},                                                        # segunda jugada
+        {"possession": 1, "type": "Shot", "location_x": 108.0, "location_y": 40.0, "shot_type": "Penalty",
+         "shot_statsbomb_xg": 0.78},                                                       # penal: fuera
+    ])
+    s = S.set_piece_shots(ev, plays)
+    assert len(s) == 2 and list(s.directo) == [True, False]
+    assert list(s.zona) == ["Área chica", "Fuera del área"] and list(s.palo) == ["Primer palo", "Segundo palo"]
+    sm = S.set_piece_summary(plays, s, scope({"Jardine": 1})).set_index(["kind"])
+    assert sm.loc["Córner", "pct_tiro"] == 100 and sm.loc["Córner", "xg_por_jugada"] == pytest.approx(0.35)
+    assert sm.loc["Córner", "pct_xg_directo"] == pytest.approx(0.3 / 0.35 * 100) and sm.loc["Total", "goles"] == 1
+
+
+def test_box_visibility_and_corner_defense():
+    full = [100.0, 0.0, 120.0, 0.0, 120.0, 80.0, 100.0, 80.0]
+    half = [100.0, 0.0, 120.0, 0.0, 120.0, 40.0, 100.0, 40.0]
+    assert S.box_visibility(full) == (1.0, 1.0)
+    area, six = S.box_visibility(half)
+    assert area == pytest.approx(0.5, abs=0.03) and six == pytest.approx(0.5)
+    plays = pd.DataFrame([_sp(restart_id="c1", lado="En contra", location_y=80.0),         # saque desde abajo: se voltea
+                          _sp(restart_id="c2", lado="En contra"), _sp(restart_id="c3", lado="En contra", delivery="Corto")])
+    def row(fid, team, x, y, va, keeper=False, actor=False):
+        return {"id": fid, "teammate": team, "keeper": keeper, "actor": actor, "location_x": x, "location_y": y,
+                "visible_area": va}
+    fr = pd.DataFrame([row("c1", False, 116, 45, full), row("c1", False, 105, 50, full), row("c1", True, 106, 50.5, full),
+                       row("c1", False, 119, 40, full, keeper=True), row("c1", True, 120, 80, full, actor=True),
+                       row("c2", False, 110, 40, half), row("c2", True, 110, 41, half)])
+    cd, pos = S.corner_defense(fr, plays)
+    c1 = cd.set_index("restart_id").loc["c1"]
+    assert len(cd) == 2                                     # el córner en corto no cuenta
+    assert c1.defensores_area == 2 and c1.defensores_chica == 1 and c1.atacantes_area == 1 and c1.pegados == 1
+    assert c1.util and not cd.set_index("restart_id").loc["c2", "util"]
+    assert set(pos.id) == {"c1"} and pos[pos.rol == "Defensor"].y.min() == pytest.approx(30)  # 80 − 50: volteado
+
+
+def test_marking_vs_chance_detects_man_marking():
+    rng = np.random.default_rng(1)
+    rows = []
+    for k in range(30):                                     # cada defensor a 1 yd de su atacante; atacantes al azar
+        atk = np.c_[rng.uniform(103, 119, 5), rng.uniform(19, 61, 5)]
+        rows += [{"id": f"c{k}", "coach": "Jardine", "rol": "Atacante", "x": x, "y": y} for x, y in atk]
+        rows += [{"id": f"c{k}", "coach": "Jardine", "rol": "Defensor", "x": x + 1, "y": y} for x, y in atk]
+    m = S.marking_vs_chance(pd.DataFrame(rows), n=50).set_index("coach").loc["Jardine"]
+    assert m.pct_pegados == 100 and m.pct_pegados_azar < 50 and m.corners == 30
+
+
 # ------------------------------------------------------------------ guardar solo agregados
 def test_save_story_rejects_event_level_columns(tmp_path, monkeypatch):
     monkeypatch.setattr(S, "ANALYSIS", tmp_path)

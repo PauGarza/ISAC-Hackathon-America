@@ -32,6 +32,9 @@ ASSUMPTIONS = {
     "progressive_end_x_min": 48,
     "long_pass_yd": 32,                    # pase largo (y saque de meta largo): ≥ 32 yd; corto: < 32
     "set_piece_throw_in_x_min": 80,        # saque de banda "en zona de peligro"
+    "set_piece_free_kick_x_min": 80,       # §3.8: tiro libre "de peligro" (último tercio); el marco cuenta todos
+    "set_piece_marking_yd": 2.0,           # §3.8 (360): defensor "pegado" a un atacante si está a ≤ 2 yd de él
+    "set_piece_min_box_visible": 0.9,      # §3.8 (360): el córner cuenta si se ve ≥ 90 % del área y toda el área chica
     "minute_bins": [0, 15, 30, 45, 60, 75, 90, 200],
     "minute_labels": ["0-15", "15-30", "30-45+", "45-60", "60-75", "75-90", "90+"],
     "player_min_minutes": 30,              # umbral para métricas p90 de jugador

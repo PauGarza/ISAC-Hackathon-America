@@ -560,6 +560,209 @@ def match_level_diff(shape: pd.DataFrame, metric: str, a: str, b: str, n: int = 
             "partidos_a": len(xa), "partidos_b": len(xb)}
 
 
+# ------------------------------------------------------------------ §3.8 balón parado
+SP_KINDS = ["Córner", "Tiro libre", "Saque de banda"]
+RESTART_PASS = {"Corner", "Free Kick", "Throw-in"}
+SP_SHOT_ZONES = ["Área chica", "Zona de penal", "Área (costados)", "Fuera del área"]
+SP_LEAGUE_METRICS = {  # team-match-stats (toda la liga) -> (etiqueta, lectura)
+    "team_match_corners": ("Córners por partido", "más = más córners"),
+    "team_match_xg_per_corner": ("xG por córner", "más = córners más peligrosos"),
+    "team_match_corner_shot_ratio": ("% de córners que terminan en tiro", "más = remata más"),
+    "team_match_sp_xg": ("xG a balón parado por partido", "más = más peligro"),
+    "team_match_sp_xg_conceded": ("xG a balón parado concedido por partido", "menos = defiende mejor"),
+    "team_match_xg_per_corner_conceded": ("xG concedido por córner", "menos = defiende mejor"),
+    "team_match_corner_shot_ratio_conceded": ("% de córners rivales que terminan en tiro", "menos = defiende mejor"),
+}
+
+
+def load_set_pieces(scope: pd.DataFrame) -> pd.DataFrame:
+    """fct_set_piece (Gold) de los partidos de `scope`, con técnico."""
+    sp = pd.read_parquet(GOLD / "fct_set_piece.parquet")
+    sp = sp[sp.match_id.isin(scope.match_id)]
+    return sp.assign(coach=sp.match_id.map(scope.set_index("match_id").coach))
+
+
+def set_piece_plays(sp: pd.DataFrame, ev: pd.DataFrame) -> pd.DataFrame:
+    """Jugadas a balón parado DIRECTAS: la posesión la abre el saque del equipo que la tiene (su primer evento es el
+    córner, el tiro libre o el saque de banda, o un tiro libre directo). Descarta posesiones que solo heredan el
+    play_pattern (p. ej., el portero rival atrapa el córner). Córners, todos; tiros libres y saques de banda, solo desde
+    el último tercio del que saca. restart_id = id del saque (para el 360 y para separar el remate directo)."""
+    first = (ev[ev.team == ev.possession_team].groupby(["match_id", "possession"]).head(1)
+             .set_index(["match_id", "possession"]).id.rename("restart_id"))
+    restart = sp.start_pass_type.isin(RESTART_PASS) | ((sp.start_type == "Shot") & (sp.kind == "Tiro libre"))
+    zone_ok = ((sp.kind == "Córner")
+               | ((sp.kind == "Tiro libre") & (sp.start_x >= A["set_piece_free_kick_x_min"]))
+               | ((sp.kind == "Saque de banda") & (sp.start_x >= A["set_piece_throw_in_x_min"])))
+    d = sp[restart & zone_ok].join(first, on=["match_id", "possession"])
+    return d.assign(lado=np.where(d.is_team, "A favor", "En contra"), tiro_directo=d.start_type.eq("Shot"))
+
+
+def post_side(y, taken_y):
+    """Primer o segundo palo respecto del lado del saque (mitades del ancho: sin umbral extra)."""
+    return np.where((np.asarray(y) < 40) == (np.asarray(taken_y) < 40), "Primer palo", "Segundo palo")
+
+
+def set_piece_shots(ev: pd.DataFrame, plays: pd.DataFrame) -> pd.DataFrame:
+    """Tiros sin penales de las jugadas a balón parado (en memoria), en coordenadas de QUIEN ATACA (portería a la
+    derecha). directo = remate asistido por el propio saque o tiro libre directo; si no, segunda jugada."""
+    sh = ev[(ev.type == "Shot") & (ev.shot_type != "Penalty") & (ev.team == ev.possession_team)]
+    keys = ["match_id", "possession", "coach", "lado", "kind", "location_y", "restart_id"]
+    d = sh.drop(columns="coach").merge(plays[keys].rename(columns={"location_y": "taken_y"}),
+                                       on=["match_id", "possession"])
+    return pd.DataFrame({"match_id": d.match_id, "possession": d.possession, "coach": d.coach, "lado": d.lado,
+                         "kind": d.kind, "x": d.location_x, "y": d.location_y, "xg": d.shot_statsbomb_xg,
+                         "goal": d.shot_outcome.eq("Goal"),
+                         "directo": d.shot_key_pass_id.eq(d.restart_id) | d.id.eq(d.restart_id),
+                         "zona": fw.set_piece_target_zone(d.location_x, d.location_y, np.inf),
+                         "palo": post_side(d.location_y, d.taken_y)}).reset_index(drop=True)
+
+
+def set_piece_summary(plays: pd.DataFrame, shots: pd.DataFrame, scope: pd.DataFrame) -> pd.DataFrame:
+    """Por técnico × lado × tipo (y 'Total'): jugadas por partido, % que termina en tiro, xG por jugada (toda la
+    posesión y solo el remate directo), goles y xG por partido. Sin penales."""
+    per_play = shots.groupby(["match_id", "possession"]).agg(xg=("xg", "sum"), goles=("goal", "sum"))
+    per_play["xg_directo"] = shots[shots.directo].groupby(["match_id", "possession"]).xg.sum()
+    p = plays.drop(columns="xg").join(per_play, on=["match_id", "possession"]).fillna({"xg": 0, "goles": 0, "xg_directo": 0})
+    p["con_tiro"] = p.set_index(["match_id", "possession"]).index.isin(per_play.index)
+    p = pd.concat([p, p.assign(kind="Total")])
+    g = p.groupby(["coach", "lado", "kind"])
+    out = pd.DataFrame({"jugadas": g.size(), "pct_tiro": g.con_tiro.mean() * 100, "xg": g.xg.sum(),
+                        "xg_por_jugada": g.xg.mean(), "xg_directo_por_jugada": g.xg_directo.mean(),
+                        "goles": g.goles.sum(), "pct_corto": g.delivery.apply(lambda s: (s == "Corto").mean() * 100)})
+    out["pct_xg_directo"] = out.xg_directo_por_jugada / out.xg_por_jugada.replace(0, np.nan) * 100
+    out["por_partido"] = per_match(out.jugadas, scope)
+    out["xg_por_partido"] = per_match(out.xg, scope)
+    return out.reset_index()
+
+
+def delivery_summary(plays: pd.DataFrame) -> pd.DataFrame:
+    """Dónde cae el envío (zona del marco: corto, área chica, zona de penal, costados, fuera) y tipo de envío
+    (cerrado, abierto, corto), por técnico × lado × tipo (córner y tiro libre indirecto)."""
+    d = plays[(plays.kind != "Saque de banda") & ~plays.tiro_directo]
+    return pd.concat([_share(d, ["coach", "lado", "kind"], "target_zone").rename(columns={"target_zone": "valor"})
+                      .assign(dimension="Zona de entrega"),
+                      _share(d, ["coach", "lado", "kind"], "delivery").rename(columns={"delivery": "valor"})
+                      .assign(dimension="Tipo de envío")], ignore_index=True)
+
+
+def shot_zone_summary(shots: pd.DataFrame) -> pd.DataFrame:
+    """Tiros y xG por zona de remate (y por palo en córners), por técnico × lado: % del xG a balón parado."""
+    rows = []
+    for dim, d in [("zona", shots), ("palo", shots[shots.kind == "Córner"])]:
+        g = d.groupby(["coach", "lado", dim])
+        t = pd.DataFrame({"tiros": g.size(), "xg": g.xg.sum(), "goles": g.goal.sum()}).reset_index()
+        t["pct_xg"] = t.xg / t.groupby(["coach", "lado"]).xg.transform("sum") * 100
+        t["xg_por_tiro"] = t.xg / t.tiros
+        rows.append(t.rename(columns={dim: "valor"}).assign(dimension=dim))
+    return pd.concat(rows, ignore_index=True)
+
+
+def set_piece_xg_share(all_shots: pd.DataFrame, sp_shots: pd.DataFrame) -> pd.DataFrame:
+    """% del xG sin penales del América que es balón parado, con dos definiciones:
+    marco = toda la posesión que nace de córner o tiro libre (en cualquier zona) o de saque de banda en el último
+    tercio (story.shots, origen 'Balón parado'); jugadas de §3.8 = córners, tiros libres y saques de banda del último
+    tercio, toda la posesión; remate directo = solo el remate que asiste el saque o el tiro libre directo."""
+    tot = all_shots.groupby("coach").xg.sum()
+    fav = sp_shots[sp_shots.lado == "A favor"]
+    return pd.DataFrame({"xg_total": tot,
+                         "pct_marco": all_shots[all_shots.origin == "Balón parado"].groupby("coach").xg.sum() / tot * 100,
+                         "pct_jugadas": fav.groupby("coach").xg.sum() / tot * 100,
+                         "pct_directo": fav[fav.directo].groupby("coach").xg.sum() / tot * 100}
+                        ).reindex(COACHES).reset_index()
+
+
+_BOX_GRID = np.stack(np.meshgrid(np.arange(A["box"]["x_min"] + 0.5, 120, 1.0),
+                                  np.arange(A["box"]["y_min"] + 0.5, A["box"]["y_max"], 1.0)), -1).reshape(-1, 2)
+_IN_SIX = (_BOX_GRID[:, 0] >= 114) & (_BOX_GRID[:, 1] >= 30) & (_BOX_GRID[:, 1] <= 50)
+
+
+def box_visibility(poly) -> tuple[float, float]:
+    """Fracción visible del área y del área chica (rejilla de 1 yd) dentro del polígono visible_area del 360."""
+    from matplotlib.path import Path
+    if poly is None or len(poly) < 6:
+        return np.nan, np.nan
+    inside = Path(np.asarray(poly, dtype=float).reshape(-1, 2)).contains_points(_BOX_GRID)
+    return inside.mean(), inside[_IN_SIX].mean()
+
+
+def corner_defense(frames: pd.DataFrame, plays: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """360 en el momento del saque de cada córner RIVAL que no se saca en corto (en memoria). Coordenadas del rival
+    (la portería del América a la derecha), con el saque siempre desde arriba (y volteada si se saca desde y > 40).
+    Por córner: defensores del América en el área y en el área chica (sin portero), atacantes en el área y cuántos
+    defensores del área están 'pegados' a un atacante (≤ set_piece_marking_yd). util = la toma ve al menos
+    `set_piece_min_box_visible` del área y toda el área chica (fuera de cuadro no hay nadie: si no, faltarían jugadores).
+    Devuelve (una fila por córner, posiciones de los defensores en los frames útiles); ambas solo en memoria."""
+    c = plays[(plays.lado == "En contra") & (plays.kind == "Córner") & (plays.delivery != "Corto")]
+    fr = frames[frames.id.isin(c.restart_id)].copy()
+    flip = fr.id.map(c.set_index("restart_id").location_y) > 40
+    fr["y"] = np.where(flip, 80 - fr.location_y, fr.location_y)
+    fr["x"] = fr.location_x
+    team = fr.teammate.astype("boolean").fillna(False).astype(bool)
+    gk = fr.keeper.astype("boolean").fillna(False).astype(bool)
+    actor = fr.actor.astype("boolean").fillna(False).astype(bool)
+    fr["rol"] = np.select([~team & ~gk, team & ~gk & ~actor], ["Defensor", "Atacante"], "Otro")
+    fr["en_area"] = fw.in_box(fr.x, fr.y)
+    fr["en_chica"] = (fr.x >= 114) & (fr.y >= 30) & (fr.y <= 50)
+    rows = []
+    for fid, f in fr.groupby("id"):
+        dfn = f[(f.rol == "Defensor") & f.en_area]
+        atk = f[(f.rol == "Atacante") & f.en_area]
+        if len(dfn) and len(atk):
+            dist = np.hypot(dfn.x.values[:, None] - atk.x.values[None, :], dfn.y.values[:, None] - atk.y.values[None, :])
+            pegados = int((dist.min(axis=1) <= A["set_piece_marking_yd"]).sum())
+        else:
+            pegados = 0
+        area, six = box_visibility(f.visible_area.iat[0])
+        rows.append({"restart_id": fid, "defensores_area": len(dfn), "defensores_chica": int(dfn.en_chica.sum()),
+                     "atacantes_area": len(atk), "pegados": pegados, "area_visible": area,
+                     "util": bool(area >= A["set_piece_min_box_visible"] and six == 1)})
+    out = c[["match_id", "coach", "restart_id"]].merge(pd.DataFrame(rows), on="restart_id", how="left")
+    out["con_360"] = out.util.notna()
+    out["util"] = out.util.astype("boolean").fillna(False).astype(bool)
+    out["pct_pegados"] = out.pegados / out.defensores_area.replace(0, np.nan) * 100
+    keep = fr.id.isin(out.restart_id[out.util]) & fr.rol.isin(["Defensor", "Atacante"]) & fr.en_area
+    return out, fr.loc[keep, ["id", "rol", "x", "y"]].assign(coach=fr.id.map(c.set_index("restart_id").coach))
+
+
+def marking_vs_chance(players: pd.DataFrame, n: int = 200, seed: int = 0) -> pd.DataFrame:
+    """¿Los defensores se pegan a un rival más de lo que daría el azar? Por técnico: % de defensores del área a
+    ≤ set_piece_marking_yd de un atacante en el mismo córner (observado) frente al mismo cálculo con los atacantes de
+    OTRO córner del mismo técnico, elegido al azar (n repeticiones). Si el observado supera claramente al azar, hay
+    marcaje al hombre; lo que queda por debajo se explica con posiciones fijas (zona)."""
+    rng = np.random.default_rng(seed)
+    rows = []
+    for coach, d in players.groupby("coach"):
+        by = {i: (g[g.rol == "Defensor"][["x", "y"]].values, g[g.rol == "Atacante"][["x", "y"]].values)
+              for i, g in d.groupby("id")}
+        ids = list(by)
+
+        def share(pairs):
+            num = den = 0
+            for dfn, atk in pairs:
+                if len(dfn) and len(atk):
+                    dist = np.hypot(dfn[:, None, 0] - atk[None, :, 0], dfn[:, None, 1] - atk[None, :, 1])
+                    num += (dist.min(axis=1) <= A["set_piece_marking_yd"]).sum()
+                den += len(dfn)
+            return num / den * 100 if den else np.nan
+        obs = share(by[i] for i in ids)
+        perm = [share((by[i][0], by[j][1]) for i, j in zip(ids, rng.permutation(ids))) for _ in range(n)]
+        rows.append({"coach": coach, "corners": len(ids), "pct_pegados": obs, "pct_pegados_azar": np.mean(perm),
+                     "azar_p95": np.percentile(perm, 95)})
+    return pd.DataFrame(rows).set_index("coach").reindex(COACHES).reset_index()
+
+
+def corner_defense_summary(cd: pd.DataFrame) -> pd.DataFrame:
+    """Por técnico: córners rivales (no cortos), % con 360 útil, mediana de defensores en el área y en el área chica,
+    de atacantes en el área, y % medio de defensores del área pegados a un atacante."""
+    g = cd.groupby("coach")
+    u = cd[cd.util].groupby("coach")
+    out = pd.DataFrame({"corners": g.size(), "pct_utiles": g.util.mean() * 100, "utiles": g.util.sum(),
+                        "defensores_area": u.defensores_area.median(), "defensores_area_media": u.defensores_area.mean(),
+                        "defensores_chica": u.defensores_chica.mean(), "atacantes_area": u.atacantes_area.mean(),
+                        "pct_pegados": u.pct_pegados.mean()})
+    return out.reindex(COACHES).reset_index()
+
+
 # ------------------------------------------------------------------ guardar solo agregados
 FORBIDDEN = {"id", "index", "possession", "timestamp", "related_events", "x", "y", "location_x", "location_y",
              "pass_end_location_x", "pass_end_location_y", "sx", "sy", "ex", "ey", "end_x", "end_y", "ball_y",

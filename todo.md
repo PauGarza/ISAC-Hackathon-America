@@ -51,8 +51,8 @@ Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo s
 | Cambios según el contexto (rival, marcador, localía, momento) | §3.5 | [ ] |
 | Evolución en el tiempo | §3.6 | [ ] |
 | Uso de jugadores: roles, alineaciones, sustituciones | §3.7 | [ ] |
-| Balón parado ofensivo: córners, tiros libres, saques de banda; movimientos y zonas de remate | §3.8 | [ ] |
-| Balón parado defensivo: organización, marcaje, zonas vulnerables | §3.8 | [ ] |
+| Balón parado ofensivo: córners, tiros libres, saques de banda; movimientos y zonas de remate | §3.8 | [x] notebook 05 |
+| Balón parado defensivo: organización, marcaje, zonas vulnerables | §3.8 | [x] notebook 05 (360 en el saque) |
 | Evidencia cuantitativa: xG, OBV, pases progresivos, presión + métrica propia | §3 (todo) | [ ] |
 | **Marco analítico**: definiciones, supuestos, coherencia, alcance y límites | §5 (metodología) | [x] `src/framework.py` |
 | Modelos o simulaciones **para explicar, no para predecir** | §1 | [ ] |
@@ -169,15 +169,13 @@ Notebook 05 §3.4 con `story.rival_open_play_passes`, `defensive_shape`, `shape_
 - [ ] Roles U3 nombrados con jugadores conocidos.
 - [ ] **Sustituciones (describir, no predecir)**: minuto, marcador al momento del cambio y perfil que sale y que entra. Usar `fct_substitution`.
 
-### 3.8 Balón parado: ¿cómo ataca y cómo defiende las jugadas a balón parado?
-El balón parado por partido es ruido. Se analiza **agregado de toda la era** (`fct_set_piece`):
-- [ ] **A favor**:
-  - córners y tiros libres: zonas de entrega, zonas de remate, xG por jugada y % que termina en tiro;
-  - saques de banda en el último tercio.
-- [ ] **En contra**:
-  - zonas de remate rival y zonas vulnerables;
-  - con 360 en el saque, cuántos defienden el área y cómo se reparten (zonal o al hombre, si se puede inferir).
-- [ ] Comparar con la liga (eje "Balón parado" del ADN).
+### 3.8 Balón parado: ¿cómo ataca y cómo defiende las jugadas a balón parado? ✅ (29 sep)
+Agregado de toda la era en la ventana (notebook 05 §3.8). Funciones: `story.set_piece_plays` (solo jugadas que abre el saque de quien la tiene: descarta posesiones que heredan el `play_pattern`), `set_piece_shots`, `set_piece_summary`, `delivery_summary`, `shot_zone_summary`, `set_piece_xg_share`, `corner_defense`, `marking_vs_chance`; figuras `balon_parado.png` y `balon_parado_defensa.png`; agregados `story_bp_*.parquet`. Supuestos nuevos: `set_piece_free_kick_x_min` (80), `set_piece_marking_yd` (2), `set_piece_min_box_visible` (0.9).
+- [x] **A favor**: Jardine juega en corto el **25 %** de sus córners (Ortiz 13 %, Solari 9 %) y, cuando centra, apunta al punto de penal (38 %) más que al área chica (16 %; Ortiz 27 %). 5.0 córners por partido, 36 % termina en tiro, **0.039 xG por córner** (Ortiz 0.034; +0.006 frente a la liga de su torneo, 16.º de 70). Tiros libres del último tercio: 2.5 por partido, 40 % con tiro; saques de banda del último tercio: 7.1 por partido, 11 % con tiro. Total: 0.40 xG y 35 goles a balón parado en 91 partidos; 35 % de ese xG se remata en el área chica.
+- [x] **Las dos cifras de xG a balón parado**: marco (toda la posesión que nace de córner o tiro libre en cualquier zona) = **40 %** del xG sin penales; jugadas de §3.8 (córners + último tercio, toda la jugada) = 26 %; **solo el remate directo del envío = 7 %** (Ortiz 10 %, Solari 14 %). La mayor parte del peligro es la segunda jugada.
+- [x] **En contra**: 0.30 xG por partido a balón parado (Ortiz 0.25, Solari 0.23), 16 goles. El córner es lo que más le cuesta: 4.8 por partido (Ortiz 3.9); frente a la liga concede 0.03 xG menos a balón parado por partido (23.º de 70) pero 0.003 más por córner (49.º). Zona vulnerable: la zona de penal (52 % del xG en contra); área chica 29 % (Ortiz 41 %); primer palo 53 % en córners.
+- [x] **360 en el saque** (córners rivales no jugados en corto; 198 de 406 con ≥ 90 % del área y toda el área chica a la vista): **9 defensores en el área, 3.6 en el área chica**; 41 % pegados a un rival (≤ 2 yd) frente a 24 % por azar → **esquema mixto** (base zonal en el área chica + marcas individuales). Ortiz, más al hombre (50 % frente a 26 %); Solari 32 % frente a 24 %. "Pegado" no es "marcando": la prueba contra el azar dice si hay más cercanía de la que darían posiciones fijas.
+- [x] **Liga**: eje "Balón parado" del ADN, percentil 74 (Ortiz 79, Solari 62); métricas de StatsBomb contra la media del mismo torneo en `story_bp_liga_rank.parquet`.
 
 ### 3.9 ¿Se sostiene el ADN? (justificación con datos)
 - [x] Base hecha: validación del cambio a Almada en el notebook 04 (posición mediana 2 de 31 técnicos).
