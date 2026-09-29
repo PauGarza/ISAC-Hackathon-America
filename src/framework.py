@@ -30,6 +30,7 @@ ASSUMPTIONS = {
     "ppda_opp_pass_x_max": 72,             # ... frente a pases rivales con x ≤ 72 (su 60% propio)
     "progressive_min_gain": 0.25,          # pase progresivo: reduce ≥ 25% la distancia a portería
     "progressive_end_x_min": 48,
+    "long_pass_yd": 32,                    # pase largo (y saque de meta largo): ≥ 32 yd; corto: < 32
     "set_piece_throw_in_x_min": 80,        # saque de banda "en zona de peligro"
     "minute_bins": [0, 15, 30, 45, 60, 75, 90, 200],
     "minute_labels": ["0-15", "15-30", "30-45+", "45-60", "60-75", "75-90", "90+"],

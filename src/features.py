@@ -139,9 +139,9 @@ def event_flags(ev: pd.DataFrame, team: str = TEAM) -> pd.DataFrame:
     e["prog_pass"] = fw.progressive_pass(e)
     e["prog_carry"] = fw.progressive_carry(e)
     e["prog_lane"] = np.where(e.prog_pass, fw.lane(e.pass_end_location_y.fillna(40)), None)
-    e["long_pass"] = e.open_pass & (e.pass_length >= 32)
+    e["long_pass"] = e.open_pass & (e.pass_length >= fw.A["long_pass_yd"])
     e["goal_kick"] = e.is_pass & (e.pass_type == "Goal Kick")
-    e["gk_short"] = e.goal_kick & (e.pass_length < 32)
+    e["gk_short"] = e.goal_kick & (e.pass_length < fw.A["long_pass_yd"])
     e["pressed_own_third"] = e.is_pass & (e.under_pressure == True) & (e.location_x < fw.A["third_limits"][0])  # noqa: E712
     e["f3_pass"] = e.is_pass & (e.location_x >= fw.A["third_limits"][1])
     e["def_action"] = e.type.isin(fw.DEF_ACTIONS)
