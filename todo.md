@@ -1,6 +1,6 @@
 # TODO · ISAC Hackathon 2026 · Club América
 
-> Actualizado: 29 sep 2026.
+> Actualizado: 29 sep 2026 (ADN del Entrenador, partición oficial, benchmark de toda la liga).
 > Fuentes: bases oficiales en [isac-app.com](https://www.isac-app.com/competitions/hackathon-america) y [página del reto](https://mr2293.github.io/hackathon_isac/).
 >
 > Prioridad:
@@ -86,12 +86,12 @@ Retos anteriores, con los mismos datos de Liga MX 2021–2025:
    Nuestro rigor es la diferencia, **pero hay que contarlo en simple**.
 
 Tareas:
-- [ ] 🔴 **Nombre del producto** (p. ej., "Radar del Entrenador" o "ADN Azulcrema") y una línea de valor: "entiende el estilo de cualquier entrenador partido por partido".
+- [x] 🔴 **Nombre del producto** → **"ADN del Entrenador"** (`src/coach_profile.py`, notebook 04). Antes: (p. ej., "Radar del Entrenador" o "ADN Azulcrema") y una línea de valor: "entiende el estilo de cualquier entrenador partido por partido".
 - [ ] 🔴 **Una pregunta de fútbol como título de cada sección** y **un hallazgo titular con número** (p. ej., "Perdiendo por 1, el América inclina la cancha 9 puntos más").
-- [ ] 🔴 **Caso de negocio breve al inicio**, conectado con el ROI (§4).
+- [ ] 🔴 (parcial: rotación de técnicos + ROI en el notebook 04) **Caso de negocio breve al inicio**, conectado con el ROI (§4).
 - [ ] 🔴 **Recomendaciones con nombres del plantel** (p. ej., "Juárez y Calderón generan más valor que los medios: la salida pasa por atrás").
 - [ ] 🔴 El rigor en una frase y sin jerga: "probamos con los partidos más recientes, que el modelo nunca vio".
-- [ ] 🟡 **Métrica propia con nombre** que resuma el estilo, p. ej., un "Índice de Identidad": qué tan parecido es el partido al "América típico" en el mapa de estilo.
+- [x] 🟡 **Métrica propia con nombre** → **Índice de Encaje** con la identidad del América (notebook 04). Antes: que resuma el estilo, p. ej., un "Índice de Identidad": qué tan parecido es el partido al "América típico" en el mapa de estilo.
 - [ ] 🟡 **SHAP o importancia de variables** explicada en lenguaje simple.
 - [ ] 🟡 Una idea visible con **360** (altura de la línea defensiva o compactación).
 
@@ -103,7 +103,7 @@ Tareas:
   - si los criterios de ROI, activación y escalabilidad aplican a este reto;
   - dónde se suben los entregables;
   - si se pueden usar partidos posteriores al Clausura 2025.
-- [ ] Decidir la ventana de datos del análisis principal.
+- [x] Ventana de datos: **entrenamiento = ventana oficial (Ap 2021–Cl 2025); validación = Ap 2025; prueba = 2026** (`OFFICIAL_END`, `VAL_END`).
 
 ---
 
@@ -160,7 +160,7 @@ Regla: **primero el fútbol, después el número y al final (plegado) el método
 ---
 
 ## 4. 🔴 Valor para el club: ROI, activación y escalabilidad (45 % de la nota)
-- [ ] **ROI prudente con 3 escenarios** (conservador, base y optimista) y tabla de sensibilidad:
+- [x] (base en `src/business.py`; validar los supuestos con el club) **ROI prudente con 3 escenarios** (conservador, base y optimista) y tabla de sensibilidad:
   - **Costos**:
     - stack local y gratuito (Python, sin nube ni licencias);
     - horas de mantenimiento;
@@ -223,8 +223,8 @@ Tareas:
 ---
 
 ## 7. Análisis para la historia del entrenador
-- [ ] 🔴 **Comparar entrenadores y periodos** con las 29 variables núcleo, controlando por rival y localía (regresión con efecto de periodo, no medias crudas).
-- [ ] 🔴 **Contrastar las 10 hipótesis del EDA**: tabla hipótesis → evidencia → veredicto.
+- [x] 🔴 (ADN ajustado por rival y localía frente a toda la liga, notebook 04) **Comparar entrenadores y periodos** con las 29 variables núcleo, controlando por rival y localía (regresión con efecto de periodo, no medias crudas).
+- [ ] 🔴 (hipótesis reescritas hacia el resultado del hackathon; veredicto de H1, H2, H3, H9 y H10 en el notebook 04; faltan H4–H8) **Contrastar las 10 hipótesis del EDA**: tabla hipótesis → evidencia → veredicto.
 - [ ] 🟡 **Encaje rol–uso** (estaba en el plan de la fase 2 y no se implementó): el perfil histórico del jugador frente a su perfil en el partido.
 - [ ] 🟡 **360**: pases que rompen líneas, compactación y altura de la línea defensiva.
 - [ ] 🟡 Estilo del rival con las mismas variables (no solo sus puntos).

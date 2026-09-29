@@ -126,10 +126,14 @@ Formato de entrega (bases oficiales): **reporte HTML** con selector de partido, 
 |---|---|---|
 | **1 · Entender los datos** | Descarga completa y EDA por columna, calidad, relaciones y contexto; 10 hipótesis | `notebooks/01`, `notebooks/02`, [`reports/eda/eda_report.pdf`](reports/eda/eda_report.pdf) |
 | **2 · Del dato al criterio** | Pipeline medallion local, marco analítico validado, 55 variables por partido (incluido el uso de jugadores) evaluadas como criterios → 29 núcleo, 11 tareas ML (T1–T7, U1–U3) con partición temporal y baselines, model cards, ficha HTML automática por partido y monitoreo de drift | `src/pipeline/`, `notebooks/03`, [`reports/framework/framework_report.pdf`](reports/framework/framework_report.pdf), `reports/match_reports/*.html` |
+| **2b · ADN del Entrenador** | Benchmark de toda la Liga MX (1,789 partidos, 106 técnicos), perfil de 8 rasgos ajustado por rival y localía, consistencia, contexto, evolución, mapa de técnicos, Índice de Encaje, validación con el cambio a Almada, rotación de técnicos y ROI por escenarios. Hipótesis del EDA reescritas hacia el resultado del hackathon | `src/coach_profile.py`, `src/coach_viz.py`, `src/business.py`, `notebooks/04`, `reports/figures/coach/` |
 | 3 · Narrativa y entrega | Reporte HTML interactivo (con selector de partido) en lenguaje de juego, comparación de entrenadores, ROI/activación/escalabilidad, video de 5 min | pendiente, ver [todo.md](todo.md) |
 
+**Partición oficial.** Entrenamiento = ventana oficial del hackathon (Apertura 2021 – Clausura 2025); validación = Apertura 2025; prueba = 2026 (incluye la llegada de Almada). Constantes `OFFICIAL_END` y `VAL_END` en `src/pipeline/config.py`.
+
 **Hallazgos de la fase 2 (versiones base)**
-- El estilo por partido se comporta como una **identidad estable más ruido**. El contexto previo mejora poco a la media histórica (8 de 12 variables), pero sus efectos son claros: frente a rivales fuertes el equipo cede posesión y territorio, y de local sube el field tilt y la presión.
+- **ADN del entrenador**: Solari = solidez; Ortiz = presión alta y llegada; Jardine = control del balón y peligro con presión media; Almada (2026) = llegada, balón parado y reacción tras pérdida. El modelo reconoce a Almada en el América sin haberlo visto ahí (posición mediana 2 de 31 técnicos): **el estilo sigue al técnico, no a la plantilla**.
+- El estilo *por partido* se comporta como una **identidad estable más ruido**: predecir un partido de 2026 desde el contexto apenas mejora a la media histórica, pero los efectos del contexto son claros (frente a rivales fuertes el equipo cede posesión y territorio; de local sube el field tilt y la presión).
 - **El marcador cambia el plan**: perdiendo por un gol, el field tilt sube ~9 puntos; ganando por uno, baja ~13.
 - Los principios de proceso que acompañan al diferencial de xG son pisar el área rival, repartir los toques, resistir la presión en la salida y progresar por pase.
 - **El juego está repartido y se construye desde atrás**: los 3 mejores generan ~62 % del OBV positivo, y defensas y carrileros ~35 %.
@@ -146,8 +150,8 @@ API StatsBomb ─extract─▶ BRONZE ─transform+validar─▶ SILVER ─const
 | Capa | Ruta | Contenido | Reglas |
 |---|---|---|---|
 | Bronze | `data/bronze/statsbomb/` | Respuesta exacta de la API (`.json.gz`) + `_manifest.parquet` | Inmutable, incremental, reintentos ante cortes de red |
-| Silver | `data/silver/` | `matches`, `league_matches`, `events/season=*/`, `frames360/season=*/`, `lineups`, `lineup_positions`, `player_match_stats`, `team_match_stats` | Compuertas de calidad (`QualityError`): cobertura, ids, coordenadas, xG, marcador reconstruido = oficial |
-| Gold | `data/gold/` | `dim_match`, `match_features`, `fct_possession`, `fct_segment`, `fct_set_piece`, `fct_substitution`, `fct_player_match`, `scores/`, `analysis/` | Se reconstruye completo desde Silver con `framework.py` + `features.py`; contexto sin leakage |
+| Silver | `data/silver/` | `matches`, `league_matches`, `league_team_match_stats` (toda la liga), `events/season=*/`, `frames360/season=*/`, `lineups`, `lineup_positions`, `player_match_stats`, `team_match_stats` | Compuertas de calidad (`QualityError`): cobertura, ids, coordenadas, xG, marcador reconstruido = oficial |
+| Gold | `data/gold/` | `dim_match`, `fct_team_match_league` + `dim_coach` (benchmark de liga), `match_features`, `fct_possession`, `fct_segment`, `fct_set_piece`, `fct_substitution`, `fct_player_match`, `scores/`, `analysis/` | Se reconstruye completo desde Silver con `framework.py` + `features.py`; contexto sin leakage |
 
 Modelos: `models/<nombre>.joblib` (ignorado) + `models/<nombre>.json` (**model card**: tarea, variables, hiperparámetros, fechas, métrica frente al mejor baseline, hash de datos). No hay model registry: para un equipo pequeño en local basta con las model cards más git.
 
@@ -157,7 +161,8 @@ Modelos: `models/<nombre>.joblib` (ignorado) + `models/<nombre>.json` (**model c
 ├── notebooks/
 │   ├── 01_descarga_datos.ipynb            # descarga (fase 1; hoy la reemplaza la etapa bronze del pipeline)
 │   ├── 02_exploracion_datos.ipynb         # EDA
-│   └── 03_formulacion_variables_modelos.ipynb  # ciclo de vida ML: problema, marco, variables, leakage, T1–T7, U1–U3, drift, fichas
+│   ├── 03_formulacion_variables_modelos.ipynb  # ciclo de vida ML: problema, marco, variables, leakage, T1–T7, U1–U3, drift, fichas
+│   └── 04_adn_entrenador.ipynb            # ADN del entrenador vs la liga, validación del cambio de técnico, valor para el club
 ├── src/
 │   ├── pipeline/                          # python -m src.pipeline run --stages ...
 │   │   ├── config.py                      # rutas, temporadas, endpoints, logger (logs/pipeline.log)
@@ -167,7 +172,10 @@ Modelos: `models/<nombre>.joblib` (ignorado) + `models/<nombre>.json` (**model c
 │   ├── framework.py                       # MARCO ANALÍTICO: fuente única de definiciones y ASSUMPTIONS
 │   ├── features.py                        # variables por criterio (FEATURES, PLAYER_FEATURES, aggregate)
 │   ├── evaluation.py                      # validación del marco, evaluación de variables, núcleo, sensibilidad, supuestos
-│   ├── modeling.py                        # TASKS, partición temporal, baselines, T1–T7, U1–U3, model cards, scoring
+│   ├── modeling.py                        # TASKS, partición temporal oficial, baselines, T1–T7, U1–U3, model cards, scoring
+│   ├── coach_profile.py                   # ADN del entrenador: rasgos, ajuste por contexto, percentiles, encaje, validación
+│   ├── coach_viz.py                       # figuras del ADN (radar, mapa de la liga, contexto, cambio de técnico)
+│   ├── business.py                        # rotación de técnicos (dato) y ROI por escenarios (supuestos explícitos)
 │   ├── match_report.py + templates/       # ficha HTML automática por partido
 │   ├── latex.py                           # exportar tablas y cifras a LaTeX
 │   ├── sb_client.py · eda.py · eda_dictionary.py
@@ -197,11 +205,12 @@ python -m src.pipeline run --stages bronze,silver,gold,train,score,report
 
 # ficha de partidos concretos
 python -m src.pipeline run --stages score,report --match-id 3971433 --match-id 3939923
+# (bronze también descarga team-match-stats de TODA la liga para el benchmark del ADN)
 
 pytest -q                                  # marco + reglas anti-leakage
 
 # notebook 03 y reporte de la fase 2
-jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.kernel_name=isac-america notebooks/03_formulacion_variables_modelos.ipynb
+jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.kernel_name=isac-america notebooks/03_formulacion_variables_modelos.ipynb notebooks/04_adn_entrenador.ipynb
 python reports/framework/make_tables.py
 cd reports/framework && latexmk -pdf framework_report.tex
 ```
