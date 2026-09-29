@@ -45,8 +45,8 @@ Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo s
 
 | Bloque del reto | Sección | ✔ |
 |---|---|---|
-| Ofensivo: construcción, progresión, generación de ocasiones | §3.2 | [ ] |
-| Defensivo: presión, organización, transiciones | §3.3, §3.4 | [ ] |
+| Ofensivo: construcción, progresión, generación de ocasiones | §3.2 | [x] notebook 05 |
+| Defensivo: presión, organización, transiciones | §3.3, §3.4 | [ ] presión y transiciones ✅ (§3.3) · falta organización con 360 (§3.4) |
 | Consistencia e identidad | §3.5, §3.9 | [ ] |
 | Cambios según el contexto (rival, marcador, localía, momento) | §3.5 | [ ] |
 | Evolución en el tiempo | §3.6 | [ ] |
@@ -107,7 +107,8 @@ Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo s
   | Reporte EDA (fase 1) | Se queda con los 222 partidos: es una descripción de los datos, no un hallazgo titular. **No citar sus cifras en el HTML** sin recalcularlas. |
 
 - [ ] Hallazgo honesto para §3.9: el clasificador del ADN en **validación** (Ap 2025) acierta top-5 en 22 % frente a 16 % por azar, más débil que en prueba (35 %). Contarlo así, sin inflarlo.
-- [ ] Etiquetar con su muestra las figuras nuevas (§3) y el explorador de partidos (§5).
+- [ ] Etiquetar con su muestra las figuras nuevas (§3) y el explorador de partidos (§5). Las de §3.2–§3.3 (`reports/figures/story/`) ya llevan la muestra al pie.
+- [ ] **Revisar el ADN por deriva de la liga** (visto al hacer §3.3). En la ventana, el PPDA medio de la liga pasa de ~8 (Ap 2021) a ~12 (2024) y las recuperaciones por contrapresión se duplican desde Ap 2024 (parece cambio de etiquetado). El ADN ajusta por rival y localía, **no por torneo**: "Presión alta" y "Reacción tras pérdida" pueden estar sesgadas contra/a favor de los técnicos recientes (Jardine). En §3.3 la comparación con la liga ya se hace contra la media del mismo torneo (`story.league_benchmark`); decidir si el ADN también.
 
 ---
 
@@ -125,21 +126,17 @@ Todo se calcula sobre los 91 partidos de Jardine en la ventana, salvo que se ind
 - [ ] 5 principios de Jardine sacados del ADN (p. ej., control del balón, peligro con presión media, juego repartido, construcción desde atrás), cada uno con un número y una visual.
 - [ ] Una frase por principio que entienda alguien que no vio los partidos.
 
-### 3.2 Con balón: ¿cómo sale, por dónde progresa y cómo genera ocasiones? (nuevo, con eventos)
-- [ ] **Salida**: saques de meta y del portero, % en corto y en largo, zona del primer receptor. Comparar con Ortiz y Solari.
-- [ ] **Progresión**:
-  - pases y conducciones progresivas por carril (izquierda, centro, derecha);
-  - entradas al último tercio y al área por zona.
-- [ ] **Ocasiones**:
-  - origen del xG: juego posicional, transición o balón parado (`xg_share_*` ya existe en `src/features.py`);
-  - tipo de pase previo al tiro: centro, filtrado, pase atrás al área, jugada individual;
-  - mapa de tiros con tamaño = xG.
-- [ ] **Red de pases** con posiciones medias del 11 típico.
+### 3.2 Con balón: ¿cómo sale, por dónde progresa y cómo genera ocasiones? ✅ (29 sep)
+Hecho en `notebooks/05_historia_jardine.ipynb` con `src/story.py` (cálculos) y `src/story_viz.py` (canchas). Figuras en `reports/figures/story/`, agregados en `data/gold/analysis/story_*.parquet` (hallazgos: `story_hallazgos.parquet`). Ventana oficial: Jardine 91 · Ortiz 55 · Solari 27.
+- [x] **Salida** (`salida_saque_meta.png`): Jardine saca en corto el **45 %** de los saques de meta (Ortiz 31 %, Solari 33 %) y el corto lo recibe un **mediocentro que baja en el 44 %** (Ortiz 20 %, Solari 4 %: antes iba casi siempre al central). Es control, no atajo: 66 % de las salidas cortas llega a campo rival (Ortiz 77 %; en largo, 74 %) y dan el mismo xG que en largo (0.7 por 100).
+- [x] **Progresión** (`progresion_carriles.png`, `entradas_area.png`): progresa por dentro y entra por fuera. 42 % de los pases progresivos termina en el carril central, pero al último tercio entra 21.1 veces por partido por la izquierda y 17.9 por la derecha frente a 9.3 por el centro. Pisa el área 14.7 veces por partido (Ortiz 15.0, Solari 9.9: +48 %), 41 % conduciendo.
+- [x] **Ocasiones** (`tiros_origen.png`, `pase_previo.png`): no tira más, tira mejor: 13.2 tiros y 1.52 xG sin penales por partido, **0.12 xG por tiro** (Ortiz 0.10, Solari 0.08), 65 % de los tiros en el área. Origen del xG: 25 % juego posicional, 36 % transición, 40 % balón parado (definición del marco: toda la posesión que nace de córner o tiro libre). Jugada distintiva: **pase atrás al área, 15 % del xG** (Ortiz 10 %, Solari 8 %); centro 17 % (Solari 28 %).
+- [x] **Red de pases** (`red_pases.png`): 4-2-3-1 más usado (41 de 91 partidos), hasta el primer cambio. El balón pasa por el doble pivote Fidalgo (28 pases por partido) y Jonathan dos Santos (27); su conexión es la más usada (21 por partido); el juego se carga a la izquierda (56 % de los pases del 11).
 
-### 3.3 Sin balón: ¿dónde y cómo recupera?
-- [ ] Mapa de zonas de recuperación y altura media de recuperación.
-- [ ] PPDA, % de presiones en campo rival y contrapresión, **frente a la liga** (ya están en los ejes del ADN).
-- [ ] Transiciones ofensivas y defensivas con las definiciones del marco (`src/framework.py`): cuántas, qué tan rápido llegan y qué xG generan o conceden.
+### 3.3 Sin balón: ¿dónde y cómo recupera? ✅ (29 sep, salvo 360 → §3.4)
+- [x] **Recuperación** (`recuperaciones.png`): Jardine no roba más arriba que sus antecesores: 52 recuperaciones por partido, altura media 42 yd (Solari 43, Ortiz 42), 24 % en campo rival (igual que ellos). Su zona de robo es el centro de su campo, delante del área (6.4 por partido).
+- [x] **Presión frente a la liga** (`presion_liga.png`, comparación contra la media de la liga **en el mismo torneo**, 70 técnicos-club con ≥ 15 partidos): Jardine no asfixia (PPDA 1.9 pases por encima de la liga, 11.º más alto de 70; Ortiz −0.6), pero cuando presiona lo hace arriba (+1.7 puntos de presiones en campo rival, percentil 71) y recupera algo más tras perder (+0.2 por partido, percentil 74) aunque contrapresiona menos (−2.3 por partido).
+- [x] **Transiciones** (`transiciones.png`): gana el intercambio: 19.5 a favor por partido (0.54 xG) frente a 17.2 del rival (0.30 xG): 1.8 veces más peligro a favor (Ortiz 1.7, Solari 1.0). Llegan en ~6 s. Concede 0.89 tiros de contraataque por partido, 14.º que menos de 70 técnicos. El % de pérdidas recuperadas en ≤ 5 s (marco) no distingue a los tres técnicos (13–15 %).
 
 ### 3.4 360: ¿qué tan alto y qué tan junto defiende? (diferenciador, mínimo una idea)
 - [ ] Altura de la línea defensiva y compactación (distancia entre líneas) por fase: bloque alto, medio o bajo.

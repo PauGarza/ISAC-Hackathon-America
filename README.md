@@ -174,7 +174,8 @@ Modelos: `models/<nombre>.joblib` (ignorado) + `models/<nombre>.json` (**model c
 │   ├── 01_descarga_datos.ipynb            # descarga (fase 1; hoy la reemplaza la etapa bronze del pipeline)
 │   ├── 02_exploracion_datos.ipynb         # EDA
 │   ├── 03_formulacion_variables_modelos.ipynb  # ciclo de vida ML: problema, marco, variables, leakage, T1–T7, U1–U3, drift, fichas
-│   └── 04_adn_entrenador.ipynb            # ADN del entrenador vs la liga, validación del cambio de técnico, valor para el club
+│   ├── 04_adn_entrenador.ipynb            # ADN del entrenador vs la liga, validación del cambio de técnico, valor para el club
+│   └── 05_historia_jardine.ipynb          # la historia de Jardine con balón (§3.2) y sin balón (§3.3), vs Solari, Ortiz y la liga
 ├── src/
 │   ├── pipeline/                          # python -m src.pipeline run --stages ...
 │   │   ├── config.py                      # rutas, temporadas, endpoints, logger (logs/pipeline.log)
@@ -188,15 +189,17 @@ Modelos: `models/<nombre>.joblib` (ignorado) + `models/<nombre>.json` (**model c
 │   ├── coach_profile.py                   # ADN del entrenador: rasgos, ajuste por contexto, percentiles, encaje, validación
 │   ├── coach_viz.py                       # figuras del ADN (radar, mapa de la liga, contexto, cambio de técnico)
 │   ├── business.py                        # rotación de técnicos (dato) y ROI por escenarios (supuestos explícitos)
+│   ├── story.py · story_viz.py            # historia de Jardine: salida, progresión, ocasiones, red de pases, recuperación, presión, transiciones (+ canchas)
 │   ├── match_report.py + templates/       # ficha HTML automática por partido
 │   ├── latex.py                           # exportar tablas y cifras a LaTeX
 │   ├── sb_client.py · eda.py · eda_dictionary.py
 ├── tests/test_framework.py                # definiciones del marco + reglas anti-leakage (pytest)
+├── tests/test_story.py                    # funciones de la historia con datos sintéticos
 ├── models/                                # model cards (.json versionadas; .joblib ignorados)
 ├── reports/
 │   ├── eda/                               # reporte fase 1 (make_tables.py → eda_report.pdf)
 │   ├── framework/                         # reporte fase 2 (make_tables.py → framework_report.pdf)
-│   ├── figures/{eda,framework}/
+│   ├── figures/{eda,framework,coach,story}/
 │   └── match_reports/                     # fichas HTML por partido
 ├── data/                                  # (ignorado) bronze/ silver/ gold/ (+ raw/ processed/ de la fase 1)
 ├── requirements.txt · .env.example
