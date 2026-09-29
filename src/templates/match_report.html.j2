@@ -70,6 +70,11 @@
 <h2>4 · Momentos del partido (marcador y minuto)</h2>
 <div class="card"><img src="data:image/png;base64,{{ fig_time }}" alt="línea de tiempo"></div>
 
+<h2>¿Jugó como juega su técnico? (ADN del entrenador)</h2>
+<div class="card">{% if fig_dna %}<img src="data:image/png;base64,{{ fig_dna }}" alt="ADN del partido frente al del técnico">{% endif %}
+<p>{{ dna_txt or '' }}</p>
+<p class="note">Percentil de cada rasgo frente a todos los partidos de equipos de la Liga MX (2021–2025), ajustado por rival y localía. El ADN del técnico usa solo sus partidos anteriores con el América (sin información futura).</p></div>
+
 <h2>5 · Balón parado (5.4)</h2>
 <div class="card"><img src="data:image/png;base64,{{ fig_sp }}" alt="balón parado">
 <p class="note">Punto = destino del envío (córner, tiro libre o saque de banda en último tercio). Rojo = la jugada terminó en tiro.</p></div>

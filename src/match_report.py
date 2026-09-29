@@ -168,6 +168,42 @@ def fig_set_pieces(sp: pd.DataFrame) -> str:
     return _b64(fig)
 
 
+def fig_match_dna(match_id: int):
+    """Radar: el partido frente al ADN de su técnico (sus partidos ANTERIORES con el América) y frente a la liga.
+    Percentiles frente a todos los equipo-partido de la liga en la ventana oficial (misma escala para ambos)."""
+    from src import coach_profile as C
+    from src import coach_viz as CV
+    ma = C.build_match_axes()
+    row = ma[(ma.match_id == match_id) & (ma.team_name == C.TEAM)]
+    if row.empty:
+        return None, None
+    row = row.iloc[0]
+    ref = ma[ma.split == "train"]
+    cols = [f"adj__{a}" for a in C.AXES]
+    prev = ma[(ma.team_name == C.TEAM) & (ma.manager == row.manager) & (ma.match_date < row.match_date)]
+    if len(prev) < 5:
+        return None, f"{C.short(row.manager)} tenía menos de 5 partidos previos con el América: aún no hay ADN de referencia."
+
+    def pct(values):
+        return pd.Series({a: (ref[c].dropna() < v).mean() * 100 for a, c, v in zip(C.AXES, cols, values)})
+    match_p, coach_p = pct(row[cols].values), pct(prev[cols].mean().values)
+    name = C.short(row.manager)
+    fig, ax = plt.subplots(figsize=(5.6, 5.6), subplot_kw={"polar": True})
+    CV.radar(ax, coach_p, CV.COACH_COLOR.get(name, eda.BLUE), "")
+    CV.radar(ax, match_p, eda.INK, "")
+    ax.lines[-1].set_linestyle("--")
+    handles = [plt.Line2D([], [], color=CV.COACH_COLOR.get(name, eda.BLUE), lw=2),
+               plt.Line2D([], [], color=eda.INK, lw=2, ls="--"), plt.Line2D([], [], color=CV.LEAGUE, lw=0.9),
+               plt.Line2D([], [], color=CV.LEAGUE, lw=0.9, ls="--")]
+    ax.legend(handles, [f"ADN de {name} ({len(prev)} partidos previos)", "este partido", "mediana de la liga",
+                        "P90 de la liga"],
+              loc="upper center", bbox_to_anchor=(0.5, -0.06), ncol=2, fontsize=7)
+    gap = (match_p - coach_p)
+    top = gap.abs().sort_values(ascending=False).head(3)
+    txt = "; ".join(f"{a}: {'más' if gap[a] > 0 else 'menos'} que su ADN ({match_p[a]:.0f} vs {coach_p[a]:.0f})" for a in top.index)
+    return _b64(fig), f"Donde más se alejó de su ADN: {txt}."
+
+
 # ------------------------------------------------------------------ texto
 def chronicle(pct: pd.DataFrame, proj: pd.DataFrame, ctx: pd.Series, sim: pd.Series) -> list[str]:
     s = [f"{'Local' if ctx.is_home else 'Visita'} ante {ctx.opponent} ({ctx.fase.lower()}, {ctx.torneo}); "
@@ -231,8 +267,12 @@ def build_match_report(match_id: int) -> str:
     # nombre descriptivo de cada tipo de partido (clúster U2): perfil medio en entrenamiento
     prof = (scores.merge(mf[["match_id", "possession_time_pct", "field_tilt", "ppda"]], on="match_id")
             .loc[lambda d: d.match_id.map(split) == "train"].groupby("tipo_partido")[["possession_time_pct", "field_tilt", "ppda"]].mean())
-    type_names = {k: f"Tipo {k + 1}: posesión {r.possession_time_pct:.0f}% · tilt {r.field_tilt:.0f}% · PPDA {r.ppda:.1f}"
+    # el número de clúster es arbitrario: se nombra por posesión (más balón = "Dominante", menos = "Reactivo")
+    order = prof.possession_time_pct.rank(ascending=False).astype(int)
+    kind = {1: "Dominante", len(prof): "Reactivo"}
+    type_names = {k: f"{kind.get(order[k], 'Intermedio')}: posesión {r.possession_time_pct:.0f}% · tilt {r.field_tilt:.0f}% · PPDA {r.ppda:.1f}"
                   for k, r in prof.iterrows()}
+    dna_fig, dna_txt = fig_match_dna(match_id)
     cards = {}
     for f in sorted(MODELS.glob("*.json")):
         c = json.loads(f.read_text(encoding="utf-8"))
@@ -244,7 +284,7 @@ def build_match_report(match_id: int) -> str:
         sim=sc, tipo=type_names.get(int(sc.tipo_partido), int(sc.tipo_partido)),
         cronica=chronicle(pct, proj, ctx, sc),
         fig_pct=fig_percentiles(pct), fig_players=fig_players(pm), fig_map=fig_style_map(scores, match_id, list(similar), loadings, type_names),
-        fig_time=fig_timeline(ev, seg_f), fig_sp=fig_set_pieces(sp),
+        fig_time=fig_timeline(ev, seg_f), fig_sp=fig_set_pieces(sp), fig_dna=dna_fig, dna_txt=dna_txt,
         players=pm.assign(player_name=pm.get("player_short", pm.player_name)).sort_values("obv", ascending=False)[["player_name", "position_group", "minutes", "obv", "obv_p90_ref_prev", "obv_p90_resid"]].round(2).to_dict("records"),
         dist={F.label(k): v for k, v in mf.set_index("match_id").loc[match_id, list(F.PLAYER_FEATURES)].round(2).items()},
         proj=proj.round(2).to_dict("records"), next_proj=next_proj,
