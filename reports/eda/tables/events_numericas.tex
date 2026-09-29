@@ -1,0 +1,28 @@
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Variables numéricas de eventos, cada una perfilada sobre el tipo de evento al que aplica.}
+\label{tab:events_num}
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{llrrrrrrrrrr}
+\toprule
+\textbf{Columna} & \textbf{Aplica a} & \textbf{n} & \textbf{\% nulos} & \textbf{Mín} & \textbf{P25} & \textbf{Mediana} & \textbf{Media} & \textbf{P75} & \textbf{Máx} & \textbf{Desv.} & \textbf{Asim.} \\
+\midrule
+minute & (todas) & 736,829 & 0.000 & 0.000 & 22.000 & 46.000 & 45.829 & 68.000 & 128.000 & 27.501 & 0.076 \\
+duration & (todas) & 547,611 & 25.680 & 0.000 & 0.333 & 1.064 & 1.304 & 1.768 & 108.193 & 1.426 & 5.142 \\
+location\_x & (todas) & 729,663 & 0.970 & 0.000 & 36.200 & 57.200 & 57.916 & 80.300 & 120.000 & 28.863 & 0.012 \\
+location\_y & (todas) & 729,663 & 0.970 & 0.100 & 19.600 & 39.400 & 39.516 & 59.300 & 80.000 & 22.989 & 0.035 \\
+obv\_total\_net & (todas) & 418,690 & 43.180 & -1.095 & -0.002 & 0.000 & 0.002 & 0.003 & 1.608 & 0.037 & -0.944 \\
+control\_degree & (todas) & 624,520 & 15.240 & 0.000 & 0.676 & 1.000 & 0.789 & 1.000 & 1.000 & 0.354 & -1.352 \\
+pass\_length & Pass & 206,473 & 0.000 & 0.000 & 11.500 & 17.800 & 21.761 & 27.320 & 115.800 & 15.128 & 1.712 \\
+pass\_angle & Pass & 206,473 & 0.000 & -3.141 & -1.218 & -0.017 & 0.013 & 1.277 & 3.142 & 1.568 & 0.021 \\
+pass\_pass\_success\_probability & Pass & 205,504 & 0.470 & 0.020 & 0.719 & 0.943 & 0.813 & 0.983 & 0.999 & 0.245 & -1.346 \\
+pass\_xclaim & Pass & 8,630 & 95.820 & 0.000 & 0.001 & 0.011 & 0.041 & 0.045 & 0.729 & 0.074 & 3.108 \\
+shot\_statsbomb\_xg & Shot & 5,675 & 0.000 & 0.003 & 0.026 & 0.051 & 0.100 & 0.101 & 0.977 & 0.143 & 3.191 \\
+shot\_shot\_execution\_xg & Shot & 5,675 & 0.000 & 0.000 & 0.000 & 0.012 & 0.103 & 0.093 & 0.998 & 0.207 & 2.721 \\
+shot\_gk\_save\_difficulty\_xg & Shot & 1,932 & 65.960 & 0.001 & 0.046 & 0.167 & 0.301 & 0.498 & 0.999 & 0.310 & 0.947 \\
+duel\_duel\_win\_probability & Duel & 6,521 & 54.050 & 0.066 & 0.367 & 0.462 & 0.464 & 0.557 & 0.946 & 0.134 & 0.061 \\
+clearance\_duel\_win\_probability & Clearance & 1,779 & 78.820 & 0.182 & 0.483 & 0.565 & 0.564 & 0.645 & 0.895 & 0.120 & -0.140 \\
+\bottomrule
+\end{tabular}}
+\end{table}

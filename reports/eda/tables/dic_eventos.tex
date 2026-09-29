@@ -1,0 +1,179 @@
+{\scriptsize
+\begin{longtable}{p{4.3cm}p{2.2cm}p{8.8cm}}
+\caption{Diccionario de columnas de eventos.}\label{tab:dic_eventos}\\
+\toprule
+\textbf{Columna} & \textbf{Aplica a} & \textbf{Significado} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Columna} & \textbf{Aplica a} & \textbf{Significado} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+id & Todos & Identificador único (UUID) del evento. \\
+index & Todos & Orden secuencial del evento dentro del partido (1, 2, 3...). \\
+match\_id & Todos & Identificador del partido. \\
+period & Todos & Periodo: 1 y 2 = tiempos regulares; 3 y 4 = tiempos extra; 5 = tanda de penales. \\
+timestamp & Todos & Tiempo dentro del periodo (hh:mm:ss.mmm). \\
+minute & Todos & Minuto de juego acumulado (el 2.º tiempo inicia en 45). \\
+second & Todos & Segundo dentro del minuto (0-59). \\
+duration & Todos & Duración del evento en segundos (p. ej. tiempo de vuelo de un pase o de una conducción). \\
+type & Todos & Tipo de evento (Pass, Carry, Pressure, Shot, Duel, ...). Define qué columnas específicas tienen valor. \\
+team & Todos & Equipo que ejecuta el evento. \\
+team\_id & Todos & Identificador del equipo que ejecuta el evento. \\
+player & Todos & Jugador que ejecuta el evento. \\
+player\_id & Todos & Identificador del jugador. \\
+position & Todos & Posición táctica del jugador en ese momento (según la formación vigente). \\
+possession & Todos & Número secuencial de posesión en el partido; cambia cuando el otro equipo toma control del balón. \\
+possession\_team & Todos & Equipo que tiene la posesión (puede diferir de team: p. ej. una presión del rival). \\
+possession\_team\_id & Todos & Identificador del equipo en posesión. \\
+play\_pattern & Todos & Cómo inició la posesión: Regular Play, From Throw In, From Free Kick, From Corner, From Goal Kick, From Counter, From Keeper, From Kick Off, Other. \\
+is\_controlled\_possession & Todos & Flag StatsBomb: el evento ocurre en una posesión controlada (juego elaborado). \\
+is\_transition & Todos & Flag StatsBomb: el evento ocurre en una fase de transición (posesión recién ganada y rápida). \\
+possession\_directness & Todos & Qué tan directa es la posesión hacia la portería rival (avance vertical relativo al recorrido total). \\
+player\_possession\_directness & Todos & Directness de la contribución del jugador dentro de la posesión. \\
+set\_piece\_phase & Todos & Fase de la jugada a balón parado: 1 = primer contacto tras el saque, 2 = segunda jugada. \\
+under\_pressure & Todos & Flag: el ejecutor estaba siendo presionado por un rival (NaN = no). \\
+counterpress & Todos & Flag: acción de presión/defensa dentro de los 5 s posteriores a una pérdida propia (NaN = no). \\
+off\_camera & Todos & Flag: el evento ocurrió fuera de cámara (ubicación estimada). \\
+out & Todos & Flag: la acción terminó con el balón fuera del campo. \\
+related\_events & Todos & Lista de ids de eventos relacionados (p. ej. un pase y su recepción). \\
+tactics & Starting XI / Tactical Shift & Formación y lista de jugadores con posición (JSON). \\
+attacking\_direction & Todos & Dirección de ataque del equipo en la toma original (left\_to\_right / right\_to\_left). Las coordenadas ya vienen normalizadas. \\
+location & Todos & Coordenadas [x, y] del evento en la cancha 120 x 80 (x hacia la portería rival). \\
+location\_x & Todos & Coordenada x derivada de location (0 = propia portería, 120 = portería rival). \\
+location\_y & Todos & Coordenada y derivada de location (0 a 80, de banda a banda). \\
+location\_bucket & Todos & Tercio del campo: defensive\_third, midfield\_third, final\_third. \\
+control\_degree & Todos & Grado de control del balón en la acción (0 a 1). \\
+obv\_for\_before & Acciones con balón & Probabilidad (modelo OBV) de que el equipo en posesión marque antes de la acción. \\
+obv\_for\_after & Acciones con balón & Probabilidad de marcar después de la acción. \\
+obv\_for\_net & Acciones con balón & Cambio en la probabilidad de marcar causado por la acción (after - before). \\
+obv\_against\_before & Acciones con balón & Probabilidad de recibir gol antes de la acción. \\
+obv\_against\_after & Acciones con balón & Probabilidad de recibir gol después de la acción. \\
+obv\_against\_net & Acciones con balón & Cambio en la probabilidad de recibir gol. \\
+obv\_total\_net & Acciones con balón & On-Ball Value neto: obv\_for\_net - obv\_against\_net. Valor total de la acción. \\
+pass\_length & Pass & Longitud del pase (yardas). \\
+pass\_angle & Pass & Ángulo del pase en radianes (0 = hacia adelante, +/-pi = hacia atrás). \\
+pass\_end\_location & Pass & Coordenadas [x, y] donde termina el pase. \\
+pass\_height & Pass & Altura: Ground Pass, Low Pass (bajo la cintura), High Pass (sobre la cabeza). \\
+pass\_body\_part & Pass & Parte del cuerpo: Right Foot, Left Foot, Head, Keeper Arm, ... \\
+pass\_type & Pass & Tipo de pase especial: Recovery, Throw-in, Free Kick, Goal Kick, Corner, Interception, Kick Off. Nulo = pase regular en juego abierto. \\
+pass\_outcome & Pass & Resultado: Incomplete, Out, Pass Offside, Unknown, Injury Clearance. Nulo = pase completo. \\
+pass\_technique & Pass & Técnica: Inswinging, Outswinging, Straight, Through Ball. \\
+pass\_recipient & Pass & Jugador que recibe el pase. \\
+pass\_recipient\_id & Pass & Identificador del receptor. \\
+pass\_cross & Pass & Flag: centro. \\
+pass\_switch & Pass & Flag: cambio de orientación (cruza gran parte del ancho del campo). \\
+pass\_through\_ball & Pass & Flag: pase filtrado entre líneas defensivas. \\
+pass\_cut\_back & Pass & Flag: pase atrás desde línea de fondo. \\
+pass\_shot\_assist & Pass & Flag: el pase precede a un tiro (pase clave). \\
+pass\_goal\_assist & Pass & Flag: el pase precede a un gol (asistencia). \\
+pass\_assisted\_shot\_id & Pass & Id del tiro que generó el pase. \\
+pass\_aerial\_won & Pass & Flag: pase ejecutado tras ganar un duelo aéreo. \\
+pass\_deflected & Pass & Flag: pase desviado. \\
+pass\_miscommunication & Pass & Flag: pase fallido por mala comunicación. \\
+pass\_no\_touch & Pass & Flag: pase dejado pasar sin tocar (dummy). \\
+pass\_inswinging & Pass & Flag: centro/córner cerrado hacia portería. \\
+pass\_outswinging & Pass & Flag: centro/córner abierto. \\
+pass\_straight & Pass & Flag: centro/córner recto. \\
+pass\_backheel & Pass & Flag: pase de tacón. \\
+pass\_pass\_success\_probability & Pass & Probabilidad modelada (StatsBomb) de que el pase se complete. \\
+pass\_pass\_cluster\_id & Pass & Clúster de pase (familia de pases con origen/destino/dirección similares). \\
+pass\_pass\_cluster\_label & Pass & Etiqueta legible del clúster (tercio, carril y dirección). \\
+pass\_pass\_cluster\_probability & Pass & Probabilidad de pertenencia del pase a su clúster. \\
+pass\_xclaim & Pass & Probabilidad de que el portero rival intercepte un centro. \\
+pass\_duel\_win\_probability & Pass & Probabilidad de ganar el duelo asociado al pase. \\
+shot\_statsbomb\_xg & Shot & Goles esperados (xG) del tiro: probabilidad de gol antes del disparo. \\
+shot\_shot\_execution\_xg & Shot & xG post-disparo: probabilidad de gol considerando la ejecución (dirección, potencia). \\
+shot\_shot\_execution\_xg\_uplift & Shot & Diferencia entre xG de ejecución y xG previo: calidad de la definición. \\
+shot\_gk\_save\_difficulty\_xg & Shot & Dificultad de atajada para el portero (tiros a puerta). \\
+shot\_gk\_positioning\_xg\_suppression & Shot & xG suprimido por el posicionamiento del portero. \\
+shot\_gk\_shot\_stopping\_xg\_suppression & Shot & xG suprimido por la atajada del portero. \\
+shot\_outcome & Shot & Resultado: Goal, Saved, Off T, Blocked, Wayward, Post, Saved to Post, Saved Off Target. \\
+shot\_type & Shot & Tipo: Open Play, Free Kick, Penalty. \\
+shot\_body\_part & Shot & Parte del cuerpo con la que se remata. \\
+shot\_technique & Shot & Técnica: Normal, Half Volley, Volley, Lob, Overhead Kick, Diving Header, Backheel. \\
+shot\_end\_location & Shot & Coordenadas [x, y, z] donde termina el tiro. \\
+shot\_freeze\_frame & Shot & Posición de todos los jugadores en el momento del tiro (JSON). \\
+shot\_key\_pass\_id & Shot & Id del pase que generó el tiro. \\
+shot\_first\_time & Shot & Flag: remate de primera. \\
+shot\_one\_on\_one & Shot & Flag: mano a mano con el portero. \\
+shot\_deflected & Shot & Flag: tiro desviado. \\
+shot\_aerial\_won & Shot & Flag: remate tras ganar duelo aéreo. \\
+shot\_follows\_dribble & Shot & Flag: tiro inmediatamente después de un regate. \\
+shot\_open\_goal & Shot & Flag: tiro a portería vacía. \\
+shot\_redirect & Shot & Flag: desvío de un tiro de compañero. \\
+shot\_saved\_to\_post & Shot & Flag: atajado y pega en el poste. \\
+shot\_saved\_off\_target & Shot & Flag: atajado aunque iba fuera. \\
+shot\_duel\_win\_probability & Shot & Probabilidad de ganar el duelo asociado al tiro. \\
+shot\_shot\_shot\_assist & Shot & Flag: el tiro (rebote) asiste otro tiro. \\
+shot\_shot\_goal\_assist & Shot & Flag: el tiro (rebote) asiste un gol. \\
+carry\_end\_location & Carry & Coordenadas [x, y] donde termina la conducción. \\
+dribble\_outcome & Dribble & Resultado del regate: Complete / Incomplete. \\
+dribble\_nutmeg & Dribble & Flag: caño. \\
+dribble\_overrun & Dribble & Flag: el jugador se pasa del balón. \\
+dribble\_no\_touch & Dribble & Flag: regate sin tocar el balón (amague). \\
+ball\_receipt\_outcome & Ball Receipt* & Resultado de la recepción: nulo = correcta; Incomplete = fallida. \\
+miscontrol\_aerial\_won & Miscontrol & Flag: mal control tras duelo aéreo ganado. \\
+miscontrol\_duel\_win\_probability & Miscontrol & Probabilidad de ganar el duelo asociado. \\
+duel\_type & Duel & Tipo de duelo: Tackle (entrada) o Aerial Lost. \\
+duel\_outcome & Duel & Resultado: Won, Success In Play, Success Out, Lost In Play, Lost Out. \\
+duel\_duel\_win\_probability & Duel & Probabilidad modelada de ganar el duelo. \\
+duel\_hops\_rating & Duel & Rating HOPS (habilidad aérea) del jugador. \\
+duel\_hops\_raw\_rating & Duel & Rating HOPS sin ajustar del jugador. \\
+duel\_hops\_opponent\_rating & Duel & Rating HOPS del oponente en el duelo. \\
+duel\_hops\_opponent\_raw\_rating & Duel & Rating HOPS sin ajustar del oponente. \\
+interception\_outcome & Interception & Resultado: Won, Success In Play, Lost In Play, Lost Out, Success Out. \\
+clearance\_body\_part & Clearance & Parte del cuerpo del despeje. \\
+clearance\_head & Clearance & Flag: despeje de cabeza. \\
+clearance\_left\_foot & Clearance & Flag: despeje con pie izquierdo. \\
+clearance\_right\_foot & Clearance & Flag: despeje con pie derecho. \\
+clearance\_other & Clearance & Flag: despeje con otra parte del cuerpo. \\
+clearance\_aerial\_won & Clearance & Flag: despeje tras ganar duelo aéreo. \\
+clearance\_duel\_win\_probability & Clearance & Probabilidad de ganar el duelo asociado al despeje. \\
+block\_deflection & Block & Flag: el bloqueo desvía el balón. \\
+block\_offensive & Block & Flag: bloqueo de un compañero (ofensivo). \\
+block\_save\_block & Block & Flag: bloqueo que evita un gol en la línea. \\
+ball\_recovery\_offensive & Ball Recovery & Flag: recuperación en fase ofensiva. \\
+ball\_recovery\_recovery\_failure & Ball Recovery & Flag: intento de recuperación fallido. \\
+50\_50 & 50/50 & Balón dividido: resultado (JSON). \\
+defensive\_responsibility & Varios & Jugadores con responsabilidad defensiva en la acción (JSON). \\
+foul\_committed\_type & Foul Committed & Tipo de falta: Handball, Dangerous Play, Dive, 6 Seconds, Foul Out. \\
+foul\_committed\_card & Foul Committed & Tarjeta: Yellow Card, Second Yellow, Red Card. \\
+foul\_committed\_advantage & Foul Committed & Flag: se aplicó ley de la ventaja. \\
+foul\_committed\_offensive & Foul Committed & Flag: falta ofensiva. \\
+foul\_committed\_penalty & Foul Committed & Flag: falta que resulta en penal. \\
+foul\_won\_advantage & Foul Won & Flag: falta recibida con ventaja. \\
+foul\_won\_defensive & Foul Won & Flag: falta recibida en acción defensiva. \\
+foul\_won\_penalty & Foul Won & Flag: penal recibido. \\
+bad\_behaviour\_card & Bad Behaviour & Tarjeta por conducta (fuera de una falta). \\
+goalkeeper\_type & Goal Keeper & Acción del portero: Shot Faced, Shot Saved, Goal Conceded, Keeper Sweeper, Punch, Collected, ... \\
+goalkeeper\_outcome & Goal Keeper & Resultado de la acción del portero: Success, No Touch, Claim, In Play Safe, Touched Out, ... \\
+goalkeeper\_technique & Goal Keeper & Técnica: Standing, Diving. \\
+goalkeeper\_position & Goal Keeper & Posición del portero: Set, Moving, Prone. \\
+goalkeeper\_body\_part & Goal Keeper & Parte del cuerpo usada por el portero. \\
+goalkeeper\_end\_location & Goal Keeper & Coordenadas donde termina la acción del portero. \\
+goalkeeper\_punched\_out & Goal Keeper & Flag: despeje de puños. \\
+goalkeeper\_shot\_saved\_to\_post & Goal Keeper & Flag: atajada que pega en el poste. \\
+goalkeeper\_shot\_saved\_off\_target & Goal Keeper & Flag: atajada de tiro que iba fuera. \\
+goalkeeper\_success\_in\_play & Goal Keeper & Flag: acción exitosa con balón en juego. \\
+goalkeeper\_lost\_out & Goal Keeper & Flag: acción perdida con balón fuera. \\
+substitution\_outcome & Substitution & Razón del cambio: Tactical, Injury, ... \\
+substitution\_outcome\_id & Substitution & Id de la razón del cambio. \\
+substitution\_replacement & Substitution & Jugador que entra. \\
+substitution\_replacement\_id & Substitution & Id del jugador que entra. \\
+injury\_stoppage\_in\_chain & Injury Stoppage & Flag: pausa por lesión dentro de una cadena de juego. \\
+half\_start\_late\_video\_start & Half Start & Flag: el video del periodo empezó tarde. \\
+player\_off\_permanent & Player Off & Flag: el jugador sale de forma permanente. \\
+match\_date & Contexto & Fecha del partido (agregada desde matches). \\
+season & Contexto & Temporada StatsBomb (Apertura + Clausura). \\
+match\_week & Contexto & Jornada. \\
+team\_manager & Contexto & Entrenador del América en ese partido. \\
+opponent & Contexto & Rival del América. \\
+is\_home & Contexto & True si el América juega de local. \\
+goals\_for & Contexto & Goles del América en el partido (marcador final). \\
+goals\_against & Contexto & Goles recibidos por el América (marcador final). \\
+result & Contexto & Resultado del América: W / D / L. \\
+\end{longtable}
+}

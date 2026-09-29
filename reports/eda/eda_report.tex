@@ -1,0 +1,503 @@
+\documentclass[11pt,a4paper]{article}
+
+% ------------------------------------------------------------------ paquetes
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-tabla,es-nodecimaldot]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage[table]{xcolor}
+\usepackage[font=small,labelfont=bf,skip=4pt]{caption}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{../figures/eda/}}
+\definecolor{ame}{HTML}{1C5CAB}
+\definecolor{hip}{HTML}{EB6834}
+\DeclareRobustCommand{\col}[1]{\texttt{\detokenize{#1}}}
+\newtcolorbox{historia}[1][]{colback=ame!5,colframe=ame,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,title={#1},fonttitle=\bfseries\small}
+\newtcolorbox{hipotesis}[1][]{colback=hip!6,colframe=hip,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,title={#1},fonttitle=\bfseries\small}
+\setlist{itemsep=2pt,topsep=3pt}
+\renewcommand{\arraystretch}{1.12}
+\pagestyle{fancy}\fancyhf{}
+\lhead{\small ISAC Hackathon 2026 · Club América}\rhead{\small Análisis exploratorio de datos}
+\cfoot{\small\thepage}
+
+\title{\textbf{¿Qué historia cuentan los datos?}\\[4pt]
+\large Análisis exploratorio (EDA) de los datos StatsBomb del Club América, 2021--2026\\[2pt]
+\normalsize Reto ISAC 2026: \emph{La historia de un entrenador a través de los datos}}
+\author{Equipo ISAC-Hackathon-America}
+\date{Septiembre de 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+\noindent Este documento es la primera fase del proyecto: \textbf{entender los datos antes de concluir}. Se analizan 222 partidos de Liga MX del Club América (julio 2021 -- septiembre 2026) con datos de eventos StatsBomb y StatsBomb 360, que abarcan cinco entrenadores: Santiago Solari, Fernando Ortiz, André Jardine (129 partidos), Diego Cervantes (interino) y Jorge Almada. Para cada una de las seis tablas se documenta qué significa cada columna, su calidad, su distribución y sus relaciones con otras variables; después se cruzan las métricas con el contexto que pide el reto (tiempo, entrenador, localía, nivel del rival, fase del torneo y marcador). El análisis es \emph{descriptivo}: no se prueban hipótesis ni se controla por rival. Aun así, los datos ya esbozan una historia coherente --- la posesión no distingue a los entrenadores, pero la \emph{intensidad de la presión}, la \emph{precisión} y la \emph{adaptación al contexto} sí --- que se formula como diez hipótesis a contrastar en la fase de análisis.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =====================================================================
+\section{Introducción}
+% =====================================================================
+\subsection{El reto}
+El reto ISAC 2026 pide construir, \emph{únicamente a partir de los datos}, una narrativa que permita a alguien que no vio los partidos entender cómo juega un equipo y qué ideas tácticas definen a su entrenador. La pregunta central es:
+
+\begin{historia}[Pregunta central del reto]
+¿Cuáles son los principios que definen al equipo en fase ofensiva y defensiva, cómo se manifiestan estos patrones a lo largo del tiempo, y de qué manera el entrenador ajusta su comportamiento en función del contexto del partido (rival, marcador, localía o momento del juego)?
+\end{historia}
+
+Los componentes esperados son: estilo de juego (construcción, progresión, generación de ocasiones; presión, organización defensiva, transiciones), consistencia y variabilidad, uso de jugadores, balón parado ofensivo y defensivo, evidencia cuantitativa (xG, OBV, pases progresivos, presión, field tilt) y un marco analítico explícito.
+
+\subsection{Objetivo de este documento}
+Antes de modelar cualquier cosa es necesario saber qué información existe, qué significa, qué tan confiable es y qué relaciones muestra. Los objetivos de este EDA son:
+\begin{enumerate}
+  \item \textbf{Inventariar y describir} las seis tablas (granularidad, tipos, semántica de cada columna).
+  \item \textbf{Evaluar la calidad} de los datos (faltantes, anomalías, coherencia interna).
+  \item \textbf{Describir distribuciones} univariadas (numéricas y categóricas) y \textbf{relaciones} bivariadas (correlación de Spearman, V de Cramér).
+  \item \textbf{Cruzar con el contexto} que pide el reto (tiempo, entrenador, localía, rival, fase, marcador).
+  \item \textbf{Formular hipótesis} y \textbf{definiciones preliminares} para el marco analítico.
+\end{enumerate}
+No se extraen conclusiones: toda diferencia reportada es descriptiva y está sujeta a validación.
+
+\subsection{Cómo leer este reporte}
+Las Secciones~\ref{sec:datos}--\ref{sec:calidad} describen los datos y su calidad; la~\ref{sec:univariado} describe cada tabla columna por columna; la~\ref{sec:relaciones} analiza relaciones entre variables; la~\ref{sec:contexto} cruza con el contexto; la~\ref{sec:historia} sintetiza la historia y las hipótesis; la~\ref{sec:marco} traduce lo aprendido en definiciones para el marco analítico. El Apéndice~\ref{app:dic} contiene el diccionario completo de columnas.
+
+% =====================================================================
+\section{Datos}\label{sec:datos}
+% =====================================================================
+\subsection{Fuente y adquisición}
+Los datos provienen de la API privada de StatsBomb (Hudl), con credenciales de uso exclusivo para la competencia. La descarga se automatizó (notebook \col{01_descarga_datos.ipynb}, módulo \col{src/sb_client.py}) con la librería \col{statsbombpy}: para cada partido del América con estado \col{available} se descargan eventos, frames 360, alineaciones y estadísticas agregadas de jugador y equipo, y se guardan en Parquet por partido (proceso reanudable). Las credenciales y los datos están excluidos del control de versiones.
+
+Las credenciales dan acceso a Liga MX (competición 73, seis temporadas con 360) y Liga MX Femenil (tres temporadas, sin 360). Este proyecto usa \textbf{Liga MX varonil}. Una ``temporada'' StatsBomb agrupa Apertura (julio--diciembre) y Clausura (enero--mayo), incluidas las liguillas.
+
+\subsection{Alcance}
+\input{tables/inventario}
+\input{tables/cobertura}
+
+El América disputó 222 partidos con datos disponibles (más 8 programados de 2026/27). \textbf{André Jardine concentra el 58\% de la muestra} (129 partidos en tres temporadas y seis torneos), lo que lo convierte en el candidato natural a protagonista de la narrativa; los demás entrenadores funcionan como contraste (antes: Solari y Ortiz; después: Almada, con solo 9 partidos). Cervantes dirigió 2 partidos como interino y se excluye de las comparaciones.
+
+\subsection{Sistema de coordenadas}
+StatsBomb usa una cancha de $120\times80$ yardas. En cada evento, \textbf{el equipo que ejecuta la acción ataca de izquierda a derecha}: $x=0$ es su propia portería y $x=120$ la rival; $y$ va de 0 a 80 (banda a banda). El último tercio es $x\geq80$ y el área rival $x\geq102,\ 18\leq y\leq62$. Esto permite comparar acciones de ambos equipos sin reorientar.
+
+% =====================================================================
+\section{Metodología del EDA}\label{sec:metodologia}
+% =====================================================================
+\paragraph{Clasificación de columnas.} Cada columna se asigna automáticamente a un tipo analítico: \emph{id}, \emph{numérica}, \emph{booleana}, \emph{categórica} (hasta 60 categorías), \emph{categórica de alta cardinalidad}, \emph{fecha}, \emph{coordenadas} (listas $[x,y]$, que se expanden a \col{_x} y \col{_y}) o \emph{JSON} (estructuras anidadas).
+
+\paragraph{Perfiles.} Numéricas: conteo, \% de nulos, mínimo, percentiles 5/25/50/75/95, media, máximo, desviación estándar, moda y su frecuencia, \% de ceros y asimetría. Categóricas: número de categorías, moda, \% de cada categoría y \% acumulado del top-$k$. Booleanas: \% de \texttt{True}.
+
+\paragraph{Perfil condicionado al tipo de evento.} Las columnas específicas (\col{pass_*}, \col{shot_*}, \col{duel_*}, \ldots) solo existen en su tipo de evento; perfilarlas sobre toda la tabla daría $>95\%$ de nulos sin significado. Por eso cada una se describe \textbf{solo sobre las filas de su tipo}.
+
+\paragraph{Relaciones.} Entre numéricas se usa la \textbf{correlación de Spearman} ($\rho$), robusta a la fuerte asimetría de xG, OBV y conteos. Entre categóricas se usa la \textbf{V de Cramér} con corrección de sesgo (0 = independencia, 1 = asociación total).
+
+\paragraph{Métricas derivadas (definiciones preliminares).}
+\begin{itemize}
+  \item \textbf{Field tilt}: pases del América en su último tercio ($x\geq80$) entre los pases de ambos equipos en su respectivo último tercio.
+  \item \textbf{Pase progresivo}: pase completo de juego abierto (\col{pass_type} nulo) que reduce al menos 25\% la distancia a la portería rival y termina en $x\geq48$.
+  \item \textbf{Altura de juego y de presión}: $x$ medio de los pases del América y de sus presiones.
+  \item \textbf{Precisión de pase}: \col{successful_passes}/\col{passes} (ver anomalía en la Sección~\ref{sec:calidad}).
+  \item \textbf{Estado del marcador}: diferencia de goles del América \emph{antes} de cada evento, reconstruida con tiros convertidos y autogoles (se excluye la tanda de penales).
+  \item \textbf{Nivel del rival}: puntos por partido del rival en esa temporada (todos sus partidos de Liga MX), agrupados en terciles: Alto, Medio y Bajo.
+  \item \textbf{Fase}: \emph{fase regular} vs.\ \emph{liguilla} (\col{competition_stage}).
+\end{itemize}
+
+\paragraph{Criterios de resumen.} Por la asimetría de las distribuciones, las comparaciones usan \textbf{medianas y rango intercuartílico} en lugar de medias. Todas las tablas se generan automáticamente desde el notebook \col{02_exploracion_datos.ipynb}.
+
+% =====================================================================
+\section{Calidad de los datos}\label{sec:calidad}
+% =====================================================================
+\begin{table}[H]\centering\small
+\caption{Verificaciones de calidad.}\label{tab:calidad}
+\begin{tabular}{>{\raggedright\arraybackslash}p{10cm}r}\toprule
+\textbf{Verificación} & \textbf{Resultado}\\\midrule
+Eventos con \col{id} duplicado & 0\\
+Coordenadas fuera de la cancha & 0\\
+Eventos sin \col{location} & 1.0\%\\
+Partidos sin alineación inicial del América & 0\\
+Tiros sin xG & 0\\
+Marcador reconstruido evento a evento = marcador oficial & 100\% de partidos\\
+Partidos con \col{team_match_stats} / con 360 & 221 / 221 de 222\\
+Eventos (muestra) con frame 360 & 89\%\\
+\col{team_match_passing_ratio} idéntico a \col{opp_final_third_pass_ratio} & 100\% de partidos\\
+\bottomrule\end{tabular}\end{table}
+
+\paragraph{Faltantes estructurales, no errores.} El 1\% de eventos sin ubicación corresponde a eventos administrativos (cambios, inicio y fin de periodo, alineación inicial, cambios tácticos, pausas por lesión). La Figura~\ref{fig:nulos} muestra que la mayoría de los ``nulos'' son estructurales: \col{pass_length} solo existe en pases, \col{shot_statsbomb_xg} solo en tiros, \col{obv_total_net} solo en acciones con balón. \textbf{En los flags booleanos, el valor ausente significa \emph{False}}.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{events_nulos_por_tipo}
+\caption{Porcentaje de filas con valor por tipo de evento: cada familia de columnas ``vive'' en un tipo de evento.}\label{fig:nulos}
+\end{figure}
+
+\paragraph{Anomalía en la API: \col{passing_ratio}.} La columna \col{team_match_passing_ratio} coincide exactamente con \col{opp_final_third_pass_ratio} en los 221 partidos (media $\approx0.50$), mientras que la precisión real (\col{successful_passes}/\col{passes}) tiene media 0.83. Usarla como precisión de pase habría producido conclusiones falsas (por ejemplo, correlación negativa entre ``precisión'' y posesión). Se sustituye por la métrica calculada.
+
+\paragraph{Otras observaciones.} \col{attendance} tiene 83\% de nulos (no se usa); \col{jersey_number} llega a 303 (dorsales de fuerzas básicas, irrelevante); \col{period} 3--5 aparece en 0.1\% de los eventos (tiempos extra y penales de liguilla) y debe tratarse aparte en análisis por minuto. El \textbf{360 es parcial}: registra a los jugadores visibles en la toma de TV (mediana de 14 de 22), por lo que describe bien lo que ocurre cerca del balón pero no la estructura completa del equipo.
+
+% =====================================================================
+\section{Análisis univariado: qué contiene cada tabla}\label{sec:univariado}
+% =====================================================================
+\subsection{Partidos (\col{matches})}
+Cada fila es un partido del América con su contexto: fecha, temporada, fase (\col{competition_stage}), rival, estadio, árbitro, entrenadores y marcador. Se derivan \col{is_home}, \col{opponent}, \col{team_manager}, \col{goals_for}, \col{goals_against} y \col{result}.
+
+\input{tables/matches_categoricas}
+\input{tables/matches_numericas}
+
+La localía está balanceada (49.5\% local). Los rivales más frecuentes son Cruz Azul, Toluca y Pachuca (7--8\% cada uno, por los cruces de liguilla). El América anota en mediana 2 goles y recibe 1; el 39\% de los partidos terminan con portería en cero.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{matches_categoricas}
+\caption{Distribución de las variables categóricas de partidos.}
+\end{figure}
+
+\input{tables/resultado_entrenador}
+
+\subsection{Eventos (\col{events})}
+Es la tabla principal: 736,829 eventos de ambos equipos (unos 3,300 por partido) y 162 columnas. La Tabla~\ref{tab:events_tipos} resume sus tipos: 60 flags booleanos, 47 numéricas, 36 categóricas y 6 de coordenadas. El significado de cada columna está en el Apéndice~\ref{app:dic}.
+
+\input{tables/events_tipos}
+
+\subsubsection{Qué tipo de acciones registra}
+\input{tables/events_type}
+Pases (28\%), recepciones (26\%) y conducciones (23\%) son tres cuartas partes de los datos: el fútbol se registra como una cadena \emph{pase $\to$ recepción $\to$ conducción}. Las presiones (9\%) son el evento defensivo más frecuente, por encima de recuperaciones, duelos e intercepciones juntos. Los tiros son solo el 0.8\%: \textbf{el gol es un evento raro}, por lo que las métricas de proceso (xG, OBV, progresión) son indispensables para describir el estilo.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{events_categoricas_generales}
+\caption{Variables categóricas generales de eventos (ambos equipos).}\label{fig:events_cat}
+\end{figure}
+\input{tables/events_cat_generales}
+
+\paragraph{Cómo empiezan las jugadas.} El 51\% de los eventos ocurren en posesiones de juego abierto; el 19\% en posesiones que empezaron con saque de banda, el 13\% con tiro libre, el 7\% con saque de meta y el 4\% con córner. Es decir, \textbf{cerca del 40\% del volumen de juego nace de una reanudación}, y el saque de banda es la más frecuente.
+
+\paragraph{Quién toca el balón.} Las posiciones con más eventos son los centrales (9.1\% cada uno) y los dos mediocampistas defensivos (8.8\% y 8.1\%): el juego pasa por la base de la jugada. \col{location_bucket} confirma que el 45\% de las acciones ocurren en el tercio medio.
+
+\subsubsection{Variables numéricas}
+\input{tables/events_numericas}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{events_numericas_generales}
+\caption{Numéricas generales. El pico en el minuto 45 se debe a que el segundo tiempo arranca en 45, que se suma al tiempo añadido del primero; \col{duration} tiene un pico en 0 (acciones instantáneas); OBV está muy concentrado alrededor de 0 con colas largas.}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Espacio}: \col{location_x} tiene mediana 57 (mitad de la cancha) y $y$ tiene dos picos junto a las bandas (saques de banda y juego por fuera).
+  \item \textbf{OBV}: la mediana es prácticamente 0 y las colas son largas. Casi todas las acciones valen poco y unas pocas (pases clave, tiros, pérdidas en zona propia) concentran el valor.
+  \item \textbf{Posesión}: el número de posesión llega hasta unas 230 por partido.
+\end{itemize}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{events_pases_numericas}
+\caption{Pases: longitud (mediana 17.8 yardas, asimetría a la derecha), ángulo (bimodal: pases hacia adelante y laterales), probabilidad de éxito (mediana 0.94).}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{events_pases_categoricas}
+\caption{Pases: 70\% por el suelo, 66\% con pierna derecha. En \col{pass_type} el nulo significa ``pase regular''; en \col{pass_outcome}, ``pase completo'' (alrededor del 82\%).}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{events_tiros_numericas}
+\caption{Tiros: xG mediano 0.05, con un pico cerca de 0.78 que corresponde a los penales (1.4\% de los tiros). La mayoría se remata entre $x=95$ y $x=115$.}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{events_tiros_categoricas}
+\caption{Tiros: el 10.5\% termina en gol, el 33\% va desviado y el 25\% es bloqueado. El 45.5\% nace de juego abierto, y el resto de tiros libres (16.8\%), córners (16.4\%) y saques de banda (13.4\%). El delantero centro es la posición que más remata (13.3\%).}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{events_otros_categoricas}
+\caption{Otros eventos, cada uno perfilado sobre su propio tipo: duelos, regates, acciones del portero, faltas, recepciones e intercepciones.}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\linewidth]{events_conducciones_numericas}
+\caption{Conducciones: la mayoría son cortas y con avance pequeño en $x$; la conducción funciona como enlace entre pases.}
+\end{figure}
+
+\subsubsection{Flags booleanos}
+\input{tables/events_booleanas}
+Dos flags son especialmente relevantes para el reto. \col{under_pressure} está en el 19.7\% de todos los eventos, y en pases y conducciones permite medir cómo juega el equipo cuando lo presionan. \col{counterpress} aparece en el 2.7\% de los eventos y mide la reacción tras pérdida. StatsBomb además marca \col{is_transition} (26.8\% de eventos) e \col{is_controlled_possession} (71.2\%), que dan una base directa para separar el juego de transición del juego posicional.
+
+\subsubsection{Dónde ocurren las acciones}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{events_mapas_calor}
+\caption{Distribución espacial (\% de eventos por zona). El América acumula sus pases en el tercio medio y por las bandas, presiona sobre todo en el medio campo y en la franja central, recupera en toda la cancha con un foco en su propia área y remata casi siempre desde dentro del área.}\label{fig:mapas}
+\end{figure}
+
+\subsubsection{Posesiones}
+\input{tables/posesiones}
+\begin{figure}[H]\centering
+\includegraphics[width=0.9\linewidth]{posesiones_numericas}
+\caption{Posesiones de ambos equipos. La mediana es de 3 pases; la $x$ inicial tiene picos en la propia área (saques de meta) y en $x=120$ (saques de esquina). El xG es 0 en el 89\% de las posesiones.}
+\end{figure}
+Hay unas 212 posesiones por partido y solo el \textbf{11\% termina en tiro}. La mayoría son cortas: la mediana es de 10 eventos y 9.6 segundos. Esto confirma que la unidad de análisis de estilo tiene que ser la posesión o la secuencia, y no el evento suelto.
+
+\subsection{Métricas por equipo y partido (\col{team_match_stats})}
+Son 216 columnas: 199 métricas numéricas calculadas por StatsBomb para cada equipo en cada partido, organizadas en familias (Apéndice, Tabla~\ref{tab:dic_familias}). Aquí se perfilan las 221 filas del América. Las métricas del rival aparecen con el sufijo \col{_conceded}.
+
+\input{tables/team_numericas}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{team_numericas_clave}
+\caption{Distribución por partido de las métricas clave del América.}\label{fig:team_num}
+\end{figure}
+En mediana, el América genera 1.24 de np xG y concede 0.78, con posesión de 0.55 y PPDA de 10.5. El PPDA tiene cola derecha: hay partidos con PPDA mayor a 25, que indican presión muy baja. El xG de balón parado (\col{sp_xg}) y el de transición (\col{transition_xg}) están inflados en ceros, lo que sugiere que su aporte depende del partido.
+
+\subsection{Métricas por jugador y partido (\col{player_match_stats})}
+Son 175 métricas por jugador (3,458 filas de 92 jugadores del América): producción ofensiva (xG, xA, xGChain), OBV por tipo de acción, pases, presiones, recuperaciones y métricas 360 (pases que rompen líneas, recepciones con espacio).
+\input{tables/player_numericas}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{player_numericas_clave}
+\caption{Métricas por jugador y partido. Los minutos son bimodales (titulares y suplentes). La producción ofensiva está inflada en ceros: el 51\% de las apariciones tiene np xG = 0.}
+\end{figure}
+\input{tables/player_minutos}
+Álvaro Fidalgo es el eje del periodo (184 partidos, unos 16,000 minutos). Por la gran cantidad de ceros y porque todo depende de los minutos, \textbf{las métricas de jugador deben normalizarse por 90 minutos} y filtrarse con un mínimo de minutos.
+
+\subsection{Alineaciones (\col{lineups})}
+Cada fila es un convocado por partido. Trae datos personales (altura, peso, nacionalidad) y columnas anidadas: \col{positions} (posiciones jugadas con minuto de entrada y salida y su razón), \col{formations}, \col{stats} (goles y asistencias) y \col{events} (tarjetas).
+\input{tables/lineups_pos}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{lineups_posiciones}
+\caption{Posiciones del América y razones de entrada y salida. Los dos mediocampistas defensivos son las posiciones más ocupadas (doble pivote).}
+\end{figure}
+El 23\% de los tramos de posición empieza por un \emph{Tactical Shift}, es decir, un jugador que cambia de posición sin salir del campo. Esto indica que los sistemas cambian con frecuencia durante los partidos.
+
+\input{tables/formaciones}
+El 4-2-3-1 es la base del club (111 de 222 partidos). Jardine usó \textbf{nueve formaciones iniciales} distintas, 27 de sus partidos con línea de tres (3-4-3, 3-4-2-1, 3-5-2).
+
+\subsection{StatsBomb 360 (\col{frames360})}
+Cada fila es un jugador visible en el cuadro de un evento: \col{teammate}, \col{actor}, \col{keeper}, \col{location} y el polígono \col{visible_area}.
+\input{tables/frames360}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{frames360_visibles}
+\caption{Jugadores visibles por evento: mediana de 14, con compañeros y rivales equilibrados.}
+\end{figure}
+
+% =====================================================================
+\section{Relaciones entre variables}\label{sec:relaciones}
+% =====================================================================
+\subsection{Eventos: variables categóricas}
+\begin{figure}[H]\centering
+\includegraphics[width=0.49\linewidth]{events_cramers_v}\hfill
+\includegraphics[width=0.49\linewidth]{events_pases_cramers_v}
+\caption{V de Cramér entre variables categóricas de eventos (izquierda) y de pases (derecha).}\label{fig:cramer}
+\end{figure}
+\begin{itemize}
+  \item \col{type} se asocia con \col{under_pressure} ($V=0.54$) y \col{counterpress} ($0.42$): ciertas acciones (recepciones, conducciones, duelos) ocurren bajo presión con mucha más frecuencia.
+  \item \col{position} se asocia con \col{location_bucket} ($0.40$): cada posición ocupa zonas claras, lo que permite estudiar roles espaciales.
+  \item En pases, \col{pass_type} y \col{play_pattern} están muy asociados ($0.78$) porque ambos codifican la reanudación. En el marco analítico conviene usar solo una de las dos.
+  \item \col{pass_height} se asocia con \col{pass_outcome} ($0.34$): los pases altos fallan más.
+\end{itemize}
+
+\subsection{Eventos: variables numéricas}
+\begin{figure}[H]\centering
+\includegraphics[width=0.49\linewidth]{events_pases_correlacion}\hfill
+\includegraphics[width=0.49\linewidth]{events_tiros_correlacion}
+\caption{Correlación de Spearman en pases (izquierda) y tiros (derecha).}\label{fig:corr_events}
+\end{figure}
+\begin{itemize}
+  \item \textbf{Riesgo y progresión}: la probabilidad de éxito de un pase baja cuanto más adelante termina ($\rho=-0.59$ con \col{pass_end_location_x}). Por construcción, \emph{progresar es arriesgar}, lo que abre la pregunta de cuánto riesgo asume cada entrenador.
+  \item Los pases largos duran más ($\rho=0.75$), y la $x$ final del pase depende sobre todo de la inicial ($0.79$).
+  \item En tiros, el xG aumenta con la cercanía a la portería ($\rho=0.67$ con $x$), y el xG de ejecución está muy ligado a la dificultad de atajada ($0.91$).
+\end{itemize}
+
+\subsection{Métricas de equipo}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{team_correlacion_clave}
+\caption{Correlación de Spearman entre métricas clave del América por partido.}\label{fig:team_corr}
+\end{figure}
+La Figura~\ref{fig:team_corr} muestra \textbf{bloques de métricas} que se mueven juntas:
+\begin{itemize}
+  \item \textbf{Dominio con balón}: la posesión se relaciona con las progresiones profundas ($\rho=0.75$), con el field tilt ($0.82$), con la precisión de pase ($0.54$) y con una línea defensiva más alta (\col{defensive_distance}, $0.38$).
+  \item \textbf{Presión}: presiones, contrapresiones, recuperaciones tras presión y agresividad forman un bloque ($\rho$ entre 0.45 y 0.62). La posesión se relaciona \emph{negativamente} con el PPDA ($-0.48$) y con el número de presiones ($-0.49$): quien tiene el balón presiona menos veces, pero con más intensidad relativa.
+  \item \textbf{Altura del bloque}: \col{defensive_distance} está muy ligada al \% de presiones en campo rival ($0.64$).
+  \item \textbf{Transición contra control}: la tasa de posesiones de transición se relaciona negativamente con la posesión ($-0.45$) y con la precisión ($-0.56$).
+  \item \textbf{Balón parado}: el xG de balón parado depende de la calidad del córner ($0.68$ con xG por córner), y el xG concedido depende en buena parte del balón parado rival ($0.59$).
+\end{itemize}
+
+\input{tables/team_top_corr}
+Muchas de las 199 métricas son \textbf{redundantes por construcción} (conteo contra ratio, total contra juego abierto, $\rho\approx1$). Antes de cualquier modelo hay que elegir una sola métrica por familia.
+
+\input{tables/team_corr_gd}
+\paragraph{¿Qué métricas acompañan al resultado?} \textbf{OBV} ($\rho=0.70$) se asocia con la diferencia de goles más que el xG diferencial ($0.54$) o el np xG ($0.52$). OBV mide el valor de \emph{todas} las acciones con balón y no solo de los tiros, así que es un buen candidato para medir el ``dominio'' en la narrativa. La posesión casi no se asocia con el resultado ($\rho=-0.10$).
+
+\subsection{Métricas de jugador}
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\linewidth]{player_correlacion_p90}
+\caption{Correlación de Spearman entre métricas de jugador por 90 minutos (jugadores con 30 minutos o más).}
+\end{figure}
+Por 90 minutos se ven perfiles que no se mezclan. El perfil de \emph{organizador} agrupa pases, toques y progresiones profundas ($\rho$ entre 0.62 y 0.95). El de \emph{presionador} agrupa presiones y acciones defensivas ($0.97$, porque las acciones defensivas incluyen las presiones). El de \emph{finalizador} agrupa np xG y xGChain ($0.47$). Estos perfiles sugieren usar una tipología de roles para analizar el uso de jugadores.
+
+% =====================================================================
+\section{Relación con el contexto}\label{sec:contexto}
+% =====================================================================
+Esta sección cruza las métricas por partido con los contextos que pide el reto. Primero se presentan las métricas derivadas.
+\input{tables/ctx_metricas_nuevas}
+
+\subsection{Tiempo: evolución partido a partido y por torneo}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{contexto_series_tiempo}
+\caption{Métricas del América por partido en orden cronológico. La línea es la media móvil de 8 partidos y el fondo indica el entrenador.}\label{fig:series}
+\end{figure}
+\input{tables/ctx_torneo}
+\begin{itemize}
+  \item \textbf{Precisión de pase}: sube por escalones de un entrenador a otro. Con Solari es de 0.77--0.81, con Ortiz de 0.83 y con Jardine de 0.84--0.87, el máximo del periodo.
+  \item \textbf{PPDA}: se mantiene estable en 8--9 con Solari y Ortiz y \textbf{sube a 10--14 con Jardine}, con picos en la liguilla del Apertura 2024. Almada lo regresa a 9.8.
+  \item \textbf{Salida del portero}: con Almada cae a 0.33 (más salida corta).
+  \item \textbf{Field tilt}: con Jardine tiende a subir (0.61 en el Apertura 2023, 0.68 en el Clausura 2026), pero su xG propio baja (1.34 $\to$ 1.04) y el porcentaje de victorias cae en el Clausura 2026 (37\%).
+\end{itemize}
+En la Figura~\ref{fig:series} se ve un episodio muy marcado alrededor del partido 145: la posesión se desploma y el PPDA se dispara. Corresponde a la liguilla del Apertura 2024 (Sección~\ref{sec:fase}).
+
+\subsection{Entrenador}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{contexto_boxplots_entrenador}
+\caption{Métricas por partido según entrenador. La caja es el rango intercuartílico, la línea la mediana y los puntos son partidos.}\label{fig:box}
+\end{figure}
+\input{tables/ctx_entrenador}
+\begin{itemize}
+  \item La \textbf{posesión no separa a los entrenadores}: las medianas van de 0.53 a 0.56 y los rangos se traslapan casi por completo.
+  \item El \textbf{PPDA sí los separa}. Jardine tiene la mediana más alta (12.2) y la mayor dispersión (IQR 9.6--16.4); Solari y Ortiz presionan de forma más intensa y más constante.
+  \item La \textbf{precisión} crece de Solari a Jardine. Los \textbf{pases progresivos} suben de 26 con Solari a 34--41 con los demás.
+  \item Almada tiene la línea más alta (\col{defensive_distance} 48.7) y la salida más corta del portero, pero también el mayor xG concedido (1.10). Con 9 partidos, estas diferencias son solo indicativas.
+\end{itemize}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth]{contexto_plano_estilo}
+\caption{Plano de estilo por partido. Izquierda: posesión contra PPDA. Derecha: field tilt contra xG concedido. Los triángulos son partidos de liguilla.}\label{fig:plano}
+\end{figure}
+El plano de la Figura~\ref{fig:plano} resume la identidad de cada entrenador. Los partidos de Solari y Ortiz se concentran en una franja de PPDA bajo (presión constante) con posesión variable. Los de Jardine se extienden hacia arriba: \textbf{el mismo equipo presiona mucho en unos partidos y casi nada en otros}, y los triángulos de liguilla se ubican en la zona de baja posesión y PPDA alto.
+
+\subsection{Localía}
+\input{tables/ctx_localia}
+Con Jardine, de local el equipo inclina más la cancha (field tilt 0.66 contra 0.60 de visita), presiona más arriba ($x$ 59.5 contra 55.8) y concede menos xG (0.66 contra 0.90). Con Ortiz se ve un patrón parecido. La localía, entonces, se asocia con \emph{dónde} se juega más que con cuánto balón se tiene.
+
+\subsection{Nivel del rival}
+\input{tables/ctx_rival}
+\input{tables/ctx_rival_resultado}
+\begin{historia}[Lo que se observa]
+Con Jardine, contra rivales de nivel \textbf{Alto} el PPDA sube a 15.2 (contra 11.0--11.4 ante rivales Medio y Bajo), la posesión baja a 0.51 (contra 0.60 ante rivales Bajo), el field tilt baja a 0.56 y el np xG propio cae a 0.93. El xG concedido casi no cambia (0.74--0.83). Con Ortiz y Solari el PPDA no cambia con el nivel del rival (8--9). Visto así, Jardine se \emph{adapta} al rival y Ortiz y Solari mantienen un mismo plan.
+\end{historia}
+
+\subsection{Fase del torneo: regular contra liguilla}\label{sec:fase}
+\input{tables/ctx_fase}
+Jardine dirigió 29 partidos de liguilla. En ellos su PPDA sube de 11.6 a 14.1, la posesión baja de 0.58 a 0.52, los pases progresivos bajan de 36 a 29 y la $x$ de presión cae de 58.6 a 56.6. \textbf{El xG concedido no cambia} (0.80 contra 0.78). En la liguilla del Apertura 2024 (cuartos contra Toluca, semifinal contra Cruz Azul y final contra Monterrey) la posesión fue de 30--49\% y el PPDA de 19--42. Ortiz, en cambio, presionó \emph{más} en liguilla (PPDA 6.9).
+
+\subsection{Estado del marcador}
+\input{tables/ctx_marcador}
+Con todos los entrenadores se repite la misma dinámica: \textbf{cuando va ganando, el América cede el balón} (alrededor del 50\% de los pases del partido) y baja la altura de sus presiones. \textbf{Cuando va perdiendo}, sube la posesión (60--63\%) y adelanta la presión. Con Jardine la reacción es la más marcada: el 53\% de sus presiones son en campo rival cuando pierde, contra 40\% cuando gana. Con Jardine el América pasa el 54\% del tiempo (en eventos) empatado, el 31\% ganando y el 15\% perdiendo.
+
+\subsection{Balón parado}
+\input{tables/ctx_balon_parado}
+Con Jardine, cerca del \textbf{39\% del xG del América viene de reanudaciones}: tiro libre 15.7\%, córner 12.7\% y saque de banda 10.9\%. Su contragolpe aporta poco (2.4\%). Los rivales de Jardine obtienen el 18.4\% de su xG en córners, la proporción más alta entre los entrenadores. Esto apunta a una posible zona vulnerable en defensa de córners. Con Almada el contragolpe sube a 7.7\% del xG.
+
+\subsection{Sustituciones y cambios de sistema}
+\input{tables/ctx_sustituciones}
+\input{tables/ctx_tacticos}
+Todos los entrenadores hacen alrededor de 4.5 cambios por partido, y el primero hacia el minuto 57--62. Las diferencias están en \emph{cómo} intervienen:
+\begin{itemize}
+  \item Jardine hace el \textbf{10\% de sus cambios al medio tiempo} (Ortiz, 4\%).
+  \item Jardine registra \textbf{1.8 cambios tácticos en vivo por partido}, más del doble que Solari y Ortiz (0.8).
+  \item Ortiz y Almada concentran sus cambios cuando van ganando (55\% y 64\%). Los de Jardine se reparten más entre los tres estados del marcador.
+\end{itemize}
+
+% =====================================================================
+\section{La historia que cuentan los datos}\label{sec:historia}
+% =====================================================================
+Juntando las piezas, los datos esbozan un relato. Por ahora es una \textbf{hipótesis}, no una conclusión.
+
+\begin{historia}[Un relato en cinco actos (a validar)]
+\textbf{1. La identidad del club no está en la posesión.} Con los cinco entrenadores el América tiene alrededor del 55\% del balón. Lo que cambia es la \emph{calidad} de esa posesión y la \emph{forma de defender}.
+
+\textbf{2. De Solari a Ortiz: el equipo aprende a progresar.} La precisión sube (0.79 $\to$ 0.83) y los pases progresivos también (26 $\to$ 36), con una presión intensa y constante (PPDA de 8 a 9).
+
+\textbf{3. Jardine: control con balón y presión a la carta.} Tiene la precisión más alta del periodo (0.85) y el PPDA más alto y variable (12.2, IQR 9.6--16.4). Presiona arriba contra rivales débiles y cuando va perdiendo; ante rivales fuertes, en liguilla o con ventaja se repliega y cede el balón, sin conceder más xG. Hace ajustes en vivo (1.8 cambios tácticos por partido, 9 formaciones) y depende del balón parado (39\% de su xG).
+
+\textbf{4. Desgaste o evolución en la etapa de Jardine.} Con los torneos el field tilt sube, pero el xG propio y el porcentaje de victorias bajan (Clausura 2026: 37\%). El dominio territorial ya no se traduce en ocasiones.
+
+\textbf{5. Almada: ¿un giro de estilo?} Sale más corto desde el portero, defiende con la línea más alta y presiona de forma más constante, pero concede más. Con solo 9 partidos es un epílogo, no un capítulo.
+\end{historia}
+
+\subsection{Hipótesis para la fase de análisis}
+\begin{longtable}{p{0.6cm}p{5.6cm}p{4.3cm}p{4.3cm}}
+\caption{Hipótesis derivadas del EDA y cómo contrastarlas. Entre paréntesis se indica el componente del reto al que responden, con la numeración de la convocatoria: 5.1 estilo de juego, 5.2 consistencia y variabilidad, 5.3 uso de jugadores, 5.4 balón parado y 5.5 evidencia cuantitativa.}\label{tab:hipotesis}\\
+\toprule \textbf{H} & \textbf{Hipótesis} & \textbf{Evidencia descriptiva} & \textbf{Cómo contrastarla}\\\midrule\endfirsthead
+\toprule \textbf{H} & \textbf{Hipótesis} & \textbf{Evidencia descriptiva} & \textbf{Cómo contrastarla}\\\midrule\endhead
+\bottomrule\endfoot
+H1 & La posesión no distingue a los entrenadores; la intensidad de la presión sí (5.1 defensa, 5.2). & Posesión mediana de 0.53 a 0.56; PPDA de 8.2 a 12.2 (Tabla~\ref{tab:ctx_coach}). & Modelo mixto de PPDA y posesión por entrenador con efecto aleatorio del rival.\\
+H2 & Jardine presiona de forma selectiva según el rival (5.2 contexto). & PPDA 15.2 contra rivales Alto y 11 contra Medio o Bajo (Tabla~\ref{tab:ctx_rival}). & Interacción entrenador $\times$ nivel del rival, controlando la localía.\\
+H3 & En liguilla, Jardine cambia a un plan reactivo sin conceder más (5.2, 5.1 organización defensiva). & PPDA 14.1 contra 11.6 y posesión 0.52 contra 0.58, con el mismo xG concedido (Tabla~\ref{tab:ctx_fase}). & Comparar secuencias de presión y altura del bloque con 360 entre fases.\\
+H4 & El marcador cambia el plan igual con todos los entrenadores: ganando se cede el balón y perdiendo se presiona arriba. Con Jardine el cambio es más fuerte (5.2 marcador). & Tabla~\ref{tab:ctx_marcador}. & Modelo por posesión con el estado del marcador y el minuto como covariables.\\
+H5 & Jardine construye con más precisión y menos riesgo (5.1 construcción). & Precisión de 0.85, la máxima; el éxito del pase baja cuanto más adelante termina. & Pases progresivos ajustados por la probabilidad de éxito (riesgo asumido).\\
+H6 & El dominio territorial de Jardine dejó de traducirse en ocasiones con el tiempo (5.2 evolución). & Field tilt de 0.61 a 0.68 y np xG de 1.34 a 1.04 (Tabla~\ref{tab:ctx_torneo}). & Tendencia por torneo de xG por posesión en último tercio; perfil de las secuencias.\\
+H7 & El balón parado es un pilar ofensivo con Jardine y un punto débil en córners defensivos (5.4). & 39\% del xG propio de reanudaciones y 18.4\% del xG rival de córners (Tabla~\ref{tab:ctx_bp}). & Mapas de remate con \col{shot_freeze_frame}; xG por córner a favor y en contra.\\
+H8 & Jardine es un entrenador de ajustes en vivo (5.3). & 1.8 cambios tácticos por partido, 10\% de sustituciones al descanso, 9 formaciones. & Comparar métricas antes y después de cada cambio táctico o sustitución.\\
+H9 & La localía cambia dónde juega el equipo, no cuánto balón tiene (5.2). & Con Jardine, field tilt 0.66 contra 0.60 y xG concedido 0.66 contra 0.90 (Tabla~\ref{tab:ctx_localia}). & Mismo modelo que H1 con la localía como efecto.\\
+H10 & OBV mide el dominio mejor que la posesión o el xG (5.5). & $\rho$ con la diferencia de goles: OBV 0.70, xGD 0.54, posesión $-0.10$. & Descomponer OBV por fase (construcción, progresión, finalización, defensa).\\
+\end{longtable}
+
+% =====================================================================
+\section{Implicaciones para el marco analítico}\label{sec:marco}
+% =====================================================================
+El reto exige definir los objetos antes del análisis. Con base en lo observado se proponen las siguientes definiciones preliminares:
+\begin{itemize}
+  \item \textbf{Posesión}: la \col{possession} de StatsBomb (cambia cuando el rival toma el control del balón). Es consistente y está disponible en todos los eventos.
+  \item \textbf{Secuencia ofensiva}: una posesión del América con 3 pases o más (la mediana), o que llega al último tercio.
+  \item \textbf{Construcción}: una posesión que inicia en $x<40$ desde saque de meta, del portero o en juego abierto. La salida corta o larga del portero se toma de \col{gk_long_pass_ratio}.
+  \item \textbf{Transición}: los eventos con \col{is_transition}, validados contra una definición propia: recuperación y llegada al último tercio en 15 segundos o menos.
+  \item \textbf{Fase de presión}: las acciones defensivas del América con $x\geq60$. La intensidad se mide con el PPDA y la reacción tras pérdida con \col{counterpress}.
+  \item \textbf{Contexto}: estado del marcador antes del evento, minuto (tramos de 15), localía, nivel del rival (tercil de puntos por partido) y fase (regular o liguilla).
+  \item \textbf{Métricas}: una por familia (Tabla~\ref{tab:team_top_corr}). Se usan medianas, métricas por 90 minutos y tasas por posesión; OBV mide el dominio y xG la ocasión.
+\end{itemize}
+
+\paragraph{Supuestos explícitos.} (i) El nivel del rival se mide con puntos por partido en toda la temporada, que incluye el propio partido contra el América. (ii) El 360 solo describe a los jugadores visibles. (iii) La ``temporada'' mezcla dos torneos y liguillas, por lo que las comparaciones temporales se hacen por torneo. (iv) El número de eventos se usa como aproximación del tiempo en cada estado del marcador.
+
+\paragraph{Alcance y límites.} El marco describe patrones de equipo a partir de eventos. No observa lo que ocurre sin balón fuera de cámara, instrucciones del entrenador, lesiones ni calendario, y sus comparaciones son asociaciones, no causas.
+
+% =====================================================================
+\section{Limitaciones de este EDA}
+% =====================================================================
+\begin{itemize}
+  \item \textbf{Todo es descriptivo}: no hay pruebas de hipótesis ni intervalos de confianza, y las diferencias no se ajustaron por rival, calendario o plantilla.
+  \item \textbf{Muestras desbalanceadas}: Jardine tiene 129 partidos, Solari 27, Almada 9 y Cervantes 2. Las comparaciones con Almada son indicativas.
+  \item \textbf{Confusión entre entrenador y contexto}: cada entrenador tuvo plantillas y rivales distintos. Con los datos disponibles no se puede separar el efecto del entrenador del de los jugadores.
+  \item \textbf{Definiciones preliminares}: el pase progresivo, el field tilt y el nivel del rival pueden cambiar en el marco analítico final.
+  \item \textbf{360 parcial} y análisis 360 hecho sobre una muestra de 20 partidos.
+\end{itemize}
+
+% =====================================================================
+\section{Siguientes pasos}
+% =====================================================================
+\begin{enumerate}
+  \item Fijar a \textbf{Jardine} como protagonista y usar a Solari, Ortiz y Almada como contraste.
+  \item Formalizar el marco analítico (Sección~\ref{sec:marco}) en un documento propio.
+  \item Construir una \textbf{tabla de posesiones con contexto} (marcador, minuto, localía, rival, fase) como base común de todas las métricas.
+  \item Contrastar H1--H10 con modelos que controlen por rival y localía.
+  \item Profundizar con 360 en presión y organización defensiva, con \col{shot_freeze_frame} en balón parado y con perfiles de rol en el uso de jugadores.
+\end{enumerate}
+
+\appendix
+% =====================================================================
+\section{Diccionario de datos}\label{app:dic}
+% =====================================================================
+\input{tables/dic_eventos}
+\input{tables/dic_familias}
+
+\section{Reproducibilidad}
+\begin{itemize}
+  \item \col{notebooks/01_descarga_datos.ipynb}: descarga reanudable desde la API (requiere \col{.env}).
+  \item \col{notebooks/02_exploracion_datos.ipynb}: todo el EDA. Genera \col{data/processed/eda/*.csv} y \col{reports/figures/eda/*.png}.
+  \item \col{src/eda.py} y \col{src/eda_dictionary.py}: perfilado, gráficas y diccionario.
+  \item \col{reports/eda/make_tables.py}: convierte los CSV en las tablas de este documento. Para compilar: \col{latexmk -pdf eda_report.tex}.
+\end{itemize}
+
+\end{document}

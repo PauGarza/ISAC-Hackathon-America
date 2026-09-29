@@ -1,0 +1,52 @@
+{\scriptsize
+\begin{longtable}{p{4.3cm}p{11.2cm}}
+\caption{Familias de métricas agregadas (\texttt{team\_match\_*} y \texttt{player\_match\_*}).}\label{tab:dic_familias}\\
+\toprule
+\textbf{Familia / prefijo} & \textbf{Significado} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Familia / prefijo} & \textbf{Significado} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+np\_ & Non-penalty: excluye penales (np\_xg, np\_shots, np\_gd...). \\
+op\_ & Open play: solo jugadas en juego abierto (op\_xg, op\_shots, op\_passes...). \\
+sp\_ & Set piece: jugadas a balón parado (sp\_xg, sp\_goals, sp\_shot\_ratio...). \\
+*\_conceded & La misma métrica pero del rival contra el América (np\_xg\_conceded, obv\_conceded...). \\
+xg, xgd & Goles esperados y su diferencia (a favor - en contra). \\
+possession & Proporción del tiempo de posesión del equipo (0-1). \\
+ppda & Pases del rival permitidos por acción defensiva en su propia zona de salida. Más alto = presión menos intensa. \\
+defensive\_distance & Distancia media (yardas) desde la propia portería a la que el equipo hace sus acciones defensivas: altura del bloque. \\
+directness & Qué tan directas son las posesiones (avance vertical / recorrido). \\
+pace\_towards\_goal & Velocidad de avance hacia la portería rival (yardas/segundo). \\
+gk\_long\_pass\_ratio, gk\_pass\_distance & Proporción de pases largos del portero y distancia media: tipo de salida desde atrás. \\
+passing\_ratio & ANOMALÍA: en esta API coincide con opp\_final\_third\_pass\_ratio; no usar como precisión de pase. \\
+successful\_passes / passes & Precisión de pase real (pass\_completion, calculada en el proyecto). \\
+deep\_progressions & Pases, conducciones o regates que entran al último tercio. \\
+deep\_completions & Pases completados a menos de 20 m de la portería rival. \\
+box\_cross\_ratio, crosses\_into\_box & Proporción de pases al área que son centros; centros al área. \\
+pressures, counterpressures & Presiones y contrapresiones (presión dentro de 5 s tras perder el balón). \\
+pressure\_regains, counterpressure\_regains & Recuperaciones dentro de 5 s tras una presión/contrapresión. \\
+fhalf\_* & Métrica restringida a la mitad rival del campo (fhalf\_pressures\_ratio = \% de presiones en campo rival). \\
+f3\_* & Métrica restringida al último tercio. \\
+aggression, aggressive\_actions & Proporción de recepciones del rival que son presionadas, disputadas con entrada o con falta en menos de 2 s (y su conteo). \\
+high\_press\_shots & Tiros generados tras recuperar el balón en campo rival mediante presión. \\
+counter\_attacking\_shots & Tiros en contragolpe. \\
+shots\_in\_clear & Tiros sin defensores entre el tirador y el portero. \\
+transition\_* & Métricas en fase de transición: tasa de posesiones de transición, xG y OBV en transición. \\
+time\_in\_transition / time\_in\_control & Tiempo en transición vs. en posesión controlada. \\
+obv, obv\_pass, obv\_dribble\_carry, obv\_defensive\_action, obv\_shot, obv\_gk & On-Ball Value total y por tipo de acción. \\
+corners, free\_kicks, throw\_ins (+ \_xg, \_shot\_ratio, \_goal\_ratio) & Volumen y peligro generado por cada tipo de balón parado. \\
+aerial\_* & Rating aéreo del equipo y dificultad de los duelos aéreos. \\
+player\_match\_minutes & Minutos jugados por el jugador en el partido. \\
+xa, key\_passes, assists & Asistencias esperadas, pases clave, asistencias. \\
+xgchain / xgbuildup & xG de las posesiones en las que participa el jugador (xgbuildup excluye el tiro y el pase clave). \\
+lbp\_* & Line-breaking passes: pases que rompen líneas (360); \_to\_space\_N = a espacio de N metros. \\
+*\_360 & Métricas calculadas con StatsBomb 360 (pases, recepciones). \\
+ball\_receipts\_in\_space\_N & Recepciones con N metros de espacio libre (360). \\
+defensive\_actions\_above\_expectation & Acciones defensivas por encima de lo esperado dada la responsabilidad defensiva. \\
+gsaa, save\_ratio, np\_psxg & Métricas de portero: goles evitados, \% de atajadas, xG post-disparo enfrentado. \\
+\end{longtable}
+}
