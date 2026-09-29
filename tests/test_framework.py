@@ -67,6 +67,17 @@ def test_temporal_split_no_overlap_and_ordered():
 
 
 @pytest.mark.skipif(not GOLD_READY, reason="Gold no construido")
+def test_official_split_cutoffs():
+    """Entrenamiento = ventana oficial del hackathon; nada posterior al Clausura 2025 entra a train."""
+    from src.pipeline.config import OFFICIAL_END, VAL_END
+    dim = pd.read_parquet(GOLD / "dim_match.parquet")
+    d = dim.set_index("match_id").join(M.temporal_split(dim))
+    assert d[d.split == "train"].match_date.max() <= pd.Timestamp(OFFICIAL_END)
+    assert d[d.split == "val"].match_date.min() > pd.Timestamp(OFFICIAL_END)
+    assert d[d.split == "test"].match_date.min() > pd.Timestamp(VAL_END)
+
+
+@pytest.mark.skipif(not GOLD_READY, reason="Gold no construido")
 def test_inertia_is_lagged():
     mf = pd.read_parquet(GOLD / "match_features.parquet")
     d = M.add_inertia(mf, ["field_tilt"]).sort_values("match_order")

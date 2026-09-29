@@ -57,6 +57,15 @@ def check_silver(silver, played: pd.DataFrame) -> None:
     _check(bool((ps.player_match_minutes.dropna() >= 0).all()), "player_match_stats: minutos no negativos")
 
 
+def check_league(ts: pd.DataFrame, league: pd.DataFrame) -> None:
+    played = league[league.match_status == "available"]
+    _check(ts.match_id.nunique() == played.match_id.nunique(),
+           f"league_team_match_stats cubre los {played.match_id.nunique():,} partidos jugados de la liga")
+    _check(bool((ts.groupby("match_id").size() == 2).all()), "league_team_match_stats: 2 equipos por partido")
+    _check(ts.team_match_pass_completion.between(0.4, 1).all(), "league_team_match_stats: pass_completion en [0.4, 1]")
+    _check(bool((ts.manager != "").mean() > 0.9), "league_team_match_stats: >90 % de filas con entrenador")
+
+
 def check_gold_no_future(dim_match: pd.DataFrame) -> None:
     """Contexto sin leakage: la fuerza del rival solo usa partidos ANTERIORES a la fecha."""
     _check("rival_ppg_prev" in dim_match and "rival_n_prev" in dim_match, "dim_match: fuerza del rival previa presente")

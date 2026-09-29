@@ -33,7 +33,14 @@ MATCH_ENDPOINTS = {
     "player-match-stats": "/api/{v}/matches/{match_id}/player-stats",
     "team-match-stats": "/api/{v}/matches/{match_id}/team-stats",
 }
+# benchmark de liga: para los partidos que NO son del América solo se baja team-match-stats (ligero)
+LEAGUE_ENDPOINTS = {"team-match-stats": MATCH_ENDPOINTS["team-match-stats"]}
 N_WORKERS = 4
+
+# partición oficial: ventana del hackathon (Apertura 2021 – Clausura 2025) = entrenamiento;
+# Apertura 2025 = validación; 2026 en adelante = prueba (incluye el cambio de entrenador a Almada)
+OFFICIAL_END = "2025-06-30"
+VAL_END = "2025-12-31"
 
 
 def get_logger(name: str = "pipeline") -> logging.Logger:

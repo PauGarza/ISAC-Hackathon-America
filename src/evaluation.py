@@ -226,7 +226,7 @@ def threshold_sensitivity(ev_raw: pd.DataFrame) -> pd.DataFrame:
 
 # ------------------------------------------------------------------ supuestos del modelo lineal
 def linear_assumptions(mf: pd.DataFrame, split: pd.Series, targets: list[str]) -> pd.DataFrame:
-    """Diagnóstico de supuestos de la regresión lineal de T1 (OLS con las mismas x, ajustado en train+val):
+    """Diagnóstico de supuestos de la regresión lineal de T1 (OLS con las mismas x, ajustado en la ventana oficial = train):
     - independencia de errores: Durbin-Watson (≈2 sin autocorrelación; datos temporales → riesgo)
     - homocedasticidad: Breusch-Pagan (p < 0.05 → varianza no constante)
     - normalidad de residuos: Jarque-Bera (p < 0.05 → no normal; afecta inferencia, no la predicción)
@@ -236,7 +236,7 @@ def linear_assumptions(mf: pd.DataFrame, split: pd.Series, targets: list[str]) -
     from statsmodels.stats.stattools import durbin_watson, jarque_bera
     from src.modeling import CONTEXT_CAT, CONTEXT_NUM, add_inertia
     d = add_inertia(mf, targets).assign(split=lambda x: x.match_id.map(split))
-    d = d[d.split != "test"]
+    d = d[d.split == "train"]
     rows = []
     for y in targets:
         dd = d.dropna(subset=[y, f"{y}__prev5"])

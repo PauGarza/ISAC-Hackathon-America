@@ -1,11 +1,13 @@
 """MODELADO — formulaciones T1–T7 (supervisadas) y U1–U3 (no supervisadas) sobre las tablas Gold.
 
 Principios (Aprendizaje_supervisado.pdf):
-- Partición TEMPORAL por partido (70/15/15): train / validación / prueba. Nunca aleatoria (datos temporales,
+- Partición TEMPORAL OFICIAL por partido: ventana del hackathon (Ap. 2021–Cl. 2025) = train, Apertura 2025 =
+  validación, 2026 = prueba (incluye el cambio de entrenador). Nunca aleatoria (datos temporales,
   no independientes) y nunca por fila (posesiones/segmentos de un partido quedan juntos) → sin leakage.
 - Todo preprocesamiento (escalado, one-hot, PCA, clustering) vive dentro de un Pipeline de sklearn y se
   ajusta solo con entrenamiento.
-- Hiperparámetros con validación cruzada de ventana creciente (TimeSeriesSplit) sobre train+val.
+- Hiperparámetros con validación cruzada de ventana creciente (TimeSeriesSplit) dentro de train (ventana oficial);
+  la familia de modelo se elige en validación (Apertura 2025) y la prueba (2026) se usa una sola vez.
 - Siempre se compara contra baselines (media histórica, media móvil de 5 partidos, tasa base).
 - Model card por modelo: features, hiperparámetros, fechas de entrenamiento, métricas vs baseline, hash de datos.
 """
@@ -33,10 +35,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
-from src.pipeline.config import GOLD, MODELS, get_logger
+from src.pipeline.config import GOLD, MODELS, OFFICIAL_END, VAL_END, get_logger
 
 log = get_logger("modeling")
-SPLIT = (0.70, 0.15)
+
 RNG = 42
 
 # ---------------------------------------------------------------- variables
@@ -84,13 +86,16 @@ TASKS = pd.DataFrame([
 
 
 # ---------------------------------------------------------------- partición y utilidades
+def split_by_date(dates: pd.Series) -> np.ndarray:
+    """Partición oficial por fecha: ventana del hackathon (≤ OFFICIAL_END) = train; Apertura 2025 = val; 2026 = test."""
+    d = pd.to_datetime(dates)
+    return np.select([d <= pd.Timestamp(OFFICIAL_END), d <= pd.Timestamp(VAL_END)], ["train", "val"], "test")
+
+
 def temporal_split(dim: pd.DataFrame) -> pd.Series:
-    """match_id -> 'train' | 'val' | 'test' según orden cronológico."""
+    """match_id -> 'train' | 'val' | 'test' con los cortes oficiales (src/pipeline/config.py)."""
     d = dim.sort_values("match_order")
-    n = len(d)
-    a, b = int(n * SPLIT[0]), int(n * (SPLIT[0] + SPLIT[1]))
-    lab = np.array(["train"] * a + ["val"] * (b - a) + ["test"] * (n - b))
-    return pd.Series(lab, index=d.match_id.values, name="split")
+    return pd.Series(split_by_date(d.match_date), index=d.match_id.values, name="split")
 
 
 def data_hash(df: pd.DataFrame) -> str:
@@ -171,19 +176,24 @@ def task_context(mf: pd.DataFrame, split: pd.Series, targets: list[str], task="T
         num = CONTEXT_NUM + [f"{y_col}__prev5"]
         d = mf.dropna(subset=[y_col]).sort_values("match_order")
         d["fase"] = d.fase.astype(str)
-        tv, te = d[d.split != "test"], d[d.split == "test"]
+        tv, va, te = d[d.split == "train"], d[d.split == "val"], d[d.split == "test"]
+        # hiperparámetros: CV temporal dentro de la ventana oficial; familia de modelo: la mejor en validación
         fitted = _fit_select(tv[num + CONTEXT_CAT], tv[y_col], num, CONTEXT_CAT, REG_CANDIDATES, "neg_mean_absolute_error")
         rows = []
-        tr_mean = d[d.split == "train"][y_col].mean()
-        for part, dd in [("val", d[d.split == "val"]), ("test", te)]:
+        tr_mean = tv[y_col].mean()
+        for part, dd in [("val", va), ("test", te)]:
             rows.append({"modelo": "Baseline: media histórica (train)", "conjunto": part, **reg_metrics(dd[y_col], np.full(len(dd), tr_mean))})
             rows.append({"modelo": "Baseline: media móvil 5", "conjunto": part,
                          **reg_metrics(dd[y_col], dd[f"{y_col}__prev5"].fillna(tr_mean))})
+        val_mae = {}
         for name, gs in fitted.items():
-            rows.append({"modelo": name, "conjunto": "cv(train+val)", "MAE": -gs.best_score_, "RMSE": np.nan, "R2": np.nan, "n": len(tv)})
+            rows.append({"modelo": name, "conjunto": "cv(train)", "MAE": -gs.best_score_, "RMSE": np.nan, "R2": np.nan, "n": len(tv)})
+            vm = reg_metrics(va[y_col], gs.predict(va[num + CONTEXT_CAT]))
+            val_mae[name] = vm["MAE"]
+            rows.append({"modelo": name, "conjunto": "val", **vm})
             rows.append({"modelo": name, "conjunto": "test", **reg_metrics(te[y_col], gs.predict(te[num + CONTEXT_CAT]))})
         tab = pd.DataFrame(rows)
-        best = max(fitted, key=lambda k: fitted[k].best_score_)
+        best = min(val_mae, key=val_mae.get)
         out[y_col] = TaskResult(task, y_col, tab, best, fitted[best].best_estimator_,
                                 {"features": num + CONTEXT_CAT, "params": fitted[best].best_params_,
                                  "coef": _linear_coefs(fitted["Ridge"].best_estimator_)})
@@ -211,7 +221,7 @@ def task_segments(seg: pd.DataFrame, split: pd.Series) -> dict[str, TaskResult]:
     out = {}
     for y_col in SEG_TARGETS:
         d = seg.dropna(subset=[y_col])
-        tv, te = d[d.split != "test"], d[d.split == "test"]
+        tv, te = d[d.split == "train"], d[d.split == "test"]
         cands = {k: REG_CANDIDATES[k] for k in ["Ridge", "Árbol"]}
         fitted = _fit_select(tv[num + cat], tv[y_col], num, cat, cands, "neg_mean_absolute_error")
         base = tv[y_col].mean()
@@ -231,7 +241,7 @@ def task_dominance(mf: pd.DataFrame, split: pd.Series, targets=("obv_net", "np_x
     out = {}
     for y_col in targets:
         dd = d.dropna(subset=[y_col])
-        tv, te = dd[dd.split != "test"], dd[dd.split == "test"]
+        tv, te = dd[dd.split == "train"], dd[dd.split == "test"]
         cands = {"LASSO": REG_CANDIDATES["LASSO"], "Árbol": REG_CANDIDATES["Árbol"], "KNN": REG_CANDIDATES["KNN"]}
         fitted = _fit_select(tv[PROCESS_X], tv[y_col], PROCESS_X, [], cands, "neg_mean_absolute_error")
         rows = [{"modelo": "Baseline: media", "conjunto": "test", **reg_metrics(te[y_col], np.full(len(te), tv[y_col].mean()))}]
@@ -255,7 +265,7 @@ def task_dominance(mf: pd.DataFrame, split: pd.Series, targets=("obv_net", "np_x
 def task_result(mf: pd.DataFrame, split: pd.Series) -> TaskResult:
     """T3b: G/E/P con métricas de proceso (softmax multinomial vs árbol)."""
     d = mf.assign(split=mf.match_id.map(split)).dropna(subset=["result"]).sort_values("match_order")
-    tv, te = d[d.split != "test"], d[d.split == "test"]
+    tv, te = d[d.split == "train"], d[d.split == "test"]
     cands = {"Logística softmax": (LogisticRegression(max_iter=5000, class_weight="balanced"), {"m__C": [0.01, 0.1, 1]}),
              "Árbol": CLF_CANDIDATES["Árbol"]}
     fitted = _fit_select(tv[PROCESS_X], tv.result, PROCESS_X, [], cands, "f1_macro")
@@ -293,7 +303,7 @@ def task_possession(poss: pd.DataFrame, dim: pd.DataFrame, split: pd.Series) -> 
                  minute_bin=p.minute_bin.astype(str), regain=p.regain.astype(str),
                  start_type_c=p.start_type.where(p.start_type.isin(["Pass", "Ball Recovery", "Carry", "Interception", "Duel", "Ball Receipt*"]), "Otro"))
     p = p.dropna(subset=["start_x"]).sort_values(["match_order", "possession"])
-    tv, te = p[p.split != "test"], p[p.split == "test"]
+    tv, te = p[p.split == "train"], p[p.split == "test"]
     fitted = _fit_select(tv[POSS_NUM + POSS_CAT], tv.shot, POSS_NUM, POSS_CAT, CLF_CANDIDATES, "roc_auc")
     tab = _binary_eval(fitted, te[POSS_NUM + POSS_CAT], te.shot, tv.shot.mean())
     return TaskResult("T4", "shot", tab, "Logística", fitted["Logística"].best_estimator_,
@@ -309,7 +319,7 @@ def task_set_pieces(sp: pd.DataFrame, split: pd.Series, own: bool = True) -> Tas
     s = sp[sp.is_team == own].assign(split=lambda d: d.match_id.map(split), pass_height=lambda d: d.pass_height.fillna("NA"))
     s = s.merge(pd.Series(split).rename("s2"), left_on="match_id", right_index=True)
     s = s.assign(order=s.match_id.map(pd.Series(range(len(split)), index=split.index))).sort_values(["order", "possession"])
-    tv, te = s[s.split != "test"], s[s.split == "test"]
+    tv, te = s[s.split == "train"], s[s.split == "test"]
     cands = {k: CLF_CANDIDATES[k] for k in ["Logística", "Árbol"]}
     fitted = _fit_select(tv[SP_CAT], tv.shot, [], SP_CAT, cands, "roc_auc")
     tab = _binary_eval(fitted, te[SP_CAT], te.shot, tv.shot.mean())
@@ -330,7 +340,7 @@ def task_substitutions(subs: pd.DataFrame, dim: pd.DataFrame, split: pd.Series) 
     out = {}
     for y_col in SUB_TARGETS:
         d = s.dropna(subset=[y_col])
-        tv, te = d[d.split != "test"], d[d.split == "test"]
+        tv, te = d[d.split == "train"], d[d.split == "test"]
         cands = {k: REG_CANDIDATES[k] for k in ["Ridge", "Árbol"]}
         fitted = _fit_select(tv[num + cat], tv[y_col], num, cat, cands, "neg_mean_absolute_error")
         rows = [{"modelo": "Baseline: sin cambio (Δ=0)", "conjunto": "test", **reg_metrics(te[y_col], np.zeros(len(te)))},
@@ -439,7 +449,7 @@ def train_all() -> dict:
     guarda igual pero marcado (beats_baseline=false) y la ficha debe preferir el baseline en ese caso."""
     g = load_gold()
     mf, split, dim = g["match_features"], g["split"], g["dim_match"]
-    fit_ids = split[split != "test"].index
+    fit_ids = split[split == "train"].index
     dates = [str(dim.match_date.min().date()), str(dim[dim.match_id.isin(fit_ids)].match_date.max().date())]
     out = {}
 

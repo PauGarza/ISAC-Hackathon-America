@@ -19,7 +19,8 @@ import requests
 
 from src.sb_client import get_creds
 
-from .config import BRONZE, COMPETITION_ID, MANIFEST, MATCH_ENDPOINTS, N_WORKERS, SEASONS, TEAM, get_logger
+from .config import (BRONZE, COMPETITION_ID, LEAGUE_ENDPOINTS, MANIFEST, MATCH_ENDPOINTS, N_WORKERS, SEASONS,
+                     TEAM, get_logger)
 
 HOST = "https://data.statsbombservices.com"
 log = get_logger("bronze")
@@ -109,7 +110,9 @@ def _write_manifest(new: list[dict]):
     m.to_parquet(MANIFEST, index=False)
 
 
-def run(seasons: dict = SEASONS, match_ids: list[int] | None = None, force: bool = False) -> pd.DataFrame:
+def run(seasons: dict = SEASONS, match_ids: list[int] | None = None, force: bool = False,
+        league: bool = True) -> pd.DataFrame:
+    """Partidos del América: todos los endpoints. Resto de la liga (league=True): solo team-match-stats (benchmark)."""
     creds = get_creds()
     auth = requests.auth.HTTPBasicAuth(creds["user"], creds["passwd"])
     v = _versions(auth)
@@ -125,16 +128,17 @@ def run(seasons: dict = SEASONS, match_ids: list[int] | None = None, force: bool
         new.append(_fetch("matches", f"{COMPETITION_ID}_{sid}", url, v["matches"], sid, auth))
     _write_manifest(new)
 
-    # 2) partidos del América jugados → endpoints por partido (incremental)
+    # 2) partidos jugados → endpoints por partido (incremental)
     tasks = []
     for sid in seasons:
         for m in read_bronze("matches", f"{COMPETITION_ID}_{sid}"):
             teams = (m["home_team"]["home_team_name"], m["away_team"]["away_team_name"])
-            if TEAM not in teams or m.get("match_status") != "available":
+            if m.get("match_status") != "available":
                 continue
+            endpoints = MATCH_ENDPOINTS if TEAM in teams else (LEAGUE_ENDPOINTS if league else {})
             if match_ids and m["match_id"] not in match_ids:
                 continue
-            for ep, tpl in MATCH_ENDPOINTS.items():
+            for ep, tpl in endpoints.items():
                 if (ep, str(m["match_id"])) in done:
                     continue
                 ver = v.get(ep, v.get(ep.replace("-match-stats", "-match-stats")))

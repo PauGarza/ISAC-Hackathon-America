@@ -52,6 +52,46 @@ def build_dim_match() -> pd.DataFrame:
     return m[keep]
 
 
+# ------------------------------------------------------------------ benchmark de liga
+def _points_long(league: pd.DataFrame) -> pd.DataFrame:
+    lg = league[league.match_status == "available"]
+    return pd.concat([
+        pd.DataFrame({"date": lg.match_date, "team": lg.home_team,
+                      "pts": np.select([lg.home_score > lg.away_score, lg.home_score == lg.away_score], [3, 1], 0)}),
+        pd.DataFrame({"date": lg.match_date, "team": lg.away_team,
+                      "pts": np.select([lg.away_score > lg.home_score, lg.home_score == lg.away_score], [3, 1], 0)}),
+    ]).sort_values("date")
+
+
+def build_team_match_league() -> pd.DataFrame:
+    """Equipo × partido de TODA la liga con contexto sin leakage (fuerza del rival previa) y partición oficial."""
+    from src.modeling import split_by_date
+    ts = pd.read_parquet(SILVER / "league_team_match_stats.parquet")
+    league = pd.read_parquet(SILVER / "league_matches.parquet")
+    long = _points_long(league)
+    w = fw.A["rival_strength_window"]
+    by_team = {t: g for t, g in long.groupby("team")}
+    ppg = []
+    for opp, date in zip(ts.opponent, ts.match_date):
+        prev = by_team.get(opp)
+        prev = prev[prev.date < date].tail(w) if prev is not None else prev
+        ppg.append(prev.pts.mean() if prev is not None and len(prev) else np.nan)
+    ts["rival_ppg_prev"] = ppg
+    ts["split"] = split_by_date(ts.match_date)
+    ts["coach_team"] = ts.manager + " · " + ts.team_name
+    return ts.sort_values(["match_date", "match_id", "team_name"]).reset_index(drop=True)
+
+
+def build_dim_coach(tml: pd.DataFrame) -> pd.DataFrame:
+    """Entrenador × equipo (periodo): partidos totales y en la ventana oficial, fechas y torneos."""
+    d = tml[tml.manager != ""]
+    return (d.groupby(["manager", "team_name"])
+            .agg(partidos=("match_id", "size"), partidos_train=("split", lambda s: (s == "train").sum()),
+                 desde=("match_date", "min"), hasta=("match_date", "max"),
+                 torneos=("torneo", lambda s: ", ".join(dict.fromkeys(s))))
+            .reset_index().sort_values("partidos", ascending=False))
+
+
 # ------------------------------------------------------------------ jugadores
 def build_player_match(ev: pd.DataFrame, dim: pd.DataFrame) -> pd.DataFrame:
     ps = pd.read_parquet(SILVER / "player_match_stats.parquet")
@@ -191,6 +231,11 @@ def run() -> None:
     quality.check_gold_no_future(dim)
     dim.to_parquet(GOLD / "dim_match.parquet", index=False)
     log.info(f"Gold dim_match: {len(dim)} partidos")
+
+    tml = build_team_match_league()
+    tml.to_parquet(GOLD / "fct_team_match_league.parquet", index=False)
+    build_dim_coach(tml).to_parquet(GOLD / "dim_coach.parquet", index=False)
+    log.info(f"Gold fct_team_match_league: {len(tml):,} filas · {tml.manager.nunique()} entrenadores")
 
     ev = load_events()
     ev = ev[ev.match_id.isin(dim.match_id)]

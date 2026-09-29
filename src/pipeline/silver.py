@@ -210,8 +210,35 @@ def run() -> None:
         ts["team_match_pass_completion"] = ts.team_match_successful_passes / ts.team_match_passes
         to_parquet_safe(ts, SILVER / "team_match_stats.parquet")
 
+        league_ts = build_league_team_stats(league, manifest, creds)
+        to_parquet_safe(league_ts, SILVER / "league_team_match_stats.parquet")
+        log.info(f"Silver league_team_match_stats: {len(league_ts):,} filas equipo-partido "
+                 f"({league_ts.match_id.nunique():,} partidos)")
+
     quality.check_silver(SILVER, played)
+    quality.check_league(league_ts, league)
     log.info("Silver listo y validado")
+
+
+def build_league_team_stats(league: pd.DataFrame, manifest: pd.DataFrame, creds) -> pd.DataFrame:
+    """Benchmark de liga: team-match-stats de TODOS los partidos jugados, con contexto (equipo, rival, localía,
+    entrenador). Es la base del perfil de entrenador frente a la Liga MX."""
+    have = set(manifest[(manifest.endpoint == "team-match-stats") & (manifest.status == 200)].key.astype(str))
+    lg = league[(league.match_status == "available") & league.match_id.astype(str).isin(have)]
+    ts = pd.concat([_stats("team", int(m), creds) for m in lg.match_id], ignore_index=True)
+    ts["team_match_pass_completion"] = ts.team_match_successful_passes / ts.team_match_passes
+    ctx = lg[["match_id", "match_date", "season_id", "competition_stage", "home_team", "away_team",
+              "home_managers", "away_managers", "home_score", "away_score"]]
+    ts = ts.merge(ctx, on="match_id", how="left")
+    home = ts.team_name == ts.home_team
+    ts["is_home"] = home
+    ts["opponent"] = ts.away_team.where(home, ts.home_team)
+    ts["manager"] = ts.home_managers.where(home, ts.away_managers).fillna("").astype(str).str.strip()
+    ts["goals_for"] = ts.home_score.where(home, ts.away_score)
+    ts["goals_against"] = ts.away_score.where(home, ts.home_score)
+    ts["torneo"] = (np.where(ts.match_date.dt.month >= 7, "Apertura ", "Clausura ") + ts.match_date.dt.year.astype(str))
+    ts["fase"] = np.where(ts.competition_stage.isin(["Apertura", "Clausura", "Regular Season"]), "Fase regular", "Liguilla")
+    return ts.drop(columns=["home_team", "away_team", "home_managers", "away_managers", "home_score", "away_score"])
 
 
 def load_events(columns=None) -> pd.DataFrame:
