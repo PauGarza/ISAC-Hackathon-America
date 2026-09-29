@@ -1,6 +1,6 @@
 {
   "name": "T3_np_xg_diff",
-  "created_at": "2026-09-29T20:39:57.239622+00:00",
+  "created_at": "2026-09-29T21:52:32.196319+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T3",
   "target": "np_xg_diff",
@@ -34,10 +34,10 @@
   "params": null,
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media",
-  "test_MAE": 0.5477817125496556,
-  "baseline_MAE": 0.6548440368038799,
+  "test_MAE": 0.5806250471444988,
+  "baseline_MAE": 0.7053044926288778,
   "beats_baseline": true
 }

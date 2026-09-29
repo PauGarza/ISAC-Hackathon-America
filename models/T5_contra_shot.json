@@ -1,18 +1,18 @@
 {
   "name": "T5_contra_shot",
-  "created_at": "2026-09-29T20:40:14.514331+00:00",
+  "created_at": "2026-09-29T21:52:47.339020+00:00",
   "data_hash": "224a7bb0e43ca25a",
   "task": "T5_contra",
   "target": "shot",
   "model": "Logística",
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
-  "test_ROC_AUC": 0.7139867027825658,
+  "test_ROC_AUC": 0.7096762563991637,
   "baseline_ROC_AUC": 0.5,
-  "test_Brier": 0.2029170336519929,
-  "baseline_Brier": 0.12754487466159137,
+  "test_Brier": 0.20502023924035792,
+  "baseline_Brier": 0.13453291552975638,
   "beats_baseline": true,
   "calibrated": false
 }

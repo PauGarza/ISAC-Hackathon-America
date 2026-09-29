@@ -1,6 +1,6 @@
 {
   "name": "T1_prog_passes_per100",
-  "created_at": "2026-09-29T20:39:47.170160+00:00",
+  "created_at": "2026-09-29T21:52:22.464605+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T1",
   "target": "prog_passes_per100",
@@ -14,14 +14,14 @@
     "fase"
   ],
   "params": {
-    "m__n_neighbors": 10
+    "m__n_neighbors": 20
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 1.541062814329698,
-  "baseline_MAE": 1.3654742480835371,
+  "test_MAE": 1.4183494331760709,
+  "baseline_MAE": 1.3602999565889142,
   "beats_baseline": false
 }

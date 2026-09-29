@@ -1,10 +1,10 @@
 {
   "name": "T7_boost_mean",
-  "created_at": "2026-09-29T20:39:50.551729+00:00",
+  "created_at": "2026-09-29T21:52:25.567201+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T7",
   "target": "boost_mean",
-  "model": "LASSO",
+  "model": "Ridge",
   "features": [
     "rival_ppg_prev",
     "rest_days",
@@ -14,14 +14,14 @@
     "fase"
   ],
   "params": {
-    "m__alpha": 0.05
+    "m__alpha": 100
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
-  "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 0.10123518984358314,
-  "baseline_MAE": 0.10118121600973573,
-  "beats_baseline": false
+  "baseline": "Baseline: media móvil 5",
+  "test_MAE": 0.09301753750523371,
+  "baseline_MAE": 0.09974900939673395,
+  "beats_baseline": true
 }

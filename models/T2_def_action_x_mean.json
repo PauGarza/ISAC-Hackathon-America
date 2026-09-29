@@ -1,6 +1,6 @@
 {
   "name": "T2_def_action_x_mean",
-  "created_at": "2026-09-29T20:39:53.392308+00:00",
+  "created_at": "2026-09-29T21:52:29.009745+00:00",
   "data_hash": "6db1f88d21b7c6e8",
   "task": "T2",
   "target": "def_action_x_mean",
@@ -15,10 +15,10 @@
   "params": null,
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media",
-  "test_MAE": 9.188681989836017,
-  "baseline_MAE": 9.623687673316184,
+  "test_MAE": 9.014115166057735,
+  "baseline_MAE": 9.305258284907937,
   "beats_baseline": true
 }

@@ -1,10 +1,10 @@
 {
   "name": "T1_high_press_pct",
-  "created_at": "2026-09-29T20:39:47.145885+00:00",
+  "created_at": "2026-09-29T21:52:22.404834+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T1",
   "target": "high_press_pct",
-  "model": "Ridge",
+  "model": "Árbol",
   "features": [
     "rival_ppg_prev",
     "rest_days",
@@ -14,14 +14,15 @@
     "fase"
   ],
   "params": {
-    "m__alpha": 100
+    "m__max_depth": 2,
+    "m__min_samples_leaf": 20
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 6.473469810424948,
-  "baseline_MAE": 6.788894325795991,
-  "beats_baseline": true
+  "test_MAE": 7.2449163491053685,
+  "baseline_MAE": 7.111749304099669,
+  "beats_baseline": false
 }

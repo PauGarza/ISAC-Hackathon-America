@@ -1,10 +1,10 @@
 {
   "name": "T1_ppda",
-  "created_at": "2026-09-29T20:39:47.119029+00:00",
+  "created_at": "2026-09-29T21:52:22.347177+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T1",
   "target": "ppda",
-  "model": "KNN",
+  "model": "Ridge",
   "features": [
     "rival_ppg_prev",
     "rest_days",
@@ -14,14 +14,14 @@
     "fase"
   ],
   "params": {
-    "m__n_neighbors": 10
+    "m__alpha": 100
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 4.663410690764812,
-  "baseline_MAE": 4.754002685013125,
-  "beats_baseline": true
+  "test_MAE": 5.248192578255915,
+  "baseline_MAE": 4.917710891901825,
+  "beats_baseline": false
 }

@@ -1,6 +1,6 @@
 {
   "name": "T7_gini_touches",
-  "created_at": "2026-09-29T20:39:50.512481+00:00",
+  "created_at": "2026-09-29T21:52:25.525960+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T7",
   "target": "gini_touches",
@@ -18,10 +18,10 @@
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 0.036488516725526526,
-  "baseline_MAE": 0.0331995057685163,
+  "test_MAE": 0.029882812059612136,
+  "baseline_MAE": 0.02969515977304674,
   "beats_baseline": false
 }

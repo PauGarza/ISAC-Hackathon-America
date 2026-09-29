@@ -1,10 +1,10 @@
 {
   "name": "T1_field_tilt",
-  "created_at": "2026-09-29T20:39:47.105785+00:00",
+  "created_at": "2026-09-29T21:52:22.322664+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T1",
   "target": "field_tilt",
-  "model": "Ridge",
+  "model": "KNN",
   "features": [
     "rival_ppg_prev",
     "rest_days",
@@ -14,14 +14,14 @@
     "fase"
   ],
   "params": {
-    "m__alpha": 100
+    "m__n_neighbors": 20
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 12.537685884233488,
-  "baseline_MAE": 13.436965203475589,
+  "test_MAE": 13.318384772652385,
+  "baseline_MAE": 14.244333223587798,
   "beats_baseline": true
 }

@@ -1,6 +1,6 @@
 {
   "name": "T6_d_field_tilt",
-  "created_at": "2026-09-29T20:39:58.744357+00:00",
+  "created_at": "2026-09-29T21:52:33.733816+00:00",
   "data_hash": "de6585e2e1526aed",
   "task": "T6",
   "target": "d_field_tilt",
@@ -9,10 +9,10 @@
   "params": null,
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: Δ medio",
-  "test_MAE": 22.339804280717438,
-  "baseline_MAE": 21.99403526526814,
+  "test_MAE": 22.966500748656696,
+  "baseline_MAE": 22.809875843157712,
   "beats_baseline": false
 }

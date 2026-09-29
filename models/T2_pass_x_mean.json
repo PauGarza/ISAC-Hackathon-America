@@ -1,6 +1,6 @@
 {
   "name": "T2_pass_x_mean",
-  "created_at": "2026-09-29T20:39:53.378296+00:00",
+  "created_at": "2026-09-29T21:52:28.988011+00:00",
   "data_hash": "6db1f88d21b7c6e8",
   "task": "T2",
   "target": "pass_x_mean",
@@ -15,10 +15,10 @@
   "params": null,
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media",
-  "test_MAE": 7.898175918558406,
-  "baseline_MAE": 8.455018241659433,
+  "test_MAE": 7.676660835518169,
+  "baseline_MAE": 8.10820334167598,
   "beats_baseline": true
 }

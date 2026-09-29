@@ -1,10 +1,10 @@
 {
   "name": "T1_transition_poss_pct",
-  "created_at": "2026-09-29T20:39:47.210204+00:00",
+  "created_at": "2026-09-29T21:52:22.517673+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T1",
   "target": "transition_poss_pct",
-  "model": "KNN",
+  "model": "Ridge",
   "features": [
     "rival_ppg_prev",
     "rest_days",
@@ -14,14 +14,14 @@
     "fase"
   ],
   "params": {
-    "m__n_neighbors": 10
+    "m__alpha": 100
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 4.985588262139089,
-  "baseline_MAE": 4.008793233824816,
+  "test_MAE": 4.0339808724639346,
+  "baseline_MAE": 3.7112023430920122,
   "beats_baseline": false
 }

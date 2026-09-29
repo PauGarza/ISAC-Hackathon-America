@@ -1,10 +1,10 @@
 {
   "name": "T1_opp_np_xg_per100poss",
-  "created_at": "2026-09-29T20:39:47.235412+00:00",
+  "created_at": "2026-09-29T21:52:22.548535+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T1",
   "target": "opp_np_xg_per100poss",
-  "model": "LASSO",
+  "model": "KNN",
   "features": [
     "rival_ppg_prev",
     "rest_days",
@@ -14,14 +14,14 @@
     "fase"
   ],
   "params": {
-    "m__alpha": 0.5
+    "m__n_neighbors": 20
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 0.44102552242352194,
-  "baseline_MAE": 0.44064231728171593,
-  "beats_baseline": false
+  "test_MAE": 0.46394756641970203,
+  "baseline_MAE": 0.47903475868607615,
+  "beats_baseline": true
 }

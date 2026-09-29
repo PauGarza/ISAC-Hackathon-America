@@ -1,6 +1,6 @@
 {
   "name": "T3b_result",
-  "created_at": "2026-09-29T20:39:59.247845+00:00",
+  "created_at": "2026-09-29T21:52:34.154976+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T3b",
   "target": "result",
@@ -33,9 +33,9 @@
   ],
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
-  "test_F1_macro": 0.2888888888888889,
-  "baseline_F1_macro": 0.21333333333333335,
+  "test_F1_macro": 0.3102453102453102,
+  "baseline_F1_macro": 0.21138211382113822,
   "beats_baseline": true
 }

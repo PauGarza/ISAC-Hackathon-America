@@ -1,6 +1,6 @@
 {
   "name": "T6_d_obv_net",
-  "created_at": "2026-09-29T20:39:58.719997+00:00",
+  "created_at": "2026-09-29T21:52:33.718047+00:00",
   "data_hash": "de6585e2e1526aed",
   "task": "T6",
   "target": "d_obv_net",
@@ -9,10 +9,10 @@
   "params": null,
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: Δ medio",
-  "test_MAE": 0.6853882884676813,
-  "baseline_MAE": 0.6751313381054657,
-  "beats_baseline": false
+  "test_MAE": 0.7041671266835207,
+  "baseline_MAE": 0.7122086881645018,
+  "beats_baseline": true
 }

@@ -1,10 +1,10 @@
 {
   "name": "T7_gini_prog",
-  "created_at": "2026-09-29T20:39:50.525430+00:00",
+  "created_at": "2026-09-29T21:52:25.541246+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T7",
   "target": "gini_prog",
-  "model": "LASSO",
+  "model": "Árbol",
   "features": [
     "rival_ppg_prev",
     "rest_days",
@@ -14,14 +14,15 @@
     "fase"
   ],
   "params": {
-    "m__alpha": 0.05
+    "m__max_depth": 3,
+    "m__min_samples_leaf": 20
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
-  "baseline": "Baseline: media móvil 5",
-  "test_MAE": 0.06414940891990077,
-  "baseline_MAE": 0.06330324238632325,
-  "beats_baseline": false
+  "baseline": "Baseline: media histórica (train)",
+  "test_MAE": 0.0646690668323109,
+  "baseline_MAE": 0.0654285648081404,
+  "beats_baseline": true
 }

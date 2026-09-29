@@ -1,10 +1,10 @@
 {
   "name": "T1_np_xg_per100poss",
-  "created_at": "2026-09-29T20:39:47.222703+00:00",
+  "created_at": "2026-09-29T21:52:22.531163+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T1",
   "target": "np_xg_per100poss",
-  "model": "Árbol",
+  "model": "Ridge",
   "features": [
     "rival_ppg_prev",
     "rest_days",
@@ -14,15 +14,14 @@
     "fase"
   ],
   "params": {
-    "m__max_depth": 3,
-    "m__min_samples_leaf": 20
+    "m__alpha": 100
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media móvil 5",
-  "test_MAE": 0.5795193085775754,
-  "baseline_MAE": 0.4414338357479173,
+  "test_MAE": 0.5457541393657122,
+  "baseline_MAE": 0.4601882733274352,
   "beats_baseline": false
 }

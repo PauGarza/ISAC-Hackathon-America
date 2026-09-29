@@ -1,6 +1,6 @@
 {
   "name": "T6_d_np_xg_diff",
-  "created_at": "2026-09-29T20:39:58.765218+00:00",
+  "created_at": "2026-09-29T21:52:33.750422+00:00",
   "data_hash": "de6585e2e1526aed",
   "task": "T6",
   "target": "d_np_xg_diff",
@@ -9,10 +9,10 @@
   "params": null,
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: Δ medio",
-  "test_MAE": 0.3025282026718173,
-  "baseline_MAE": 0.3006162196729169,
+  "test_MAE": 0.3215348539576504,
+  "baseline_MAE": 0.31676744232575427,
   "beats_baseline": false
 }

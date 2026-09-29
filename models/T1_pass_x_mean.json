@@ -1,10 +1,10 @@
 {
   "name": "T1_pass_x_mean",
-  "created_at": "2026-09-29T20:39:47.157889+00:00",
+  "created_at": "2026-09-29T21:52:22.425286+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T1",
   "target": "pass_x_mean",
-  "model": "LASSO",
+  "model": "Ridge",
   "features": [
     "rival_ppg_prev",
     "rest_days",
@@ -14,14 +14,14 @@
     "fase"
   ],
   "params": {
-    "m__alpha": 1.0
+    "m__alpha": 100
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
   "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 4.309178804085479,
-  "baseline_MAE": 4.318123531448188,
-  "beats_baseline": true
+  "test_MAE": 4.376962376730276,
+  "baseline_MAE": 4.339325837278153,
+  "beats_baseline": false
 }

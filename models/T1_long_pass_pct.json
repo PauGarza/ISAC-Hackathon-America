@@ -1,6 +1,6 @@
 {
   "name": "T1_long_pass_pct",
-  "created_at": "2026-09-29T20:39:47.183434+00:00",
+  "created_at": "2026-09-29T21:52:22.486392+00:00",
   "data_hash": "7866e1e18299db0b",
   "task": "T1",
   "target": "long_pass_pct",
@@ -18,10 +18,10 @@
   },
   "train_dates": [
     "2021-07-23",
-    "2025-10-19"
+    "2025-05-26"
   ],
-  "baseline": "Baseline: media histórica (train)",
-  "test_MAE": 2.2314856050873026,
-  "baseline_MAE": 2.3309072382953246,
-  "beats_baseline": true
+  "baseline": "Baseline: media móvil 5",
+  "test_MAE": 2.13517876683403,
+  "baseline_MAE": 1.9995484564686004,
+  "beats_baseline": false
 }
