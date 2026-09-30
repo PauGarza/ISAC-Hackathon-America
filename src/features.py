@@ -227,7 +227,8 @@ def aggregate(ev: pd.DataFrame, poss: pd.DataFrame, keys: list[str], team: str =
     out["sp_xg"] = pa[pa.is_set_piece].groupby(keys, observed=True).xg.sum()
     out["opp_sp_xg"] = po[po.is_set_piece].groupby(keys, observed=True).xg.sum()
     out[["sp_xg", "opp_sp_xg"]] = out[["sp_xg", "opp_sp_xg"]].fillna(0)
-    ca, co = pa[pa.play_pattern == "From Corner"], po[po.play_pattern == "From Corner"]
+    ca = pa[pa.is_set_piece & (pa.play_pattern == "From Corner")]   # solo córners que saca el propio equipo
+    co = po[po.is_set_piece & (po.play_pattern == "From Corner")]
     out["corner_shot_pct"] = ca.groupby(keys, observed=True).shot.mean() * 100
     out["opp_corner_shot_pct"] = co.groupby(keys, observed=True).shot.mean() * 100
     # contrapresión / transición defensiva (pérdidas: posesión propia seguida de posesión rival)

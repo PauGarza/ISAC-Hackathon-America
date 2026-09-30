@@ -311,8 +311,8 @@ def test_match_level_diff_uses_match_as_unit():
 # ------------------------------------------------------------------ §3.8 balón parado
 def _sp(**kw):
     base = {"match_id": 1, "possession": 1, "coach": "Jardine", "team": AM, "is_team": True, "kind": "Córner",
-            "play_pattern": "From Corner", "start_type": "Pass", "start_pass_type": "Corner", "start_x": 120.0,
-            "location_y": 0.0, "delivery": "Cerrado", "target_zone": "Zona de penal", "xg": 0.0, "shot": False}
+            "play_pattern": "From Corner", "start_type": "Pass", "start_pass_type": "Corner", "start_shot_type": None,
+            "start_x": 120.0, "location_y": 0.0, "delivery": "Cerrado", "target_zone": "Zona de penal", "xg": 0.0, "shot": False}
     return {**base, **kw}
 
 
@@ -322,7 +322,7 @@ def test_set_piece_plays_keeps_only_direct_restarts():
         _sp(possession=2, team=RIV, is_team=False, start_type="Goal Keeper", start_pass_type=None),  # hereda la etiqueta
         _sp(possession=3, kind="Tiro libre", play_pattern="From Free Kick", start_pass_type="Free Kick", start_x=50.0),
         _sp(possession=4, kind="Tiro libre", play_pattern="From Free Kick", start_type="Shot", start_pass_type=None,
-            start_x=95.0),                                                                  # tiro libre directo
+            start_shot_type="Free Kick", start_x=95.0),                                                                  # tiro libre directo
         _sp(possession=5, team=RIV, is_team=False, kind="Saque de banda", play_pattern="From Throw In",
             start_pass_type="Throw-in", start_x=85.0),
     ])

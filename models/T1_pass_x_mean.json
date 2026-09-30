@@ -1,7 +1,7 @@
 {
   "name": "T1_pass_x_mean",
-  "created_at": "2026-09-29T22:31:32.475066+00:00",
-  "data_hash": "7866e1e18299db0b",
+  "created_at": "2026-09-30T00:02:56.685292+00:00",
+  "data_hash": "749199b69b91f9d1",
   "task": "T1",
   "target": "pass_x_mean",
   "model": "Ridge",

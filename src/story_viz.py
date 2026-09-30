@@ -201,7 +201,7 @@ def fig_shot_map(s: pd.DataFrame, origin_sum: pd.DataFrame, scope: pd.DataFrame,
                bbox_to_anchor=(0.5, 0.04), fontsize=7)
     _suptitle(fig, title)
     _footer(fig, f"Ventana oficial Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · "
-            "sin penales · balón parado = posesión que nace de córner o tiro libre (marco) · Datos: StatsBomb")
+            "sin penales · balón parado = posesión que abre el saque propio de córner o tiro libre (marco) · Datos: StatsBomb")
     return fig
 
 

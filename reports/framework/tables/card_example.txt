@@ -22,5 +22,5 @@
  "test_MAE": 13.318,
  "baseline_MAE": 14.244,
  "beats_baseline": true,
- "data_hash": "7866e1e18299db0b"
+ "data_hash": "749199b69b91f9d1"
 }

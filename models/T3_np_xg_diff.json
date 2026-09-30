@@ -1,7 +1,7 @@
 {
   "name": "T3_np_xg_diff",
-  "created_at": "2026-09-29T22:31:40.736127+00:00",
-  "data_hash": "7866e1e18299db0b",
+  "created_at": "2026-09-30T00:03:07.673475+00:00",
+  "data_hash": "749199b69b91f9d1",
   "task": "T3",
   "target": "np_xg_diff",
   "model": "LASSO",

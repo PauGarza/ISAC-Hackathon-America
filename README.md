@@ -103,7 +103,7 @@ Borrador inicial (fase 1). **La versión final y validada vive en [`src/framewor
 | Transición ofensiva | Posesión que inicia con recuperación/intercepción y llega a tiro o al último tercio en ≤ 10–15 s (o `is_transition`) |
 | Transición defensiva / contrapresión | Eventos del América con `counterpress == True` o acciones defensivas ≤ 5 s tras pérdida |
 | Fase de presión alta | Acciones defensivas del América (Pressure, Duel, Interception, Ball Recovery, Foul) con `x ≥ 60` (campo rival); PPDA en zona alta |
-| Balón parado | Posesiones con `play_pattern` ∈ {From Corner, From Free Kick, From Throw In} (saques de banda solo en último tercio) |
+| Balón parado | Posesión que abre el saque del **propio** equipo con `play_pattern` ∈ {From Corner, From Free Kick, From Throw In} (saques de banda solo en último tercio); no cuentan las que solo heredan la etiqueta (`framework.opens_with_restart`) |
 | Contexto | Marcador en el momento (ganando/empatando/perdiendo), localía, minuto (tramos de 15'), rival (nivel por tabla o xG diferencial) |
 
 Supuestos, umbrales y limitaciones se documentan en `reports/` y se mantienen **iguales en todo el análisis** (coherencia interna).
@@ -137,7 +137,7 @@ Formato de entrega (bases oficiales): **reporte HTML** con selector de partido, 
 | Fase | Qué se hizo | Entregables |
 |---|---|---|
 | **1 · Entender los datos** | Descarga completa y EDA por columna, calidad, relaciones y contexto; 10 hipótesis | `notebooks/01`, `notebooks/02`, [`reports/eda/eda_report.pdf`](reports/eda/eda_report.pdf) |
-| **2 · Del dato al criterio** | Pipeline medallion local, marco analítico validado, 55 variables por partido (incluido el uso de jugadores) evaluadas como criterios → 27 núcleo (elegidas solo con la ventana oficial), 11 tareas ML (T1–T7, U1–U3) con partición temporal y baselines, model cards, ficha HTML automática por partido y monitoreo de drift | `src/pipeline/`, `notebooks/03`, [`reports/framework/framework_report.pdf`](reports/framework/framework_report.pdf), `reports/match_reports/*.html` |
+| **2 · Del dato al criterio** | Pipeline medallion local, marco analítico validado, 55 variables por partido (incluido el uso de jugadores) evaluadas como criterios → 28 núcleo (elegidas solo con la ventana oficial), 11 tareas ML (T1–T7, U1–U3) con partición temporal y baselines, model cards, ficha HTML automática por partido y monitoreo de drift | `src/pipeline/`, `notebooks/03`, [`reports/framework/framework_report.pdf`](reports/framework/framework_report.pdf), `reports/match_reports/*.html` |
 | **2b · ADN del Entrenador** | Benchmark de toda la Liga MX (1,789 partidos, 106 técnicos), perfil de 8 rasgos estandarizado contra la liga del mismo torneo y ajustado por rival y localía, consistencia, contexto, evolución, mapa de técnicos, Índice de Encaje, validación con el cambio a Almada, rotación de técnicos y ROI por escenarios. Hipótesis del EDA reescritas hacia el resultado del hackathon | `src/coach_profile.py`, `src/coach_viz.py`, `src/business.py`, `notebooks/04`, `reports/figures/coach/` |
 | 3 · Narrativa y entrega | Historia de Jardine en `notebooks/05` (§3.2 con balón, §3.3 sin balón, §3.4 forma defensiva con 360: defiende más junto, no más arriba; §3.8 balón parado: córner en corto y peligro de segunda jugada, defensa mixta). Pendiente: reporte HTML interactivo (con selector de partido), ROI/activación/escalabilidad, video de 5 min | en curso, ver [todo.md](todo.md) |
 

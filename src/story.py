@@ -562,7 +562,7 @@ def match_level_diff(shape: pd.DataFrame, metric: str, a: str, b: str, n: int = 
 
 # ------------------------------------------------------------------ §3.8 balón parado
 SP_KINDS = ["Córner", "Tiro libre", "Saque de banda"]
-RESTART_PASS = {"Corner", "Free Kick", "Throw-in"}
+RESTART_PASS = fw.RESTART_PASS_TYPES
 SP_SHOT_ZONES = ["Área chica", "Zona de penal", "Área (costados)", "Fuera del área"]
 SP_LEAGUE_METRICS = {  # team-match-stats (toda la liga) -> (etiqueta, lectura)
     "team_match_corners": ("Córners por partido", "más = más córners"),
@@ -589,7 +589,7 @@ def set_piece_plays(sp: pd.DataFrame, ev: pd.DataFrame) -> pd.DataFrame:
     el último tercio del que saca. restart_id = id del saque (para el 360 y para separar el remate directo)."""
     first = (ev[ev.team == ev.possession_team].groupby(["match_id", "possession"]).head(1)
              .set_index(["match_id", "possession"]).id.rename("restart_id"))
-    restart = sp.start_pass_type.isin(RESTART_PASS) | ((sp.start_type == "Shot") & (sp.kind == "Tiro libre"))
+    restart = fw.opens_with_restart(sp)  # la misma regla que el marco usa para is_set_piece
     zone_ok = ((sp.kind == "Córner")
                | ((sp.kind == "Tiro libre") & (sp.start_x >= A["set_piece_free_kick_x_min"]))
                | ((sp.kind == "Saque de banda") & (sp.start_x >= A["set_piece_throw_in_x_min"])))
@@ -659,8 +659,8 @@ def shot_zone_summary(shots: pd.DataFrame) -> pd.DataFrame:
 
 def set_piece_xg_share(all_shots: pd.DataFrame, sp_shots: pd.DataFrame) -> pd.DataFrame:
     """% del xG sin penales del América que es balón parado, con dos definiciones:
-    marco = toda la posesión que nace de córner o tiro libre (en cualquier zona) o de saque de banda en el último
-    tercio (story.shots, origen 'Balón parado'); jugadas de §3.8 = córners, tiros libres y saques de banda del último
+    marco = toda la posesión que abre el saque propio de un córner o un tiro libre (en cualquier zona) o de un saque de
+    banda en el último tercio (framework.possessions: is_set_piece; story.shots, origen 'Balón parado'); jugadas de §3.8 = córners, tiros libres y saques de banda del último
     tercio, toda la posesión; remate directo = solo el remate que asiste el saque o el tiro libre directo."""
     tot = all_shots.groupby("coach").xg.sum()
     fav = sp_shots[sp_shots.lado == "A favor"]

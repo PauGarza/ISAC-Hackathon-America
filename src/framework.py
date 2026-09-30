@@ -55,6 +55,7 @@ DEF_ACTIONS = {"Pressure", "Duel", "Interception", "Ball Recovery", "Foul Commit
 PPDA_ACTIONS = {"Duel", "Interception", "Foul Committed"}
 REGAIN_TYPES = {"Ball Recovery", "Interception", "Duel", "Block", "50/50"}
 SET_PIECE_PATTERNS = {"From Corner": "Córner", "From Free Kick": "Tiro libre", "From Throw In": "Saque de banda"}
+RESTART_PASS_TYPES = {"Corner", "Free Kick", "Throw-in"}  # pase con el que el propio equipo pone el balón en juego
 
 POSITION_GROUP = {
     "Goalkeeper": "Portero",
@@ -175,6 +176,7 @@ def possessions(ev: pd.DataFrame, team: str = TEAM) -> pd.DataFrame:
         "minute_bin": first.minute_bin,
         "start_type": first_own.type,
         "start_pass_type": first_own.get("pass_type"),
+        "start_shot_type": first_own.get("shot_type"),
         "start_x": first_own.location_x,
         "start_y": first_own.location_y,
         "max_x": go.location_x.max(),
@@ -192,8 +194,8 @@ def possessions(ev: pd.DataFrame, team: str = TEAM) -> pd.DataFrame:
     # tiempo a x>=80 o tiro, para transiciones
     reach = ev_own[(ev_own.location_x >= A["third_limits"][1]) | (ev_own.type == "Shot")]
     p["t_reach_f3"] = reach.groupby(["match_id", "possession"]).t.min() - p.t_start
-    p["is_set_piece"] = p.play_pattern.isin(["From Corner", "From Free Kick"]) | (
-        (p.play_pattern == "From Throw In") & (p.start_x >= A["set_piece_throw_in_x_min"]))
+    p["is_set_piece"] = opens_with_restart(p) & (p.play_pattern.isin(["From Corner", "From Free Kick"]) | (
+        (p.play_pattern == "From Throw In") & (p.start_x >= A["set_piece_throw_in_x_min"])))
     p["regain"] = p.start_type.isin(REGAIN_TYPES) | p.start_pass_type.isin(["Recovery", "Interception"])
     p["offensive_sequence"] = (p.n_passes >= A["offensive_sequence_min_passes"]) | (p.max_x >= A["third_limits"][1])
     p["build_up"] = (p.start_x < A["build_up_start_x_max"]) & p.play_pattern.isin(["Regular Play", "From Goal Kick", "From Keeper"])
@@ -202,6 +204,14 @@ def possessions(ev: pd.DataFrame, team: str = TEAM) -> pd.DataFrame:
     p["transition"] = p.regain & ~p.is_set_piece & (p.t_reach_f3 <= A["transition_window_s"])
     p["is_team"] = p.team == team
     return p.reset_index()
+
+
+def opens_with_restart(p: pd.DataFrame) -> pd.Series:
+    """¿La posesión la abre el saque del PROPIO equipo? Su primer evento (con ubicación) es el pase del córner, del tiro
+    libre o del saque de banda, o un tiro libre directo. Así el balón parado no incluye posesiones que solo heredan el
+    play_pattern de StatsBomb (p. ej., el portero atrapa el córner rival y sale en contragolpe: su posesión sigue
+    marcada "From Corner", pero es una transición)."""
+    return p.start_pass_type.isin(RESTART_PASS_TYPES) | p.start_shot_type.eq("Free Kick")
 
 
 def ppda(ev: pd.DataFrame, team: str = TEAM, actions=PPDA_ACTIONS) -> pd.Series:
