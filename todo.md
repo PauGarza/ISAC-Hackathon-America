@@ -31,8 +31,8 @@ Entrega: **reporte HTML** (oficial) + **video ≤ 5 min** + **app Streamlit** (e
 - [x] Actualizar este todo.
 - [ ] Preguntar a los organizadores dónde se suben el HTML y el video (¿enlace de YouTube/Drive?).
 - [x] §3.7 jugadores, §3.5 contexto y §3.6 evolución: notebook 05, 7 figuras nuevas, hallazgos en `story_hallazgos.parquet`, commit.
-- [ ] Textos de la historia (`reports/final/textos.md`): §3.1 5 ideas, §3.2–§3.8, §3.9 ¿se sostiene?, §3.11 recomendaciones.
-- [ ] Regenerar fichas con el ADN por torneo (`--stages score,report`).
+- [x] Textos de la historia en `reports/final/textos.md`: resumen de 1 pantalla, §3.1 5 ideas, §3.2–§3.8, §3.9, §3.10 corta, §3.11 recomendaciones con nombres.
+- [x] Fichas regeneradas con el ADN por torneo (Santos 20 oct 2024 y Monterrey 16 dic 2024). Pesan ~650 KB cada una → el explorador del HTML va con JSON de agregados, no con fichas embebidas.
 
 ### Mar 6 · Reporte HTML
 - [ ] Etapa `final` del pipeline + `src/templates/final_report.html.j2` (figuras PNG en base64).
@@ -173,7 +173,7 @@ Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo s
   | `corner_shot_pct` (ahora solo córners que saca el propio equipo) | 29 % | 36 % |
 
   Sin cambios: el ADN (usa métricas de StatsBomb de toda la liga), el efecto del marcador de T2, las cifras de jugadores y el resto de §3.8 (ya usaba jugadas directas).
-- [ ] **Regenerar las fichas HTML** de `reports/match_reports/`: se hicieron antes del ADN por torneo (`python -m src.pipeline run --stages score,report --match-id …`).
+- [x] **Regenerar las fichas HTML** de `reports/match_reports/`: se hicieron antes del ADN por torneo (`python -m src.pipeline run --stages score,report --match-id …`).
 - [ ] Buscar "35 %" en textos y diapositivas nuevas: la cifra de prueba del clasificador ya es **31 %**.
 
 ---
