@@ -15,6 +15,51 @@
 
 ---
 
+## ★ Plan lun 5 → vie 9 oct (una persona, ~6 h/día)
+
+Entrega: **reporte HTML** (oficial) + **video ≤ 5 min** + **app Streamlit** (explorador y demo del video, solo agregados).
+
+### Hecho hasta hoy
+- [x] Registro del equipo.
+- [x] Marco analítico (`src/framework.py`), pipeline medallion, model cards, fichas por partido.
+- [x] ADN del Entrenador (106 técnicos, z por torneo) + Índice de Encaje + validación con Almada.
+- [x] Historia: §3.2 con balón · §3.3 sin balón · §3.4 forma con 360 · §3.8 balón parado (notebook 05).
+- [x] Base de ROI en `src/business.py` (escenarios, sensibilidad, rotación).
+- [x] Historia: §3.5 contexto · §3.6 evolución · §3.7 jugadores (notebook 05, 5 oct).
+
+### Lun 5 · Cerrar la historia
+- [x] Actualizar este todo.
+- [ ] Preguntar a los organizadores dónde se suben el HTML y el video (¿enlace de YouTube/Drive?).
+- [x] §3.7 jugadores, §3.5 contexto y §3.6 evolución: notebook 05, 7 figuras nuevas, hallazgos en `story_hallazgos.parquet`, commit.
+- [ ] Textos de la historia (`reports/final/textos.md`): §3.1 5 ideas, §3.2–§3.8, §3.9 ¿se sostiene?, §3.11 recomendaciones.
+- [ ] Regenerar fichas con el ADN por torneo (`--stages score,report`).
+
+### Mar 6 · Reporte HTML
+- [ ] Etapa `final` del pipeline + `src/templates/final_report.html.j2` (figuras PNG en base64).
+- [ ] Explorador de partidos (`<select>` + JSON de agregados + Plotly.js), etiqueta de muestra.
+- [ ] < 15 MB, sin datos crudos, revisado en celular.
+
+### Mié 7 · Valor para el club + Streamlit
+- [ ] §4.1 ROI · §4.2 activación · §4.3 escalabilidad → sección del HTML.
+- [ ] `app/streamlit_app.py`: Historia · ADN de cualquier técnico · Explorador · Simulador de ROI.
+- [ ] `app/export_data.py` (solo agregados a `app/data/`); `streamlit` y `plotly` en `requirements.txt`.
+
+### Jue 8 · Despliegue + video
+- [ ] Streamlit Community Cloud; enlace en el HTML; repo sin datos crudos.
+- [ ] Guion (~750 palabras), grabación, subtítulos.
+- [ ] Checklist §0.b, buscar "35 %", etiquetas de muestra, prueba de lectura no técnica.
+
+### Vie 9 · Colchón y entrega
+- [ ] Ajustes, regenerar HTML desde cero, subir HTML + video, README.
+
+### Recortes (pasan a 🟡)
+- §3.10 H4–H8 → tabla corta solo con H1, H2, H3, H9, H10.
+- §6 campo `explicacion` → glosario fijo en el HTML.
+- §4.3 Femenil → un párrafo, sin correrla.
+- Maqueta de redes → el radar de la ficha como "tarjeta".
+
+---
+
 ## 0. Qué nos evalúan y cómo lo respondemos
 
 | Hito | Fecha |
@@ -47,10 +92,10 @@ Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo s
 |---|---|---|
 | Ofensivo: construcción, progresión, generación de ocasiones | §3.2 | [x] notebook 05 |
 | Defensivo: presión, organización, transiciones | §3.3, §3.4 | [x] presión y transiciones (§3.3) · altura y compactación con 360 (§3.4) |
-| Consistencia e identidad | §3.5, §3.9 | [ ] |
-| Cambios según el contexto (rival, marcador, localía, momento) | §3.5 | [ ] |
-| Evolución en el tiempo | §3.6 | [ ] |
-| Uso de jugadores: roles, alineaciones, sustituciones | §3.7 | [ ] |
+| Consistencia e identidad | §3.5, §3.6, §3.9 | [x] ADN por torneo (§3.6) · falta §3.9 |
+| Cambios según el contexto (rival, marcador, localía, momento) | §3.5 | [x] notebook 05 |
+| Evolución en el tiempo | §3.6 | [x] notebook 05 |
+| Uso de jugadores: roles, alineaciones, sustituciones | §3.7 | [x] notebook 05 |
 | Balón parado ofensivo: córners, tiros libres, saques de banda; movimientos y zonas de remate | §3.8 | [x] notebook 05 |
 | Balón parado defensivo: organización, marcaje, zonas vulnerables | §3.8 | [x] notebook 05 (360 en el saque) |
 | Evidencia cuantitativa: xG, OBV, pases progresivos, presión + métrica propia | §3 (todo) | [ ] |
@@ -86,7 +131,7 @@ Pregunta central: *¿qué principios definen al equipo con y sin balón, cómo s
 
 ## 2. 🔴 Administrativo y auditoría (29–30 sep)
 
-- [ ] Confirmar el registro del equipo (2–4 integrantes) y juntar la constancia de inscripción de cada uno.
+- [x] Confirmar el registro del equipo (2–4 integrantes) y juntar la constancia de inscripción de cada uno.
 - [ ] Preguntar a los organizadores:
   - dónde se suben los entregables;
   - si se pueden usar partidos posteriores al Clausura 2025 como validación y prueba declaradas.
@@ -166,24 +211,25 @@ Notebook 05 §3.4 con `story.rival_open_play_passes`, `defensive_shape`, `shape_
 - [x] **Límite declarado**: 89 % de los pases rivales tiene 360, pero solo 32 % da un frame útil (≥ 8 jugadores de campo visibles y la toma ve ≥ 5 yd detrás del último); en bloque alto, 16 % (la cámara sigue al balón). Líneas por orden de profundidad (4 + 4), no por posición nominal.
 - [ ] ⚪ Pases que rompen líneas (no entró; queda en §8).
 
-### 3.5 Contexto: ¿cómo ajusta según el rival, el marcador, la localía y el minuto?
-- [x] Base hecha: T1/T2 y notebook 04 (ADN por contexto).
-- [ ] Redactar los titulares:
-  - "perdiendo por 1, el América inclina la cancha ~9 puntos más; ganando por 1, baja ~13";
-  - "frente a rivales fuertes cede balón y territorio";
-  - "de local sube la presión".
-- [ ] Recalcular esos números solo con la ventana (§2).
+### 3.5 Contexto: ¿cómo ajusta según el rival, el marcador, la localía y el minuto? ✅ (5 oct)
+Notebook 05 §3.5: `story.game_state_effect` (tramos de 15', efecto fijo del partido, IC 90 % por partido), `context_metrics`, `minute_profile`; figuras `contexto_marcador.png`, `contexto_rival.png`; agregados `story_contexto_*.parquet`.
+- [x] **Marcador** (Jardine, mismo partido frente al empate): perdiendo por 1, field tilt **+8** y posesión **+11**, PPDA −6.7 (presiona más); ganando por 1, la posesión casi no cambia (−3) pero el field tilt baja **−17** (Ortiz −18): guarda el balón lejos del área rival. *Sustituye al "+9 / −13" de T2, que mezclaba técnicos sin efecto fijo.*
+- [x] **Rival**: débil → 61 % de posesión, PPDA 12, 2.06 xG por 100 posesiones; fuerte → 49 %, 19, 1.15: cede balón y presiona menos.
+- [x] **Localía**: field tilt 62 % frente a 57 %; 44 % frente a 38 % de acciones defensivas en campo rival; 2.27 frente a 1.61 puntos por partido.
+- Ojo: el PPDA crudo sube con la liga → solo comparar dentro de cada técnico.
 
-### 3.6 Evolución: ¿qué cambió cuando llegó Jardine?
-- [x] Base hecha: ADN por periodo y figura `evolucion.png`.
-- [ ] Solari → Ortiz → Jardine por torneo (ventana), con un titular por cambio.
-- [ ] Almada como epílogo (prueba): "el estilo sigue al técnico, no a la plantilla".
+### 3.6 Evolución: ¿qué cambió cuando llegó Jardine? ✅ (5 oct)
+Notebook 05 §3.6: `story.adn_by_coach_torneo` (ADN por torneo, z por torneo, percentil de liga), `coach_changes`; figura `evolucion_adn.png` (validación y prueba punteadas).
+- [x] Ortiz → Jardine: control del balón se mantiene (93 → 90); **presión alta −49** y reacción tras pérdida −25 puntos de percentil: menos persecución, más orden.
+- [x] Identidad estable en sus 4 torneos: control ≥ 77, peligro ≥ 86, llegada ≥ 86. La presión sí evoluciona: percentil 17 (Ap 2023) → 81 (Cl 2025).
+- [x] Epílogo Almada (prueba): presión alta +49, solidez −31, balón parado +25 → el estilo sigue al técnico.
 
-### 3.7 Jugadores: ¿quién hace funcionar el sistema?
-- [ ] 11 más usado, formaciones por torneo y rotación (minutos, estabilidad de la alineación).
-- [ ] Reparto del juego: los 3 mejores generan ~61 % del OBV positivo; defensas y carrileros, ~33 % (ventana oficial). **Con nombres del plantel.**
-- [ ] Roles U3 nombrados con jugadores conocidos.
-- [ ] **Sustituciones (describir, no predecir)**: minuto, marcador al momento del cambio y perfil que sale y que entra. Usar `fct_substitution`.
+### 3.7 Jugadores: ¿quién hace funcionar el sistema? ✅ (5 oct)
+Notebook 05 §3.7; figuras `jugadores_uso.png`, `jugadores_obv.png`, `jugadores_roles.png`, `cambios.png`; agregados `story_jugadores_*`, `story_cambios_*`.
+- [x] **Uso**: 3.6 titulares cambian de un partido al siguiente (Ortiz 2.4); 79 onces distintos en 91 partidos, 47 jugadores; núcleo de 8 con ≥ 50 % de los minutos (Malagón, Fidalgo, Zendejas, Israel Reyes, Henry Martín, Jonathan dos Santos, Ramón Juárez, Kevin Álvarez). 4-2-3-1 en 45 %.
+- [x] **Valor**: top 3 = 62 % del OBV positivo (mediana por partido), defensas y carrileros 32 %. Fidalgo 11.1 %, Malagón 9.1 %, Zendejas 7.4 % de la era.
+- [x] **Roles U3**: Defensor de corte 37 % (Israel Reyes) · Delantero de área 27 % (Henry Martín) · Mediocentro organizador 17 % (Fidalgo) · Extremo que encara 13 % (Brian Rodríguez) · Creador del último pase 7 % (Valdés).
+- [x] **Sustituciones**: primer cambio en el descanso en 26 % de los partidos (Ortiz 13 %, Solari 11 %); perdiendo 9.1 cambios por 90' frente a 7.6 ganando; perdiendo, 38 % más ofensivos; ganando, 34 % más defensivos.
 
 ### 3.8 Balón parado: ¿cómo ataca y cómo defiende las jugadas a balón parado? ✅ (29 sep)
 Agregado de toda la era en la ventana (notebook 05 §3.8). Funciones: `story.set_piece_plays` (solo jugadas que abre el saque de quien la tiene: descarta posesiones que heredan el `play_pattern`), `set_piece_shots`, `set_piece_summary`, `delivery_summary`, `shot_zone_summary`, `set_piece_xg_share`, `corner_defense`, `marking_vs_chance`; figuras `balon_parado.png` y `balon_parado_defensa.png`; agregados `story_bp_*.parquet`. Supuestos nuevos: `set_piece_free_kick_x_min` (80), `set_piece_marking_yd` (2), `set_piece_min_box_visible` (0.9).

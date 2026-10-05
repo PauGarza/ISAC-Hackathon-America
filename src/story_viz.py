@@ -464,3 +464,270 @@ def fig_corner_defense(grid: pd.DataFrame, cd_sum: pd.DataFrame, marking: pd.Dat
             f"área chica: {util}\npegado = a ≤ 2 yd de un atacante; azar = mismo cálculo con los atacantes de otro córner · "
             "solo cuenta lo que se ve en la toma · Datos: StatsBomb")
     return fig
+
+
+# ------------------------------------------------------------------ §3.7 jugadores
+def _dot_rows(ax, piv: pd.DataFrame, fmt: str = "{:.0f}", label_coach: str = PROTAGONIST, offset: float = 0.3):
+    """Un renglón por categoría (índice de piv) y un punto por técnico (columnas); rango en gris y rótulo en el técnico."""
+    y = np.arange(len(piv))
+    ax.hlines(y, piv.min(axis=1), piv.max(axis=1), color=eda.GRID, lw=2, zorder=1)
+    for c in COACHES:
+        if c in piv:
+            ax.scatter(piv[c], y, s=48 if c == label_coach else 34, color=COACH_COLOR[c], edgecolor=eda.SURFACE, lw=1.5,
+                       zorder=3, label=c)
+    for yi, v in zip(y, piv[label_coach]):
+        ax.text(v, yi + offset, fmt.format(v), fontsize=7, color=eda.INK, ha="center",
+                va="bottom" if offset < 0 else "top")  # eje y invertido: offset < 0 = encima del punto
+    ax.set_yticks(y, piv.index)
+    ax.grid(axis="y", visible=False)
+    ax.set_ylim(len(piv) - 0.4, -0.6)
+    return y
+
+
+def fig_player_usage(usage: pd.DataFrame, rot: pd.DataFrame, scope: pd.DataFrame, title: str, n: int = 18,
+                     coach: str = PROTAGONIST):
+    """Izquierda: % de los minutos posibles de los `n` jugadores más usados por el técnico (línea de 50 % = núcleo de
+    confianza). Derecha: rotación frente a sus antecesores (titulares que cambian de un partido al siguiente y
+    jugadores con ≥ 50 % de los minutos)."""
+    u = usage[usage.coach == coach].nlargest(n, "minutos").iloc[::-1]
+    fig = plt.figure(figsize=(10.5, 6.2))
+    gs = fig.add_gridspec(2, 2, width_ratios=[1.55, 1], hspace=0.7, wspace=0.45, left=0.2, right=0.97, top=0.86,
+                          bottom=0.11)
+    ax = fig.add_subplot(gs[:, 0])
+    y = np.arange(len(u))
+    ax.barh(y, u.pct_minutos, color=COACH_COLOR[coach], height=0.72, edgecolor=eda.SURFACE, lw=1)
+    for yi, v, t in zip(y, u.pct_minutos, u.titularidades):
+        ax.text(v + 1, yi, f"{v:.0f} % · {t} de titular", fontsize=6.5, color=eda.INK_2, va="center")
+    ax.set_yticks(y, [f"{j}  ·  {str(l).lower()}" for j, l in zip(u.jugador, u.linea)], fontsize=7)
+    ax.axvline(50, color=eda.INK_2, lw=0.8, ls="--")
+    ax.text(50.5, len(u) - 0.3, "50 %: núcleo de confianza", fontsize=6.5, color=eda.INK_2, va="bottom")
+    ax.set_xlim(0, 118)
+    ax.set_xticks([0, 25, 50, 75, 100])
+    ax.set_xlabel("% de los minutos posibles en sus partidos")
+    ax.grid(axis="y", visible=False)
+    ax.set_title(f"Los {n} jugadores más usados por {coach}", loc="left", fontsize=9)
+    r = rot.set_index("coach")
+    for k, (col, lab, fmt) in enumerate([("cambios_xi_media", "Titulares que cambian de un partido al siguiente", "{:.1f}"),
+                                         ("nucleo_confianza", "Jugadores con ≥ 50 % de los minutos", "{:.0f}")]):
+        a2 = fig.add_subplot(gs[k, 1])
+        for i, c in enumerate(COACHES):
+            a2.scatter([r.loc[c, col]], [i], s=60, color=COACH_COLOR[c], edgecolor=eda.SURFACE, lw=1.5, zorder=3)
+            a2.text(r.loc[c, col] + r[col].max() * 0.05, i, fmt.format(r.loc[c, col]), fontsize=7, color=eda.INK,
+                    va="center")
+        a2.set_yticks(range(len(COACHES)), COACHES, fontsize=7.5)
+        a2.set_ylim(len(COACHES) - 0.5, -0.5)
+        a2.set_xlim(0, r[col].max() * 1.3)
+        a2.grid(axis="y", visible=False)
+        a2.set_title(lab, loc="left", fontsize=8)
+    _suptitle(fig, title)
+    _footer(fig, sample_note(scope).split(" · el América")[0] + " · minutos posibles = minutos de juego de sus partidos · "
+            "titular = en el XI inicial")
+    return fig
+
+
+def fig_obv_share(usage: pd.DataFrame, dist: pd.DataFrame, scope: pd.DataFrame, title: str, n: int = 12,
+                  coach: str = PROTAGONIST):
+    """Izquierda: % del OBV positivo del equipo que genera cada jugador (los `n` primeros del técnico). Derecha: % del
+    OBV positivo de toda la era por línea, un punto por técnico."""
+    u = usage[usage.coach == coach].nlargest(n, "pct_obv_pos").iloc[::-1]
+    fig, (ax, a2) = plt.subplots(1, 2, figsize=(10.5, 4.9), gridspec_kw={"width_ratios": [1.3, 1]})
+    fig.subplots_adjust(left=0.2, right=0.97, top=0.82, bottom=0.16, wspace=0.5)
+    y = np.arange(len(u))
+    ax.barh(y, u.pct_obv_pos, color=COACH_COLOR[coach], height=0.72, edgecolor=eda.SURFACE, lw=1)
+    for yi, v, p90 in zip(y, u.pct_obv_pos, u.obv_pos_p90):
+        ax.text(v + 0.2, yi, f"{v:.1f} % · {p90:.2f} por 90'", fontsize=6.5, color=eda.INK_2, va="center")
+    ax.set_yticks(y, [f"{j}  ·  {str(l).lower()}" for j, l in zip(u.jugador, u.linea)], fontsize=7)
+    ax.set_xlim(0, u.pct_obv_pos.max() * 1.6)
+    ax.set_xlabel("% del OBV positivo del equipo")
+    ax.grid(axis="y", visible=False)
+    ax.set_title(f"¿Quién genera el valor con {coach}?", loc="left", fontsize=9)
+    order = ["Defensa", "Carrilero", "Medio defensivo", "Medio", "Banda", "Medio ofensivo", "Delantero", "Portero"]
+    lines = [l for l in order if f"pct_era_{l}" in dist]
+    piv = dist.set_index("coach")[[f"pct_era_{l}" for l in lines]].T
+    piv.index = lines
+    _dot_rows(a2, piv, "{:.0f} %", offset=-0.18)
+    a2.set_xlabel("% del OBV positivo de toda la era")
+    a2.set_title("¿Qué línea lo genera?", loc="left", fontsize=9)
+    a2.legend(loc="lower right", fontsize=7)
+    _suptitle(fig, title)
+    _footer(fig, sample_note(scope).split(" · el América")[0] + " · OBV positivo = valor que suma cada jugador en cada partido "
+            "(OBV de StatsBomb, recortado en 0) · línea = la más habitual del jugador")
+    return fig
+
+
+def fig_roles(roles_tab: pd.DataFrame, names: pd.DataFrame, scope: pd.DataFrame, title: str, coach: str = PROTAGONIST):
+    """Roles U3 con nombre de fútbol: % de los partidos (≥ 30') de los jugadores del técnico en cada rol y los jugadores
+    que más veces lo ocupan (partidos en el rol y % de sus partidos)."""
+    t = roles_tab.reset_index(drop=True)
+    what = names.drop_duplicates("rol").set_index("rol").que_hace
+    fig, ax = plt.subplots(figsize=(10.5, 4.6))
+    fig.subplots_adjust(left=0.02, right=0.99, top=0.82, bottom=0.1)
+    y = np.arange(len(t)) * 1.4
+    ax.barh(y, t.pct, color=COACH_COLOR[coach], height=0.55, left=0, edgecolor=eda.SURFACE, lw=1)
+    for yi, r in zip(y, t.itertuples()):
+        ax.text(-1.5, yi - 0.18, r.rol, fontsize=8.5, fontweight="bold", color=eda.INK, ha="right", va="center")
+        ax.text(-1.5, yi + 0.32, what.get(r.rol, ""), fontsize=6.5, color=eda.INK_2, ha="right", va="center")
+        ax.text(r.pct + 0.8, yi - 0.18, f"{r.pct:.0f} %", fontsize=7.5, color=eda.INK, va="center")
+        ax.text(r.pct + 0.8, yi + 0.32, r.jugadores.replace("; ", " · "), fontsize=6.5, color=eda.INK_2, va="center")
+    ax.set_xlim(-62, 105)
+    ax.set_ylim(y.max() + 0.9, -0.9)
+    ax.axis("off")
+    _suptitle(fig, title)
+    fig.text(0.01, 0.885, "Barra = % de los partidos de sus jugadores (≥ 30', sin porteros) en cada rol · a la derecha, quién lo "
+             "ocupa más: partidos en el rol y % de sus partidos", fontsize=7, color=eda.INK_2)
+    _footer(fig, sample_note(scope).split(" · el América")[0] + " · roles = grupos de jugadores con el mismo perfil de acciones "
+            "por 90' (U3, K-means ajustado en la ventana); cada rol se nombra por su rasgo más marcado")
+    return fig
+
+
+def fig_substitutions(subs: pd.DataFrame, summ: dict, scope: pd.DataFrame, title: str, coach: str = PROTAGONIST):
+    """Tres paneles: (1) % acumulado de partidos con el primer cambio hecho, por minuto (un escalón por técnico);
+    (2) cambios por cada 90' jugados en cada estado del marcador (segundo tiempo); (3) del técnico, % de cambios que
+    meten a un jugador de una línea más ofensiva o más defensiva (línea habitual), según el marcador."""
+    fig, axes = plt.subplots(1, 3, figsize=(11.5, 4.3), gridspec_kw={"width_ratios": [1.25, 1, 1.1]})
+    fig.subplots_adjust(left=0.06, right=0.98, top=0.8, bottom=0.2, wspace=0.45)
+    ax = axes[0]
+    first = subs.groupby("match_id").agg(coach=("coach", "first"), minute=("minute", "min"))
+    grid = np.arange(0, 96)
+    for c in COACHES:
+        m = first[first.coach == c].minute.values
+        ax.step(grid, [(m <= x).mean() * 100 for x in grid], where="post", color=COACH_COLOR[c], lw=2, label=c)
+    ax.axvline(45, color=eda.INK_2, lw=0.8, ls=":")
+    g = summ["general"].set_index("coach")
+    ax.annotate(f"{coach}, al descanso: {g.loc[coach, 'pct_primer_cambio_descanso']:.0f} %",
+                (45, g.loc[coach, "pct_primer_cambio_descanso"]), xytext=(6, 10), textcoords="offset points", fontsize=7,
+                color=eda.INK, va="center", arrowprops=dict(arrowstyle="-", color=eda.INK_2, lw=0.6))
+    ax.set_xlim(30, 95)
+    ax.set_ylim(0, 102)
+    ax.set_xlabel("minuto")
+    ax.set_ylabel("% de partidos con el primer cambio hecho")
+    ax.legend(loc="lower right", fontsize=7)
+    ax.set_title("¿Cuándo hace el primer cambio?", loc="left", fontsize=9)
+    st = summ["estado"]
+    piv = st.pivot(index="estado", columns="coach", values="cambios_por_90").reindex(["Perdiendo", "Empatando", "Ganando"])
+    _dot_rows(axes[1], piv, "{:.1f}", offset=-0.15)
+    axes[1].set_xlabel("cambios por cada 90' con ese marcador")
+    axes[1].set_title("¿Con qué marcador cambia más?", loc="left", fontsize=9)
+    ax = axes[2]
+    s = st[st.coach == coach].set_index("estado").reindex(["Perdiendo", "Empatando", "Ganando"])
+    yy = np.arange(len(s))
+    lo, hi = eda.DIV(0.12), eda.DIV(0.88)
+    ax.barh(yy, -s.pct_mas_defensivo, color=lo, height=0.6, edgecolor=eda.SURFACE, lw=1)
+    ax.barh(yy, s.pct_mas_ofensivo, color=hi, height=0.6, edgecolor=eda.SURFACE, lw=1)
+    for yi, d, o in zip(yy, s.pct_mas_defensivo, s.pct_mas_ofensivo):
+        ax.text(-d - 1.5, yi, f"{d:.0f} %", fontsize=7, color=eda.INK, ha="right", va="center")
+        ax.text(o + 1.5, yi, f"{o:.0f} %", fontsize=7, color=eda.INK, ha="left", va="center")
+    ax.axvline(0, color=eda.INK_2, lw=0.8)
+    lim = max(s.pct_mas_defensivo.max(), s.pct_mas_ofensivo.max()) * 1.5
+    ax.set_xlim(-lim, lim)
+    ax.set_yticks(yy, s.index)
+    ax.set_ylim(len(s) - 0.4, -1.0)
+    ax.set_xticks([])
+    ax.text(-lim * 0.97, -0.8, "← entra alguien más defensivo", fontsize=6.5, color=eda.INK_2, va="center")
+    ax.text(lim * 0.97, -0.8, "más ofensivo →", fontsize=6.5, color=eda.INK_2, va="center", ha="right")
+    ax.grid(False)
+    ax.set_title(f"¿Qué perfil mete {coach}?", loc="left", fontsize=9)
+    _suptitle(fig, title)
+    _footer(fig, sample_note(scope).split(" · el América")[0] + " · paneles 2 y 3: cambios tácticos (sin lesiones) desde el "
+            "segundo tiempo · perfil = línea habitual del que entra frente a la del que sale")
+    return fig
+
+
+# ------------------------------------------------------------------ §3.5 contexto
+def fig_game_state(effects: pd.DataFrame, scope: pd.DataFrame, title: str, labels: dict[str, str],
+                   states=("Pierde por 2+", "Pierde por 1", "Empate", "Gana por 1", "Gana por 2+")):
+    """Un panel por variable: efecto del marcador frente al empate (mismo partido y mismo tramo de 15'), punto e IC 90 %
+    por técnico. effects = concat de story.game_state_effect (una variable por bloque)."""
+    vars_ = list(dict.fromkeys(effects.variable))
+    fig, axes = plt.subplots(1, len(vars_), figsize=(11.5, 4.2), sharey=True)
+    fig.subplots_adjust(left=0.1, right=0.98, top=0.74, bottom=0.2, wspace=0.12)
+    y = np.arange(len(states))
+    for ax, v in zip(np.atleast_1d(axes), vars_):
+        e = effects[(effects.variable == v) & effects.coach.isin(COACHES)]
+        for k, c in enumerate(COACHES):
+            d = e[e.coach == c].set_index("estado").reindex(states)
+            yy = y + (k - 1) * 0.22
+            ax.hlines(yy, d.lo, d.hi, color=COACH_COLOR[c], lw=1.6, alpha=0.8)
+            ax.scatter(d.efecto, yy, s=46 if c == PROTAGONIST else 30, color=COACH_COLOR[c], edgecolor=eda.SURFACE,
+                       lw=1.2, zorder=3, label=c)
+            if c == PROTAGONIST:
+                for yi, val, hi in zip(yy, d.efecto, d.hi):
+                    if pd.notna(val) and round(val) != 0:
+                        ax.text(hi + 0.8, yi, f"{val:+.0f}", fontsize=7, color=eda.INK, ha="left", va="center")
+        ax.axvline(0, color=eda.INK_2, lw=0.8)
+        ax.set_yticks(y, states)
+        ax.set_ylim(len(states) - 0.5, -0.6)
+        ax.grid(axis="y", visible=False)
+        ax.set_title(labels.get(v, v), loc="left", fontsize=8.5)
+        ax.set_xlabel("diferencia con el empate")
+    np.atleast_1d(axes)[0].legend(loc="lower left", bbox_to_anchor=(0, 1.08), ncol=3, fontsize=7, frameon=False)
+    _suptitle(fig, title)
+    _footer(fig, sample_note(scope).split(" · el América")[0] + " · tramos de 15' ponderados por minutos de juego, mismo partido "
+            "(efecto fijo) · línea = IC 90 % con errores agrupados por partido · describe, no predice")
+    return fig
+
+
+def fig_context(cm: pd.DataFrame, scope: pd.DataFrame, title: str, labels: dict[str, str]):
+    """Un panel por métrica: media por partido según localía y fuerza del rival (terciles de la liga), un punto por
+    técnico. cm = story.context_metrics."""
+    rows = [("Localía", "Local"), ("Localía", "Visita"), ("Rival", "Débil"), ("Rival", "Medio"), ("Rival", "Fuerte")]
+    names = ["Local", "Visita", "Rival débil", "Rival medio", "Rival fuerte"]
+    fig, axes = plt.subplots(1, len(labels), figsize=(11.5, 3.9), sharey=True)
+    fig.subplots_adjust(left=0.09, right=0.98, top=0.78, bottom=0.2, wspace=0.15)
+    c_ = cm.set_index(["dimension", "contexto", "coach"])
+    for ax, (col, lab) in zip(np.atleast_1d(axes), labels.items()):
+        piv = pd.DataFrame({c: [c_.loc[(d, k, c), col] for d, k in rows] for c in COACHES}, index=names)
+        _dot_rows(ax, piv, "{:.0f}" if piv.abs().max().max() > 5 else "{:.2f}", offset=-0.12)
+        ax.axhline(1.5, color=eda.GRID, lw=0.8)
+        ax.set_title(lab, loc="left", fontsize=8.5)
+    np.atleast_1d(axes)[-1].legend(loc="lower right", fontsize=7)
+    _suptitle(fig, title)
+    pts = c_.xs("Jardine", level="coach").puntos_por_partido
+    n = c_.xs("Jardine", level="coach").partidos
+    _footer(fig, sample_note(scope).split(" · el América")[0] + " · rival = puntos por partido en sus 17 previos, terciles de la "
+            "liga · el PPDA de la liga sube con los años: compárese dentro de cada técnico, no entre técnicos\n"
+            "Jardine, puntos por partido: " + " · ".join(f"{k} {pts[(d, k)]:.2f} ({n[(d, k)]})" for d, k in rows))
+    return fig
+
+
+# ------------------------------------------------------------------ §3.6 evolución
+def fig_adn_evolution(pt: pd.DataFrame, axes_: list[str], title: str, changes: pd.DataFrame | None = None):
+    """Mapa de calor: percentil de liga de cada eje del ADN (filas) por técnico × torneo (columnas, cronológico).
+    Validación y prueba con borde punteado y su etiqueta. pt = story.adn_by_coach_torneo (sin interinos de < 5 partidos)."""
+    d = pt[pt.partidos >= 5].reset_index(drop=True)
+    m = d[axes_].T.values.astype(float)
+    fig, ax = plt.subplots(figsize=(11.5, 4.9))
+    fig.subplots_adjust(left=0.15, right=0.99, top=0.74, bottom=0.12)
+    ax.imshow(m, cmap=eda.DIV.reversed(), vmin=0, vmax=100, aspect="auto")
+    for i in range(m.shape[0]):
+        for j in range(m.shape[1]):
+            ax.text(j, i, f"{m[i, j]:.0f}", ha="center", va="center", fontsize=7.5,
+                    color=eda.SURFACE if abs(m[i, j] - 50) > 32 else eda.INK)
+    ax.set_yticks(range(len(axes_)), axes_, fontsize=8)
+    tor = [t.replace("Apertura ", "Ap ").replace("Clausura ", "Cl ") for t in d.torneo]
+    ax.set_xticks(range(len(d)), [f"{t}\n{n} p." for t, n in zip(tor, d.partidos)], fontsize=7)
+    ax.tick_params(length=0)
+    ax.grid(False)
+    for s in ax.spines.values():
+        s.set_visible(False)
+    # banda del técnico encima
+    for c, g in d.groupby("coach", sort=False):
+        j0, j1 = g.index.min(), g.index.max()
+        ax.add_patch(Rectangle((j0 - 0.45, -1.35), j1 - j0 + 0.9, 0.55, color=COACH_COLOR[c], clip_on=False))
+        ax.text((j0 + j1) / 2, -1.07, c, ha="center", va="center", fontsize=8, color=eda.SURFACE, fontweight="bold")
+    for j, mu in enumerate(d.muestra):
+        if mu != "ventana":
+            ax.add_patch(Rectangle((j - 0.5, -0.5), 1, len(axes_), fill=False, ls=":", lw=1.2, ec=eda.INK_2))
+            ax.text(j, len(axes_) - 0.3, mu, ha="center", va="top", fontsize=6.5, color=eda.INK_2, style="italic")
+    ax.set_ylim(len(axes_) - 0.5 + 0.5, -1.5)
+    _suptitle(fig, title)
+    if changes is not None:
+        lines = []
+        for rel, g in changes[changes.titular].groupby("relevo", sort=False):
+            lines.append(f"{rel}: " + ", ".join(f"{r.eje.lower()} {r.cambio:+.0f}" for r in g.itertuples()))
+        fig.text(0.01, 0.885, "Lo que más cambia en cada relevo (percentil de liga, era completa): " + "  ·  ".join(lines),
+                 fontsize=7, color=eda.INK_2)
+    _footer(fig, "Percentil frente a los técnicos de la Liga MX en la ventana (≥ 15 partidos) · cada eje estandarizado contra la "
+            "liga del mismo torneo y ajustado por rival y localía · azul = alto, rojo = bajo · un torneo ≈ 20 partidos: "
+            "percentil aproximado · Datos: StatsBomb")
+    return fig

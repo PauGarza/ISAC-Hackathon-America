@@ -763,6 +763,376 @@ def corner_defense_summary(cd: pd.DataFrame) -> pd.DataFrame:
     return out.reindex(COACHES).reset_index()
 
 
+# ------------------------------------------------------------------ §3.7 jugadores
+LINE_ORDER = ["Portero", "Defensa", "Carrilero", "Medio defensivo", "Medio", "Banda", "Medio ofensivo", "Delantero"]
+LINE_RANK = {line: i for i, line in enumerate(LINE_ORDER)}  # de atrás hacia adelante (para "más ofensivo")
+STATES3 = ["Perdiendo", "Empatando", "Ganando"]
+# rasgo dominante del centroide U3 -> (nombre de fútbol, qué hace). Los roles se nombran por su rasgo más marcado.
+ROLE_NAMES = {
+    "dribbles_p90": ("Extremo que encara", "regatea y conduce hacia adelante; el desequilibrio individual"),
+    "obv_dribble_carry_p90": ("Extremo que encara", "regatea y conduce hacia adelante; el desequilibrio individual"),
+    "touches_p90": ("Mediocentro organizador", "toca más que nadie, distribuye y lleva el balón al último tercio"),
+    "passes_p90": ("Mediocentro organizador", "toca más que nadie, distribuye y lleva el balón al último tercio"),
+    "xa_p90": ("Creador del último pase", "da el pase de gol: el que más asistencias esperadas y valor por pase genera"),
+    "obv_pass_p90": ("Creador del último pase", "da el pase de gol: el que más asistencias esperadas y valor por pase genera"),
+    "interceptions_p90": ("Defensor de corte", "intercepta y recupera; con el balón, juega sencillo"),
+    "ball_recoveries_p90": ("Defensor de corte", "intercepta y recupera; con el balón, juega sencillo"),
+    "tackles_p90": ("Defensor de corte", "intercepta y recupera; con el balón, juega sencillo"),
+    "np_xg_p90": ("Delantero de área", "toca poco, remata y presiona la salida rival"),
+    "pressures_p90": ("Delantero de área", "toca poco, remata y presiona la salida rival"),
+}
+
+
+def load_player_matches(scope: pd.DataFrame) -> pd.DataFrame:
+    """fct_player_match (Gold, jugador × partido del América) de los partidos de `scope`, con técnico y torneo."""
+    pm = pd.read_parquet(GOLD / "fct_player_match.parquet")
+    pm = pm[pm.match_id.isin(scope.match_id)]
+    sc = scope.set_index("match_id")
+    return pm.assign(coach=pm.match_id.map(sc.coach), torneo=pm.match_id.map(sc.torneo))
+
+
+def formations_by_torneo(lu: pd.DataFrame, scope: pd.DataFrame) -> pd.DataFrame:
+    """Sistema titular (evento Starting XI) por técnico × torneo: partidos y % de los partidos del torneo."""
+    d = lu.drop_duplicates("match_id").assign(torneo=lambda x: x.match_id.map(scope.set_index("match_id").torneo))
+    t = d.groupby(["coach", "torneo", "formation"]).size().rename("partidos").reset_index()
+    t["share"] = t.partidos / t.groupby(["coach", "torneo"]).partidos.transform("sum")
+    return t
+
+
+def xi_changes(lu: pd.DataFrame, scope: pd.DataFrame) -> pd.DataFrame:
+    """Titulares distintos respecto del partido anterior DEL MISMO técnico (el primero de cada técnico, NaN): así el
+    cambio de técnico no cuenta como rotación. Una fila por partido."""
+    xi = lu.groupby("match_id").player_id.apply(frozenset)
+    d = scope[scope.match_id.isin(xi.index)].sort_values("match_date")[["match_id", "coach", "torneo", "match_date"]]
+    d["xi"] = d.match_id.map(xi)
+    prev = d.groupby("coach").xi.shift()
+    d["cambios"] = [len(b - a) if isinstance(a, frozenset) else np.nan for a, b in zip(prev, d.xi)]
+    return d.drop(columns="xi").reset_index(drop=True)
+
+
+def player_usage(pm: pd.DataFrame) -> pd.DataFrame:
+    """Por técnico × jugador: partidos, titularidades, minutos y % de los minutos posibles (minutos de juego de los
+    partidos del técnico: el máximo de minutos de un jugador en cada partido), línea más habitual y OBV positivo
+    (suma del OBV de cada partido recortado en 0, la misma base que top3_obv_share del marco), su % del equipo, por 90'
+    y en cuántos partidos fue el que más OBV positivo generó."""
+    match_len = pm.groupby("match_id").minutes.max()
+    possible = match_len.groupby(pm.drop_duplicates("match_id").set_index("match_id").coach).sum()
+    d = pm.assign(obv_pos=pm.obv.clip(lower=0))
+    g = d.groupby(["coach", "player_id"])
+    out = pd.DataFrame({"jugador": g.player_short.first(), "partidos": g.size(), "titularidades": g.starter.sum(),
+                        "minutos": g.minutes.sum(), "obv_pos": g.obv_pos.sum(), "obv": g.obv.sum(),
+                        "linea": g.position_group.agg(lambda s: s.mode().iat[0] if s.notna().any() else None)})
+    out["pct_minutos"] = out.minutos / out.index.get_level_values("coach").map(possible).values * 100
+    out["pct_obv_pos"] = out.obv_pos / out.groupby("coach").obv_pos.transform("sum") * 100
+    out["obv_p90"] = out.obv / out.minutos * 90
+    out["obv_pos_p90"] = out.obv_pos / out.minutos * 90
+    lead = d.loc[d.groupby("match_id").obv_pos.idxmax()].groupby(["coach", "player_id"]).size()
+    out["partidos_lider_obv"] = lead.reindex(out.index).fillna(0).astype(int)
+    return out.reset_index().sort_values(["coach", "minutos"], ascending=[True, False]).reset_index(drop=True)
+
+
+def rotation_summary(changes: pd.DataFrame, usage: pd.DataFrame, lu: pd.DataFrame, core_pct: float = 50.0) -> pd.DataFrame:
+    """Por técnico: cambios medios en el XI de un partido al siguiente, % de partidos que repiten el XI, XI distintos,
+    jugadores usados, núcleo de confianza (jugadores con ≥ core_pct % de los minutos posibles) y % de los minutos
+    que se llevan los 11 jugadores con más minutos."""
+    g = changes.groupby("coach")
+    n_xi = lu.groupby("match_id").player_id.apply(frozenset).groupby(lu.drop_duplicates("match_id").set_index("match_id").coach).nunique()
+    u = usage.groupby("coach")
+    top11 = u.apply(lambda d: d.nlargest(11, "minutos").minutos.sum() / d.minutos.sum() * 100)
+    out = pd.DataFrame({"partidos": g.size(), "cambios_xi_media": g.cambios.mean(), "cambios_xi_mediana": g.cambios.median(),
+                        "pct_repite_xi": g.cambios.apply(lambda s: (s == 0).mean() * 100),
+                        "pct_3_o_mas_cambios": g.cambios.apply(lambda s: (s.dropna() >= 3).mean() * 100),
+                        "xi_distintos": n_xi, "jugadores_usados": u.size(),
+                        "nucleo_confianza": u.pct_minutos.apply(lambda s: int((s >= core_pct).sum())),
+                        "pct_minutos_top11": top11})
+    return out.reindex(COACHES).reset_index()
+
+
+def obv_distribution(pm: pd.DataFrame) -> pd.DataFrame:
+    """Reparto del OBV positivo por técnico: mediana por partido del % de los 3 mejores y del mejor, y % de toda la era
+    por línea (suma de OBV positivo de cada línea / total). Misma definición que el marco (player_match_features)."""
+    d = pm.assign(o=pm.obv.clip(lower=0))
+    per = d.groupby(["coach", "match_id"]).o
+    tot = per.sum().replace(0, np.nan)
+    top3 = (per.apply(lambda s: s.nlargest(3).sum()) / tot * 100).groupby("coach").median()
+    top1 = (per.max() / tot * 100).groupby("coach").median()
+    defs = d[d.position_group.isin(["Defensa", "Carrilero"])].groupby(["coach", "match_id"]).o.sum()
+    share_def = (defs.reindex(tot.index).fillna(0) / tot * 100).groupby("coach").median()
+    lines = d.groupby(["coach", "position_group"]).o.sum()
+    lines = (lines / lines.groupby("coach").transform("sum") * 100).unstack().reindex(columns=LINE_ORDER).fillna(0)
+    out = pd.DataFrame({"top3_mediana": top3, "top1_mediana": top1, "def_carr_mediana": share_def}).join(
+        lines.add_prefix("pct_era_"))
+    return out.reindex(COACHES).reset_index()
+
+
+def role_names(centroids: pd.DataFrame) -> pd.DataFrame:
+    """Nombre de fútbol de cada rol U3 según su rasgo más marcado (columna con el mayor z del centroide), de ROLE_NAMES.
+    Si dos roles caen en el mismo nombre, el segundo usa su siguiente rasgo con nombre distinto."""
+    rows, used = [], set()
+    for k, c in centroids.iterrows():
+        for feat in c.sort_values(ascending=False).index:
+            name = ROLE_NAMES.get(feat)
+            if name and name[0] not in used:
+                used.add(name[0])
+                rows.append({"role": k, "rol": name[0], "que_hace": name[1], "rasgo": feat, "z_rasgo": c[feat]})
+                break
+        else:
+            rows.append({"role": k, "rol": f"Rol {k + 1}", "que_hace": "", "rasgo": None, "z_rasgo": np.nan})
+    return pd.DataFrame(rows).set_index("role")
+
+
+def assign_roles(pm: pd.DataFrame, model: dict) -> pd.DataFrame:
+    """Rol U3 (modelo ajustado en la ventana: model = {'pre', 'kmeans'} de models/U3_player_roles.joblib) de cada
+    jugador-partido con ≥ player_min_minutes, sin porteros (la misma población con la que se ajustó)."""
+    from src.modeling import ROLE_COLS
+    d = pm[(pm.minutes >= A["player_min_minutes"]) & (pm.position_group != "Portero")].copy()
+    d["role"] = model["kmeans"].predict(model["pre"].transform(d[ROLE_COLS]))
+    names = role_names(pd.DataFrame(model["kmeans"].cluster_centers_, columns=ROLE_COLS))
+    return d.assign(rol=d.role.map(names.rol))
+
+
+def role_players(roles: pd.DataFrame, coach: str = PROTAGONIST, top: int = 4) -> pd.DataFrame:
+    """Por rol: % de los jugador-partidos del técnico, línea más habitual y los `top` jugadores que más partidos
+    jugaron en ese rol (con cuántos y qué % de sus partidos ≥ 30' fueron en ese rol)."""
+    d = roles[roles.coach == coach]
+    per_player = d.groupby("player_short").size()
+    rows = []
+    for rol, g in d.groupby("rol"):
+        cnt = g.player_short.value_counts().head(top)
+        rows.append({"rol": rol, "jugador_partidos": len(g), "pct": len(g) / len(d) * 100,
+                     "linea_habitual": g.position_group.mode().iat[0],
+                     "jugadores": "; ".join(f"{p} ({n}, {n / per_player[p]:.0%})" for p, n in cnt.items()),
+                     "jugador_1": cnt.index[0], "partidos_1": int(cnt.iat[0])})
+    return pd.DataFrame(rows).sort_values("pct", ascending=False).reset_index(drop=True)
+
+
+def player_profile(usage: pd.DataFrame, roles: pd.DataFrame) -> pd.DataFrame:
+    """(técnico, player_id) -> nombre corto, línea habitual (la más frecuente en sus partidos con ese técnico) y rol U3
+    habitual (el más frecuente en sus partidos ≥ 30'): el "perfil" del jugador con ese técnico."""
+    rol = roles.groupby(["coach", "player_id"]).rol.agg(lambda s: s.mode().iat[0])
+    return usage.set_index(["coach", "player_id"])[["jugador", "linea"]].join(rol)
+
+
+def substitutions(ev: pd.DataFrame, lineup_pos: pd.DataFrame, profile: pd.DataFrame) -> pd.DataFrame:
+    """Cambios del América (en memoria; un registro por jugador que entra), con el marcador AL MOMENTO del cambio
+    (framework.add_game_state), motivo (táctico o lesión), el puesto que ocupa el que entra (lineup_positions) y el
+    PERFIL de los dos (línea y rol habituales con ese técnico, de player_profile). perfil = 'Más ofensivo' si la línea
+    habitual del que entra está más adelante que la del que sale (LINE_ORDER), 'Más defensivo' si está más atrás.
+    No se usa el puesto del evento: el que entra casi siempre ocupa el hueco del que sale."""
+    s = ev[ev.am & (ev.type == "Substitution")]
+    lp = lineup_pos[lineup_pos.start_reason.str.startswith("Substitution", na=False)]
+    on_pos = lp.sort_values("from_min").drop_duplicates(["match_id", "player_id"]).set_index(["match_id", "player_id"]).position
+    key = pd.MultiIndex.from_arrays([s.match_id, s.substitution_replacement_id.astype("Int64")])
+    out = pd.DataFrame({"match_id": s.match_id.values, "coach": s.coach.values, "period": s.period.values,
+                        "minute": s.minute.values, "t": s.t.values, "score_diff": s.score_diff.values,
+                        "estado": s.game_state3.values, "motivo": s.substitution_outcome.values,
+                        "sale_id": s.player_id.values, "entra_id": s.substitution_replacement_id.values,
+                        "puesto": on_pos.reindex(key).fillna(pd.Series(s.position.values, index=key)).values})
+    for side in ["sale", "entra"]:
+        prof = profile.reindex(pd.MultiIndex.from_arrays([out.coach, out[f"{side}_id"]]))
+        out[side] = prof.jugador.values
+        out[f"linea_{side}"] = prof.linea.values
+        out[f"rol_{side}"] = prof.rol.values
+    diff = out.linea_entra.map(LINE_RANK) - out.linea_sale.map(LINE_RANK)
+    out["perfil"] = np.select([diff > 0, diff < 0], ["Más ofensivo", "Más defensivo"], "Misma línea")
+    return out.sort_values(["match_id", "t"]).reset_index(drop=True)
+
+
+def time_in_state(ev: pd.DataFrame, period_min: int = 2) -> pd.DataFrame:
+    """Minutos de juego por técnico × estado del marcador (Perdiendo/Empatando/Ganando) desde el periodo `period_min`
+    (por defecto, segundo tiempo y prórroga, cuando se hacen casi todos los cambios). Tiempo entre eventos
+    consecutivos del mismo periodo, asignado al marcador del evento anterior."""
+    d = ev[ev.period >= period_min].sort_values(["match_id", "period", "index"])
+    dt = d.groupby(["match_id", "period"]).t.diff().shift(-1).clip(lower=0).fillna(0)
+    dt = dt.where(d.groupby(["match_id", "period"]).t.shift(-1).notna(), 0)
+    return (dt.groupby([d.coach, d.game_state3]).sum() / 60).rename("minutos").reset_index().rename(
+        columns={"game_state3": "estado"})
+
+
+def substitution_summary(subs: pd.DataFrame, tis: pd.DataFrame, half: pd.Series, scope: pd.DataFrame
+                         ) -> dict[str, pd.DataFrame]:
+    """Resumen descriptivo de los cambios (no predice nada) por técnico:
+    - 'general': cambios por partido, % por lesión, minuto medio y mediano del PRIMER cambio (intervención = cambios
+      del mismo minuto), % de partidos con el primer cambio en el descanso (minuto 45 del segundo tiempo) o antes del 60';
+    - 'estado': por estado del marcador al momento del cambio: % de los cambios, cambios por cada 90' jugados en ese
+      estado desde el segundo tiempo (tasa: corrige que se pasa más tiempo empatando) y % de cambios más ofensivos;
+    - 'primer_cambio': minuto medio del primer cambio según el marcador al empezar el segundo tiempo (`half`, de
+      halftime_state);
+    - 'perfil': % de cambios por línea que sale y entra, y 'más ofensivo / misma línea / más defensivo'."""
+    n = n_matches(scope)
+    tac = subs[subs.motivo != "Injury"]
+    first = subs.groupby("match_id").agg(coach=("coach", "first"), minute=("minute", "min"), period=("period", "first"))
+    fp = subs.sort_values("t").drop_duplicates("match_id").set_index("match_id")
+    first["descanso"] = (fp.period == 2) & (fp.minute == 45)
+    g, gf = subs.groupby("coach"), first.groupby("coach")
+    general = pd.DataFrame({"cambios": g.size(), "cambios_por_partido": g.size() / n,
+                            "pct_lesion": g.motivo.apply(lambda s: (s == "Injury").mean() * 100),
+                            "primer_cambio_media": gf.minute.mean(), "primer_cambio_mediana": gf.minute.median(),
+                            "pct_primer_cambio_descanso": gf.descanso.mean() * 100,
+                            "pct_primer_cambio_antes_60": gf.minute.apply(lambda s: (s < 60).mean() * 100)}
+                           ).reindex(COACHES).reset_index()
+    t2 = tac[tac.period >= 2]
+    st = t2.groupby(["coach", "estado"]).agg(cambios=("minute", "size"),
+                                             pct_mas_ofensivo=("perfil", lambda s: (s == "Más ofensivo").mean() * 100),
+                                             pct_mas_defensivo=("perfil", lambda s: (s == "Más defensivo").mean() * 100))
+    st["pct_cambios"] = st.cambios / st.groupby("coach").cambios.transform("sum") * 100
+    st = st.join(tis.set_index(["coach", "estado"]))
+    st["cambios_por_90"] = st.cambios / st.minutos * 90
+    st["pct_tiempo"] = st.minutos / st.groupby("coach").minutos.transform("sum") * 100
+    pc = (first.assign(estado_descanso=half.reindex(first.index).values)
+          .groupby(["coach", "estado_descanso"]).minute.agg(["mean", "size"]).rename(
+              columns={"mean": "primer_cambio_media", "size": "partidos"}).reset_index())
+    prof = pd.concat([_share(tac, ["coach"], "linea_sale").rename(columns={"linea_sale": "valor"}).assign(dimension="Sale"),
+                      _share(tac, ["coach"], "linea_entra").rename(columns={"linea_entra": "valor"}).assign(dimension="Entra"),
+                      _share(tac, ["coach"], "perfil").rename(columns={"perfil": "valor"}).assign(dimension="Perfil")],
+                     ignore_index=True)
+    return {"general": general, "estado": st.reset_index(), "primer_cambio": pc, "perfil": prof}
+
+
+def halftime_state(ev: pd.DataFrame) -> pd.Series:
+    """match_id -> marcador (Perdiendo/Empatando/Ganando) al empezar el segundo tiempo."""
+    return ev[ev.period == 2].sort_values("index").groupby("match_id").game_state3.first()
+
+
+# ------------------------------------------------------------------ §3.5 contexto
+STATES5 = ["Pierde por 2+", "Pierde por 1", "Empate", "Gana por 1", "Gana por 2+"]
+CONTEXT_METRICS = {  # variable del marco (match_features / fct_segment) -> etiqueta de fútbol
+    "possession_time_pct": "Posesión (% del tiempo)", "field_tilt": "Field tilt: % de los pases en el último tercio",
+    "ppda": "PPDA: pases rivales por acción defensiva", "def_action_x_mean": "Altura de las acciones defensivas (yd)",
+    "high_press_pct": "% de acciones defensivas en campo rival", "long_pass_pct": "% de pases largos",
+    "np_xg_per100poss": "xG sin penales por 100 posesiones", "opp_np_xg_per100poss": "xG rival por 100 posesiones rivales",
+}
+SEG_MIN_DURATION = 3  # minutos de juego mínimos de un tramo (el mismo filtro que T2)
+
+
+def load_segments(scope: pd.DataFrame, min_duration: float = SEG_MIN_DURATION) -> pd.DataFrame:
+    """fct_segment (partido × tramo de 15' × estado del marcador, Gold) de `scope`, con técnico y tramos ≥ min_duration."""
+    seg = pd.read_parquet(GOLD / "fct_segment.parquet")
+    seg = seg[seg.match_id.isin(scope.match_id) & (seg.duration_min >= min_duration)]
+    return seg.assign(coach=seg.match_id.map(scope.set_index("match_id").coach), minute_bin=seg.minute_bin.astype(str))
+
+
+def game_state_effect(seg: pd.DataFrame, y: str = "field_tilt", within_match: bool = True, level: float = 0.90
+                      ) -> pd.DataFrame:
+    """Efecto del marcador en `y` por técnico (descriptivo, no predictivo): regresión ponderada por minutos de juego del
+    tramo, y ~ estado (base: empate) + tramo de 15' (+ efecto fijo del partido si within_match). Con efecto fijo, el
+    efecto compara el MISMO partido con distinto marcador (lo que cambia el plan dentro del partido, sin mezclar
+    rivales ni días). IC por errores agrupados por partido. Añade una fila 'Tres técnicos' (juntos) para comparar con
+    T2, que mezcla a los técnicos y no usa efecto fijo del partido."""
+    import statsmodels.formula.api as smf
+    rows = []
+    groups = [(c, seg[seg.coach == c]) for c in COACHES] + [("Tres técnicos", seg)]
+    for coach, d in groups:
+        d = d.dropna(subset=[y])
+        d = d[d.game_state.isin(STATES5)]
+        f = f"{y} ~ C(game_state, Treatment('Empate')) + C(minute_bin)" + (" + C(match_id)" if within_match else "")
+        fit = smf.wls(f, data=d, weights=d.duration_min).fit(cov_type="cluster", cov_kwds={"groups": d.match_id})
+        ci = fit.conf_int(1 - level)
+        mins = d.groupby("game_state").duration_min.sum()
+        wmean = d.groupby("game_state").apply(lambda g: np.average(g[y], weights=g.duration_min))
+        for st in STATES5:
+            term = f"C(game_state, Treatment('Empate'))[T.{st}]"
+            rows.append({"coach": coach, "estado": st, "variable": y,
+                         "efecto": fit.params.get(term, 0.0 if st == "Empate" else np.nan),
+                         "lo": ci.loc[term, 0] if term in ci.index else np.nan,
+                         "hi": ci.loc[term, 1] if term in ci.index else np.nan,
+                         "media_descriptiva": wmean.get(st, np.nan), "minutos": mins.get(st, 0.0),
+                         "tramos": int((d.game_state == st).sum()), "partidos": d.match_id.nunique(),
+                         "efecto_fijo_partido": within_match})
+    return pd.DataFrame(rows)
+
+
+def rival_terciles(tml: pd.DataFrame) -> np.ndarray:
+    """Cortes de fuerza del rival (puntos por partido en sus 17 previos) en terciles de la liga en la ventana: los
+    mismos de coach_profile.context_profile."""
+    return tml[tml.split == "train"].rival_ppg_prev.quantile([1 / 3, 2 / 3]).values
+
+
+def context_metrics(mf: pd.DataFrame, scope: pd.DataFrame, cuts: np.ndarray, cols=tuple(CONTEXT_METRICS)) -> pd.DataFrame:
+    """Por técnico × contexto (localía y fuerza del rival en terciles de la liga): partidos, puntos por partido y la
+    media por partido de las métricas del marco (lo que se ve en la cancha, en sus unidades)."""
+    d = mf[mf.match_id.isin(scope.match_id)].assign(coach=lambda x: x.match_id.map(scope.set_index("match_id").coach))
+    d["pts"] = d.result.map({"W": 3, "D": 1, "L": 0})
+    d["Localía"] = np.where(d.is_home, "Local", "Visita")
+    d["Rival"] = np.select([d.rival_ppg_prev < cuts[0], d.rival_ppg_prev < cuts[1]], ["Débil", "Medio"], "Fuerte")
+    rows = []
+    for dim_ in ["Localía", "Rival"]:
+        g = d.groupby(["coach", dim_])
+        t = g[list(cols)].mean().join(g.size().rename("partidos")).join(g.pts.mean().rename("puntos_por_partido"))
+        rows.append(t.reset_index().rename(columns={dim_: "contexto"}).assign(dimension=dim_))
+    return pd.concat(rows, ignore_index=True)
+
+
+def minute_profile(seg: pd.DataFrame, cols=tuple(CONTEXT_METRICS)) -> pd.DataFrame:
+    """Por técnico × tramo de 15': media de cada métrica ponderada por los minutos de juego de cada tramo, y % del
+    tiempo que va ganando, empatando o perdiendo en ese tramo (el marcador explica parte de lo que cambia con el reloj)."""
+    rows = []
+    for (coach, mb), g in seg.groupby(["coach", "minute_bin"]):
+        r = {"coach": coach, "tramo": mb, "minutos": g.duration_min.sum(), "partidos": g.match_id.nunique()}
+        for c in cols:
+            ok = g[c].notna()
+            r[c] = np.average(g.loc[ok, c], weights=g.loc[ok, "duration_min"]) if ok.any() else np.nan
+        st = g.groupby(np.sign(g.game_state.map({s: i - 2 for i, s in enumerate(STATES5)}))).duration_min.sum()
+        for k, lab in [(-1, "perdiendo"), (0, "empatando"), (1, "ganando")]:
+            r[f"pct_{lab}"] = st.get(k, 0) / r["minutos"] * 100
+        rows.append(r)
+    out = pd.DataFrame(rows)
+    out["tramo"] = pd.Categorical(out.tramo, A["minute_labels"], ordered=True)
+    return out.sort_values(["coach", "tramo"]).reset_index(drop=True)
+
+
+# ------------------------------------------------------------------ §3.6 evolución
+def torneo_order(scope: pd.DataFrame) -> list[str]:
+    return scope.groupby("torneo").match_date.min().sort_values().index.tolist()
+
+
+def torneo_metrics(mf: pd.DataFrame, scope: pd.DataFrame, cols=tuple(CONTEXT_METRICS)) -> pd.DataFrame:
+    """Por técnico × torneo (orden cronológico): partidos, puntos por partido y media por partido de las métricas del
+    marco. Un torneo compartido (Cl 2022: Solari y Ortiz) aparece una vez por técnico."""
+    d = mf[mf.match_id.isin(scope.match_id)].assign(coach=lambda x: x.match_id.map(scope.set_index("match_id").coach))
+    d["pts"] = d.result.map({"W": 3, "D": 1, "L": 0})
+    g = d.groupby(["coach", "torneo"])
+    out = g[list(cols)].mean().join(g.size().rename("partidos")).join(g.pts.mean().rename("puntos_por_partido")).reset_index()
+    out["orden"] = out.torneo.map({t: i for i, t in enumerate(torneo_order(scope))})
+    out["inicio"] = out.coach.map({c: i for i, c in enumerate(COACHES)})
+    return out.sort_values(["orden", "inicio"]).drop(columns="inicio").reset_index(drop=True)
+
+
+def adn_by_coach_torneo(ma: pd.DataFrame, ref: pd.DataFrame, team: str = fw.TEAM) -> pd.DataFrame:
+    """ADN (ejes ajustados por rival y localía, coach_profile) por técnico × torneo del equipo, en percentil de la liga
+    (referencia: periodos de técnico de la liga en la ventana). Un torneo tiene ~20 partidos: su percentil es
+    aproximado (la referencia son medias de ≥ 15 partidos). Incluye validación y prueba con su `muestra`."""
+    from src.coach_profile import AXES, SPLIT_LABEL, to_percentile
+    d = ma[(ma.team_name == team) & (ma.manager != "")].assign(coach=lambda x: x.manager.map(short))
+    g = d.groupby(["coach", "torneo"])
+    z = g[[f"adj__{a}" for a in AXES]].mean().set_axis(AXES, axis=1)
+    pct = to_percentile(z, ref)
+    pct["partidos"] = g.size()
+    pct["muestra"] = g.split.agg(lambda s: SPLIT_LABEL[s.mode()[0]])
+    pct["inicio"] = g.match_date.min()
+    return pct.reset_index().sort_values("inicio").reset_index(drop=True)
+
+
+def coach_changes(pct: pd.DataFrame, pairs=(("Solari", "Ortiz"), ("Ortiz", "Jardine"), ("Jardine", "Almada")),
+                  top: int = 3) -> pd.DataFrame:
+    """Qué cambió en cada relevo: diferencia de percentil de liga por eje (después − antes) y los `top` ejes que más se
+    movieron. pct = coach_america_percentiles (notebook 04: Almada con 2026, prueba)."""
+    from src.coach_profile import AXES
+    rows = []
+    for a, b in pairs:
+        d = (pct.loc[b, AXES] - pct.loc[a, AXES]).astype(float)
+        for rank, ax in enumerate(d.abs().sort_values(ascending=False).index, 1):
+            rows.append({"relevo": f"{a} → {b}", "antes": a, "despues": b, "eje": ax, "pct_antes": pct.loc[a, ax],
+                         "pct_despues": pct.loc[b, ax], "cambio": d[ax], "orden": rank, "titular": rank <= top})
+    return pd.DataFrame(rows)
+
+
+def trend(values: pd.Series) -> float:
+    """Pendiente por torneo (mínimos cuadrados) de una serie ordenada: + = sube torneo a torneo."""
+    v = values.dropna()
+    return float(np.polyfit(np.arange(len(v)), v.values, 1)[0]) if len(v) >= 2 else np.nan
+
+
 # ------------------------------------------------------------------ guardar solo agregados
 FORBIDDEN = {"id", "index", "possession", "timestamp", "related_events", "x", "y", "location_x", "location_y",
              "pass_end_location_x", "pass_end_location_y", "sx", "sy", "ex", "ey", "end_x", "end_y", "ball_y",
