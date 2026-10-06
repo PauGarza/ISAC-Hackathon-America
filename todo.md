@@ -49,7 +49,7 @@
   - **HTML oficial** = la historia fija (textos y figuras) con el enlace a la app;
   - **app Streamlit** = el producto (también es la demo del video);
   - **video** de 5 min o menos.
-- **Rúbrica frente al reto**: la rúbrica habla de "IP", ROI, activación y escalabilidad; el reto es táctico. La historia cubre el reto; la herramienta cubre ROI, activación y escalabilidad. Confirmar con los organizadores.
+- **Rúbrica frente al reto**: la rúbrica habla de "IP", ROI, activación y escalabilidad; el reto es táctico. **Prioridad: el producto táctico.** El bloque de negocio queda contemplado (base en `src/business.py`), pero en pausa hasta la **junta con los organizadores (mar 6, 7 pm)**.
 
 ### Hecho hasta hoy
 - [x] Registro del equipo.
@@ -61,7 +61,11 @@
 
 ### Lun 5 · Cerrar la historia
 - [x] Actualizar este todo.
-- [ ] Preguntar a los organizadores dónde se suben el HTML y el video (¿enlace de YouTube/Drive?).
+- [ ] **Junta con los organizadores, mar 6 a las 7 pm**. Preguntar:
+  - ¿aplica la rúbrica de IP, ROI y activación de marca a este reto?, ¿con qué peso?;
+  - ¿dónde se suben el HTML y el video?, ¿vale un enlace de YouTube o Drive?;
+  - ¿se pueden usar partidos posteriores al Cl 2025 como validación y prueba?;
+  - ¿se puede entregar una app de Streamlit además del HTML?
 - [x] §3.7 jugadores, §3.5 contexto y §3.6 evolución: notebook 05, 7 figuras nuevas, hallazgos en `story_hallazgos.parquet`, commit.
 - [x] Textos de la historia en `reports/final/textos.md`: resumen de 1 pantalla, §3.1 5 ideas, §3.2–§3.8, §3.9, §3.10 corta, §3.11 recomendaciones con nombres.
 - [x] Fichas regeneradas con el ADN por torneo (Santos 20 oct 2024 y Monterrey 16 dic 2024). Pesan ~650 KB cada una → el explorador del HTML va con JSON de agregados, no con fichas embebidas.
@@ -78,7 +82,7 @@
 ### Mié 7 · Resto de la app + HTML oficial + valor para el club
 - [ ] App: Balón parado, Contexto, Jugadores, Comparar, vista de 1 partido (ficha), y la historia como selección predeterminada.
 - [ ] HTML oficial: etapa `final` del pipeline + `src/templates/final_report.html.j2` (textos + figuras PNG en base64 + enlace a la app), menos de 15 MB, sin datos crudos.
-- [ ] §4.1 ROI (escenarios + sensibilidad; en la app, un simulador con sliders) · §4.2 activación · §4.3 escalabilidad (ADN de los 106 técnicos).
+- [ ] ⏸ Según lo que se diga en la junta: §4.1 ROI (escenarios + sensibilidad) · §4.2 activación · §4.3 escalabilidad. Si no aplica, queda una sección corta de "usos y escalabilidad" (ADN de los 106 técnicos).
 
 ### Recortes (pasan a 🟡)
 - §3.10 H4–H8 → tabla corta solo con H1, H2, H3, H9, H10.
