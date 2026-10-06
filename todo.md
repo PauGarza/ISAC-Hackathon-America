@@ -17,7 +17,39 @@
 
 ## ★ Plan lun 5 → vie 9 oct (una persona, ~6 h/día)
 
-Entrega: **reporte HTML** (oficial) + **video ≤ 5 min** + **app Streamlit** (explorador y demo del video, solo agregados).
+### Definición del producto (decidida el 5 oct)
+**"ADN del Entrenador · Club América"**: una página donde **primero se elige el periodo** y luego se despliega todo el análisis.
+- **Protagonista Jardine, los demás como contraste.** El estilo solo se ve comparando: Solari y Ortiz son el "antes" y Almada el "después" (prueba). Se puede elegir cualquier técnico del América, y el ADN existe para los 106 de la liga.
+- **Selector**:
+  - técnico;
+  - periodo: torneo, rango de fechas o un partido;
+  - contexto: local o visita, rival fuerte, medio o débil.
+
+  Siempre se muestra **cuántos partidos** hay y de qué muestra son (ventana, validación o prueba).
+- **Regla de muestra** (el estilo por partido es identidad más ruido):
+
+  | Selección | Qué se muestra |
+  |---|---|
+  | 1 partido | La ficha: el partido frente al ADN, crónica y mapas |
+  | Menos de 5 partidos | Tendencias con aviso de muestra chica, sin rankings |
+  | Torneo | Todo, con percentil aproximado |
+  | Era completa | Las cifras titulares |
+- **Rivales siempre visibles**: un calendario del periodo con rival, fuerza, resultado y xG. El rival pesa más que la localía (Jardine: 61 % de posesión contra débiles, 49 % contra fuertes); un tramo con rivales grandes no es un cambio de estilo.
+- **La historia es el explorador con la selección predeterminada** (Jardine, ventana oficial) y los textos de `reports/final/textos.md` encima.
+- **Bloques**:
+  1. Identidad (ADN del periodo frente a la era y la liga, Índice de Encaje, 5 ideas).
+  2. Con balón.
+  3. Sin balón (incluye 360).
+  4. Balón parado.
+  5. Contexto.
+  6. Jugadores.
+  7. Comparar con otro técnico o periodo.
+- **Datos**: la app pública no lleva eventos ni frames 360. Usa un **cubo de agregados por partido** (indicadores y conteos por zona), y filtrar es sumar o promediar partidos. Lo que necesita eventos y solo existe por era (360, red de pases, roles) se muestra fijo, con su etiqueta.
+- **Entregables**:
+  - **HTML oficial** = la historia fija (textos y figuras) con el enlace a la app;
+  - **app Streamlit** = el producto (también es la demo del video);
+  - **video** de 5 min o menos.
+- **Rúbrica frente al reto**: la rúbrica habla de "IP", ROI, activación y escalabilidad; el reto es táctico. La historia cubre el reto; la herramienta cubre ROI, activación y escalabilidad. Confirmar con los organizadores.
 
 ### Hecho hasta hoy
 - [x] Registro del equipo.
@@ -34,23 +66,19 @@ Entrega: **reporte HTML** (oficial) + **video ≤ 5 min** + **app Streamlit** (e
 - [x] Textos de la historia en `reports/final/textos.md`: resumen de 1 pantalla, §3.1 5 ideas, §3.2–§3.8, §3.9, §3.10 corta, §3.11 recomendaciones con nombres.
 - [x] Fichas regeneradas con el ADN por torneo (Santos 20 oct 2024 y Monterrey 16 dic 2024). Pesan ~650 KB cada una → el explorador del HTML va con JSON de agregados, no con fichas embebidas.
 
-### Mar 6 · Reporte HTML
-- [ ] Etapa `final` del pipeline + `src/templates/final_report.html.j2` (figuras PNG en base64).
-- [ ] Explorador de partidos (`<select>` + JSON de agregados + Plotly.js), etiqueta de muestra.
-- [ ] < 15 MB, sin datos crudos, revisado en celular.
+### Mar 6 · Cubo de agregados + núcleo de la app
+- [ ] `src/cube.py`: tablas por partido (solo agregados) para todos los partidos del América (ventana, validación y prueba):
+  - indicadores de cada bloque;
+  - conteos por zona de la cancha para 3–4 mapas;
+  - rival, fuerza, localía, resultado, xG y muestra.
+- [ ] Funciones `filtrar(cubo, técnico, periodo, contexto)` → indicadores agregados + regla de muestra. Tests con datos sintéticos.
+- [ ] `app/export_data.py` (cubo + ADN + figuras de la era → `app/data/`) y `streamlit`/`plotly` en `requirements.txt`.
+- [ ] `app/streamlit_app.py`: selector, calendario de rivales, Identidad, Con balón y Sin balón.
 
-### Mié 7 · Valor para el club + Streamlit
-- [ ] §4.1 ROI · §4.2 activación · §4.3 escalabilidad → sección del HTML.
-- [ ] `app/streamlit_app.py`: Historia · ADN de cualquier técnico · Explorador · Simulador de ROI.
-- [ ] `app/export_data.py` (solo agregados a `app/data/`); `streamlit` y `plotly` en `requirements.txt`.
-
-### Jue 8 · Despliegue + video
-- [ ] Streamlit Community Cloud; enlace en el HTML; repo sin datos crudos.
-- [ ] Guion (~750 palabras), grabación, subtítulos.
-- [ ] Checklist §0.b, buscar "35 %", etiquetas de muestra, prueba de lectura no técnica.
-
-### Vie 9 · Colchón y entrega
-- [ ] Ajustes, regenerar HTML desde cero, subir HTML + video, README.
+### Mié 7 · Resto de la app + HTML oficial + valor para el club
+- [ ] App: Balón parado, Contexto, Jugadores, Comparar, vista de 1 partido (ficha), y la historia como selección predeterminada.
+- [ ] HTML oficial: etapa `final` del pipeline + `src/templates/final_report.html.j2` (textos + figuras PNG en base64 + enlace a la app), menos de 15 MB, sin datos crudos.
+- [ ] §4.1 ROI (escenarios + sensibilidad; en la app, un simulador con sliders) · §4.2 activación · §4.3 escalabilidad (ADN de los 106 técnicos).
 
 ### Recortes (pasan a 🟡)
 - §3.10 H4–H8 → tabla corta solo con H1, H2, H3, H9, H10.
