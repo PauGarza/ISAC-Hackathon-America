@@ -18,6 +18,18 @@
 ## ★ Plan lun 5 → vie 9 oct (una persona, ~6 h/día)
 
 ### Definición del producto (decidida el 5 oct)
+**Es un producto de visualización, no de ML, y lo usa la marca, no un equipo de datos.**
+- La validación y la prueba (Ap 2025, 2026) solo sirvieron para comprobar nuestras hipótesis: no aparecen en la app.
+- En la app no se habla de "ventana", "muestra", "percentil", "modelo", "validación" ni "prueba". Se dice:
+  - "Ap 2021 – Cl 2025" o "2023–2025";
+  - "temporadas recientes";
+  - "de 0 a 100 frente a la liga";
+  - "aporte" en lugar de OBV;
+  - "dominio territorial" en lugar de field tilt;
+  - "pases que deja dar al rival antes de presionar" en lugar de PPDA.
+
+  Las figuras de la historia ya llevan pies de figura en ese lenguaje (5 oct).
+
 **"ADN del Entrenador · Club América"**: una página donde **primero se elige el periodo** y luego se despliega todo el análisis.
 - **Protagonista Jardine, los demás como contraste.** El estilo solo se ve comparando: Solari y Ortiz son el "antes" y Almada el "después" (prueba). Se puede elegir cualquier técnico del América, y el ADN existe para los 106 de la liga.
 - **Selector**:
@@ -105,6 +117,25 @@
 - [ ] App: Balón parado, Contexto, Jugadores, Comparar, vista de 1 partido (ficha), y la historia como selección predeterminada.
 - [ ] HTML oficial: etapa `final` del pipeline + `src/templates/final_report.html.j2` (textos + figuras PNG en base64 + enlace a la app), menos de 15 MB, sin datos crudos.
 - [ ] ⏸ Según lo que se diga en la junta: §4.1 ROI (escenarios + sensibilidad) · §4.2 activación · §4.3 escalabilidad. Si no aplica, queda una sección corta de "usos y escalabilidad" (ADN de los 106 técnicos).
+
+### Jue 8 · Despliegue + video
+- [ ] **Hosting: GitHub Pages con stlite** (Streamlit corriendo en el navegador). Pages solo sirve archivos estáticos, así que la app normal no corre ahí.
+  - Una sola página `index.html` que carga `app/streamlit_app.py`, `src/cube.py` y `app/data/*.parquet`.
+  - Probar que carguen pandas, plotly y statsmodels en el navegador. Si `statsmodels` falla, cambiar el efecto del marcador por una versión con numpy (mínimos cuadrados con efecto fijo del partido) o precalcularlo por técnico × torneo.
+  - Costos:
+    - la primera carga tarda unos 20–40 s;
+    - los datos agregados quedan **públicos** (Pages es público): confirmarlo con los organizadores en la junta.
+  - Plan B: Streamlit Community Cloud, que es un servidor real y admite un repositorio privado.
+  - `app/data/` hoy está ignorado (patrón `data/` del `.gitignore`): abrir una excepción solo para esa carpeta al publicar.
+- [ ] Guion (~750 palabras), grabación de pantalla con narración y subtítulos (demo de la app).
+- [ ] Revisión final:
+  - checklist §0.b;
+  - sin datos crudos;
+  - sin jerga en la app;
+  - prueba de lectura con alguien de fuera de datos.
+
+### Vie 9 · Colchón y entrega
+- [ ] Ajustes de la prueba de lectura, regenerar el HTML y el cubo desde cero, subir el HTML, el video y el enlace a la app, README.
 
 ### Recortes (pasan a 🟡)
 - §3.10 H4–H8 → tabla corta solo con H1, H2, H3, H9, H10.
