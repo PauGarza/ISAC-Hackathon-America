@@ -70,14 +70,36 @@
 - [x] Textos de la historia en `reports/final/textos.md`: resumen de 1 pantalla, §3.1 5 ideas, §3.2–§3.8, §3.9, §3.10 corta, §3.11 recomendaciones con nombres.
 - [x] Fichas regeneradas con el ADN por torneo (Santos 20 oct 2024 y Monterrey 16 dic 2024). Pesan ~650 KB cada una → el explorador del HTML va con JSON de agregados, no con fichas embebidas.
 
-### Mar 6 · Cubo de agregados + núcleo de la app
-- [ ] `src/cube.py`: tablas por partido (solo agregados) para todos los partidos del América (ventana, validación y prueba):
-  - indicadores de cada bloque;
-  - conteos por zona de la cancha para 3–4 mapas;
-  - rival, fuerza, localía, resultado, xG y muestra.
-- [ ] Funciones `filtrar(cubo, técnico, periodo, contexto)` → indicadores agregados + regla de muestra. Tests con datos sintéticos.
-- [ ] `app/export_data.py` (cubo + ADN + figuras de la era → `app/data/`) y `streamlit`/`plotly` en `requirements.txt`.
-- [ ] `app/streamlit_app.py`: selector, calendario de rivales, Identidad, Con balón y Sin balón.
+### Mar 6 · Cubo de agregados + núcleo de la app (adelantado el lun 5 por la noche)
+- [x] `src/cube.py`: 222 partidos (ventana, validación y prueba), 11 tablas, 0.4 MB:
+  - partidos: meta, rival por terciles, 41 indicadores del marco, ADN del partido, sistema, primer cambio;
+  - rejillas 12×8 por partido: tiros, tiros rivales, recuperaciones, acciones defensivas, pases progresivos;
+  - balón parado, tramos × marcador, cambios, jugadores por técnico × torneo, referencia del ADN.
+
+  Guarda contra columnas crudas: sin eventos, sin coordenadas sueltas, sin `sb_*`. Los jugadores van por torneo, no por partido.
+- [x] **Validado contra el notebook**:
+  - ADN de Jardine y Almada idéntico;
+  - 13.2 tiros y 1.52 xG por partido;
+  - 0.039 xG por córner;
+  - efecto del marcador +8.3 / −16.9 (misma regresión);
+  - % de minutos y de OBV de los jugadores.
+
+  Ojo: los indicadores del cubo son **media por partido**. La historia a veces junta todos los eventos (saques de meta cortos: 47 % frente a 45 %); etiquetarlo así.
+- [x] Consultas: `select`, `nivel_muestra`, `resumen`, `indicadores`, `adn_percentil`, `rejilla`, `balon_parado`, `efecto_marcador`, `jugadores_periodo`. 8 tests sintéticos (`tests/test_cube.py`, 42 en verde en total).
+- [x] `app/export_data.py` → `app/data/`. El patrón `data/` del `.gitignore` lo ignora: decidir el jueves, al desplegar (repo privado o excepción solo para `app/data/`).
+- [x] `app/streamlit_app.py`:
+  - modo "La historia de Jardine" o "Explorar";
+  - periodo (era, torneo, fechas, un partido) y contexto (localía, fuerza del rival);
+  - aviso de muestra y calendario de rivales;
+  - comparación con otro técnico o el América típico;
+  - pestañas: Identidad (radar del ADN), Con balón, Sin balón, Balón parado, Contexto, Jugadores, Método.
+
+  Probada sin errores en todos los modos (AppTest). Correr con `streamlit run app/streamlit_app.py`.
+- [ ] **Revisión visual con la usuaria** y ajustes de diseño y textos.
+- [ ] Pendientes de la app:
+  - vista de 1 partido más rica (crónica y radar del partido frente al ADN, reusando `match_report`);
+  - "Comparar" lado a lado;
+  - explicaciones de cada indicador en lenguaje de cancha (tooltips).
 
 ### Mié 7 · Resto de la app + HTML oficial + valor para el club
 - [ ] App: Balón parado, Contexto, Jugadores, Comparar, vista de 1 partido (ficha), y la historia como selección predeterminada.
