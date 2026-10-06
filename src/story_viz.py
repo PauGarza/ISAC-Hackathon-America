@@ -26,7 +26,7 @@ VIEWS = {"full": (-3, 123, 83, -3), "half": (57, 123, 83, -3), "box": (77, 123, 
 def sample_note(scope: pd.DataFrame) -> str:
     n = scope.groupby("coach").size()
     parts = " · ".join(f"{c} {n.get(c, 0)}" for c in COACHES if c in n)
-    return f"Ventana oficial Ap 2021 – Cl 2025 · partidos: {parts} · Datos: StatsBomb · el América ataca hacia la derecha"
+    return f"Ap 2021 – Cl 2025 · partidos: {parts} · Datos: StatsBomb · el América ataca hacia la derecha"
 
 
 def _footer(fig, text: str, y: float = 0.012):
@@ -200,7 +200,7 @@ def fig_shot_map(s: pd.DataFrame, origin_sum: pd.DataFrame, scope: pd.DataFrame,
     fig.legend(handles, ["xG 0.05", "xG 0.20", "xG 0.50", "gol"], loc="lower center", ncol=4,
                bbox_to_anchor=(0.5, 0.04), fontsize=7)
     _suptitle(fig, title)
-    _footer(fig, f"Ventana oficial Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · "
+    _footer(fig, f"Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · "
             "sin penales · balón parado = posesión que abre el saque propio de córner o tiro libre (marco) · Datos: StatsBomb")
     return fig
 
@@ -321,7 +321,7 @@ def fig_transitions(grid: pd.DataFrame, summary: pd.DataFrame, scope: pd.DataFra
                 color=eda.INK_2)
     _colorbar(fig, norm, "transiciones por partido que nacen en cada zona", rect=(0.33, 0.08, 0.34, 0.022))
     _suptitle(fig, title)
-    _footer(fig, f"Ventana oficial Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · "
+    _footer(fig, f"Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · "
             "transición = robo que llega al último tercio o al tiro en ≤ 15 s (marco) · coordenadas del América")
     return fig
 
@@ -433,7 +433,7 @@ def fig_set_pieces(deliv: pd.DataFrame, summary: pd.DataFrame, shots: pd.DataFra
     fig.legend(handles, ["xG 0.05", "xG 0.20", "xG 0.50", "gol"], loc="lower center", ncol=4,
                bbox_to_anchor=(0.66, 0.05), fontsize=7)
     _suptitle(fig, title)
-    _footer(fig, f"Ventana oficial Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · córners, tiros "
+    _footer(fig, f"Ap 2021 – Cl 2025 · {coach}, {int((scope.coach == coach).sum())} partidos · córners, tiros "
             "libres y saques de banda desde el último tercio (toda la jugada, sin penales) · la portería atacada, a la derecha "
             "(en contra: la del América) · Datos: StatsBomb")
     return fig
@@ -460,7 +460,7 @@ def fig_corner_defense(grid: pd.DataFrame, cd_sum: pd.DataFrame, marking: pd.Dat
     _colorbar(fig, norm, "defensores del América por córner en cada zona", rect=(0.33, 0.12, 0.34, 0.022))
     _suptitle(fig, title)
     util = ", ".join(f"{c} {int(cs.loc[c, 'utiles'])} de {int(cs.loc[c, 'corners'])}" for c in COACHES)
-    _footer(fig, "Ventana oficial Ap 2021 – Cl 2025 · córners rivales no jugados en corto, con 360 que ve ≥ 90 % del área y toda el "
+    _footer(fig, "Ap 2021 – Cl 2025 · córners rivales no jugados en corto, con 360 que ve ≥ 90 % del área y toda el "
             f"área chica: {util}\npegado = a ≤ 2 yd de un atacante; azar = mismo cálculo con los atacantes de otro córner · "
             "solo cuenta lo que se ve en la toma · Datos: StatsBomb")
     return fig
@@ -576,7 +576,7 @@ def fig_roles(roles_tab: pd.DataFrame, names: pd.DataFrame, scope: pd.DataFrame,
     fig.text(0.01, 0.885, "Barra = % de los partidos de sus jugadores (≥ 30', sin porteros) en cada rol · a la derecha, quién lo "
              "ocupa más: partidos en el rol y % de sus partidos", fontsize=7, color=eda.INK_2)
     _footer(fig, sample_note(scope).split(" · el América")[0] + " · roles = grupos de jugadores con el mismo perfil de acciones "
-            "por 90' (U3, K-means ajustado en la ventana); cada rol se nombra por su rasgo más marcado")
+            "por 90'; cada rol se nombra por su rasgo más marcado")
     return fig
 
 
@@ -718,16 +718,16 @@ def fig_adn_evolution(pt: pd.DataFrame, axes_: list[str], title: str, changes: p
     for j, mu in enumerate(d.muestra):
         if mu != "ventana":
             ax.add_patch(Rectangle((j - 0.5, -0.5), 1, len(axes_), fill=False, ls=":", lw=1.2, ec=eda.INK_2))
-            ax.text(j, len(axes_) - 0.3, mu, ha="center", va="top", fontsize=6.5, color=eda.INK_2, style="italic")
+            ax.text(j, len(axes_) - 0.3, "reciente", ha="center", va="top", fontsize=6.5, color=eda.INK_2, style="italic")
     ax.set_ylim(len(axes_) - 0.5 + 0.5, -1.5)
     _suptitle(fig, title)
     if changes is not None:
         lines = []
         for rel, g in changes[changes.titular].groupby("relevo", sort=False):
             lines.append(f"{rel}: " + ", ".join(f"{r.eje.lower()} {r.cambio:+.0f}" for r in g.itertuples()))
-        fig.text(0.01, 0.885, "Lo que más cambia en cada relevo (percentil de liga, era completa): " + "  ·  ".join(lines),
+        fig.text(0.01, 0.885, "Lo que más cambia en cada relevo (escala de 0 a 100, toda la etapa): " + "  ·  ".join(lines),
                  fontsize=7, color=eda.INK_2)
-    _footer(fig, "Percentil frente a los técnicos de la Liga MX en la ventana (≥ 15 partidos) · cada eje estandarizado contra la "
+    _footer(fig, "De 0 a 100 frente a los técnicos de la Liga MX (50 = promedio) · cada rasgo comparado con la "
             "liga del mismo torneo y ajustado por rival y localía · azul = alto, rojo = bajo · un torneo ≈ 20 partidos: "
-            "percentil aproximado · Datos: StatsBomb")
+            "cifra aproximada · borde punteado = torneos recientes (2025–2026) · Datos: StatsBomb")
     return fig

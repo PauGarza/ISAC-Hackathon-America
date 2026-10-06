@@ -67,8 +67,56 @@ def textos() -> dict[str, str]:
 
 C = load()
 P, CAT, EJES = C["partidos"], C["catalogo"].set_index("variable"), C["ejes"].eje.tolist()
+FRIENDLY = {  # nombre para la marca (el catálogo técnico queda en "Cómo lo medimos")
+    "gk_short_goal_kick_pct": "Saques de meta en corto (%)",
+    "buildup_passes_per_seq": "Pases por jugada de salida",
+    "buildup_success_pct": "Salidas que llegan a campo rival (%)",
+    "press_resistance_own_third": "Precisión de pase presionado en su campo (%)",
+    "prog_passes_per100": "Pases que hacen avanzar (por cada 100 pases)",
+    "prog_carries_per100": "Conducciones que hacen avanzar (por cada 100 pases)",
+    "prog_lane_left_pct": "Avanza por la izquierda (%)", "prog_lane_center_pct": "Avanza por el centro (%)",
+    "prog_lane_right_pct": "Avanza por la derecha (%)",
+    "progression_rate": "Jugadas que llegan al último tercio (%)",
+    "pass_x_mean": "Altura media de sus pases (yd)", "long_pass_pct": "Pases largos (%)",
+    "np_xg_per100poss": "Peligro creado (goles esperados por 100 posesiones)",
+    "np_xg_per_shot": "Calidad de cada tiro (goles esperados por tiro)",
+    "shots_per100poss": "Tiros por 100 posesiones", "box_touches_per100poss": "Toques en el área rival por 100 posesiones",
+    "xg_share_open_play": "Peligro que nace del juego elaborado (%)", "xg_share_transition": "Peligro que nace de contragolpes (%)",
+    "xg_share_set_piece": "Peligro que nace del balón parado (%)", "cross_xg_share": "Peligro que nace de centros (%)",
+    "ppda": "Pases que deja dar al rival antes de presionar (menos = presiona más)",
+    "def_action_x_mean": "Altura a la que defiende (yd desde su portería)",
+    "high_press_pct": "Acciones defensivas en campo rival (%)",
+    "high_regains_per100opp": "Robos en campo rival (por 100 posesiones rivales)",
+    "counterpress_per_loss": "Presión inmediata tras perder el balón",
+    "opp_np_xg_per100poss": "Peligro que concede (goles esperados del rival por 100 posesiones)",
+    "opp_shots_per100poss": "Tiros que concede por 100 posesiones rivales",
+    "opp_f3_entry_pct": "Jugadas rivales que llegan a su último tercio (%)",
+    "block_x_mean": "Altura del bloque defensivo (yd)",
+    "transition_poss_pct": "Jugadas de contragolpe (%)",
+    "transition_xg_per100poss": "Peligro al contragolpe (por 100 posesiones)",
+    "opp_transition_xg_per100poss": "Peligro que concede al contragolpe (por 100 posesiones rivales)",
+    "quick_regain_pct": "Balones perdidos que recupera en 5 s o menos (%)",
+    "possession_time_pct": "Posesión (% del tiempo)",
+    "field_tilt": "Dominio territorial (% de los pases en el último tercio)",
+    "obv_net": "Valor generado menos valor concedido (OBV)", "np_xg_diff": "Goles esperados a favor menos en contra",
+}
+CAT["etiqueta"] = [FRIENDLY.get(v, e) for v, e in zip(CAT.index, CAT.etiqueta)]
 HALL = pd.read_parquet(DATA / "hallazgos.parquet") if (DATA / "hallazgos.parquet").exists() else pd.DataFrame()
 TX = textos()
+PLAIN = [  # texto para la marca: sin jerga de ciencia de datos ni de modelos
+    (r"\s*\(2026, prueba\)", " (2026)"), (r"\s*\(prueba\)", ""), (r",? ?prueba\)", ")"),
+    (r"puntos de percentil", "puntos (en la escala de 0 a 100)"), (r"del percentil (\d+)", r"de \1"),
+    (r"al percentil (\d+)", r"a \1"), (r"percentil (\d+)", r"\1 de 100"),
+    (r"\s*en la ventana oficial", ""), (r"\s*de la ventana", ""), (r"\s*en la ventana", ""), (r"ventana oficial", "2021–2025"),
+    (r"Lo probamos con partidos que el modelo nunca vio[^\n]*", ""),
+]
+
+
+def plain(t: str) -> str:
+    import re
+    for a, b in PLAIN:
+        t = re.sub(a, b, t)
+    return t
 
 
 # ------------------------------------------------------------------ selector (barra lateral)
@@ -76,18 +124,18 @@ def selector():
     sb = st.sidebar
     sb.markdown("## ADN del Entrenador\n**Club América · Liga MX**")
     modo = sb.radio("¿Qué quieres ver?", ["La historia de Jardine", "Explorar"], horizontal=True,
-                    help="La historia es la selección por defecto: Jardine en la ventana oficial (Ap 2023 – Cl 2025).")
+                    help="La historia del América de André Jardine (2023–2025), contada con datos.")
     if modo == "La historia de Jardine":
         sel = K.select(P, coach="Jardine", muestras="ventana")
-        return sel, "Jardine · ventana oficial", modo, "Ortiz"
+        return sel, "Jardine · 2023–2025", modo, "Ortiz"
     coaches = [c for c in ["Jardine", "Ortiz", "Solari", "Almada", "Cervantes"] if c in set(P.coach)]
     coach = sb.multiselect("Técnico", coaches, default=["Jardine"])
-    otras = sb.checkbox("Incluir partidos de validación y prueba (Ap 2025 y 2026)", value=False,
-                        help="Las cifras titulares salen solo de la ventana oficial (Ap 2021 – Cl 2025).")
+    otras = sb.checkbox("Incluir temporadas recientes (Ap 2025 y 2026)", value=False,
+                        help="Por defecto se analizan los torneos Ap 2021 – Cl 2025.")
     base = K.select(P, coach=coach or None, muestras=None if otras else "ventana")
-    if base.empty and not otras:   # p. ej. Almada: todos sus partidos son de prueba (2026)
+    if base.empty and not otras:   # p. ej. Almada: todos sus partidos son de 2026
         base = K.select(P, coach=coach or None)
-        sb.caption("Este técnico no tiene partidos en la ventana oficial: se muestran sus partidos de validación o prueba.")
+        sb.caption("Se muestran sus partidos más recientes (2025–2026).")
     tipo = sb.radio("Periodo", ["Toda la era", "Torneo", "Rango de fechas", "Un partido"])
     if tipo == "Torneo":
         tor = base.drop_duplicates("torneo").sort_values("match_date").torneo.tolist()
@@ -111,17 +159,17 @@ def selector():
         base = K.select(base, localia=loc or None, rival=riv or None)
     others = [c for c in ["Ortiz", "Jardine", "Solari", "Almada"] if c not in coach] + ["América típico"]
     comp = sb.selectbox("Comparar con", others,
-                        help="Era completa del técnico elegido (Almada: 2026, prueba) o todos los partidos del América en la ventana.")
+                        help="Toda la etapa del técnico elegido, o el América promedio de 2021 a 2025.")
     label = f"{', '.join(coach) or 'Todos'} · {tipo.lower()}"
     return base, label, modo, comp
 
 
 def comparison(comp: str) -> tuple[pd.DataFrame, str]:
     if comp == "América típico":
-        return K.select(P, muestras="ventana"), "América típico (ventana)"
+        return K.select(P, muestras="ventana"), "América típico 2021–2025"
     if comp == "Almada":
-        return K.select(P, coach="Almada"), "Almada (2026, prueba)"
-    return K.select(P, coach=comp, muestras="ventana"), f"{comp} (ventana)"
+        return K.select(P, coach="Almada"), "Almada (2026)"
+    return K.select(P, coach=comp, muestras="ventana"), f"{comp} (toda su etapa)"
 
 
 # ------------------------------------------------------------------ piezas visuales
@@ -158,7 +206,7 @@ def radar(series: dict[str, pd.Series], title: str) -> go.Figure:
         th = list(s.index) + [s.index[0]]
         fig.add_trace(go.Scatterpolar(r=r, theta=th, name=name, fill="toself", opacity=0.55,
                                       line=dict(color=COACH_COLOR.get(coach, MUTED), width=2),
-                                      hovertemplate="%{theta}: percentil %{r:.0f}<extra>" + name + "</extra>"))
+                                      hovertemplate="%{theta}: %{r:.0f} de 100<extra>" + name + "</extra>"))
     fig.update_layout(polar=dict(radialaxis=dict(range=[0, 100], tickvals=[25, 50, 75], gridcolor=GRID),
                                  angularaxis=dict(gridcolor=GRID)),
                       title=dict(text=title, font=dict(size=13)), height=430, margin=dict(l=40, r=40, t=60, b=30),
@@ -188,27 +236,27 @@ def indicator_panel(sel, base, base_label, criterios):
                                  textposition="middle right", textfont=dict(size=11),
                                  customdata=np.c_[d.valor, d.base, d["dirección"]],
                                  hovertemplate="%{y}<br>periodo %{customdata[0]:.2f} · comparación %{customdata[1]:.2f}"
-                                               "<br>más que %{x:.0f} de cada 100 partidos de la comparación"
+                                               "<br>supera a %{x:.0f} de cada 100 partidos de la comparación"
                                                "<br>%{customdata[2]}<extra></extra>"))
         fig.update_layout(title=dict(text=crit, font=dict(size=13)), height=60 + 38 * len(d),
                           margin=dict(l=10, r=10, t=35, b=25), showlegend=False,
                           xaxis=dict(range=[0, 135], tickvals=[0, 25, 50, 75, 100],
-                                     title=f"percentil del periodo entre los partidos de: {base_label}"),
+                                     title=f"0–100: el periodo frente a los partidos de {base_label} (50 = igual)"),
                           yaxis=dict(autorange="reversed"), plot_bgcolor="white")
         st.plotly_chart(fig, width="stretch")
 
 
 def story_notes(block: str, show: bool):
-    """Hallazgos y figuras fijas de la historia (era completa de la ventana oficial) para un bloque."""
+    """Hallazgos y figuras fijas de la historia de Jardine (2023–2025) para un bloque."""
     if not show or HALL.empty:
         return
     pref = tuple(STORY_BLOCKS.get(block, []))
     h = HALL[HALL.bloque.str.startswith(pref)] if pref else HALL.iloc[0:0]
     if h.empty:
         return
-    with st.expander("La historia de Jardine en este bloque (era completa, ventana oficial · figuras fijas)", expanded=True):
+    with st.expander("La historia de Jardine en este bloque (2023–2025)", expanded=True):
         for r in h.itertuples():
-            st.markdown(f"**{r.pregunta}**  \n{r.hallazgo}")
+            st.markdown(f"**{r.pregunta}**  \n{plain(r.hallazgo)}")
             for f in [x.strip() for x in str(r.figuras).split(",") if x.strip()]:
                 path = next((p for p in [FIGS / "story" / f, FIGS / "coach" / f] if p.exists()), None)
                 if path:
@@ -223,8 +271,8 @@ story_mode = modo == "La historia de Jardine"
 
 st.title("ADN del Entrenador · Club América")
 if story_mode and "resumen" in TX:
-    st.markdown(TX["resumen"].split("**Por qué importa")[0])
-st.caption(f"Selección: **{label}** · comparación: **{base_label}** · Datos: StatsBomb (eventos y 360)")
+    st.markdown(plain(TX["resumen"].split("**Por qué importa")[0]))
+st.caption(f"Viendo: **{label}** · comparado con: **{base_label}** · Datos: StatsBomb")
 
 if info["nivel"] == "vacio":
     st.warning(info["aviso"])
@@ -232,14 +280,13 @@ if info["nivel"] == "vacio":
 
 r = K.resumen(sel)
 c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("Partidos", r["partidos"], help=", ".join(r["muestras"]))
+c1.metric("Partidos", r["partidos"])
 c2.metric("Récord (G-E-P)", f"{r['ganados']}-{r['empatados']}-{r['perdidos']}")
 c3.metric("Puntos por partido", f"{r['puntos_por_partido']:.2f}")
 c4.metric("Goles a favor / en contra", f"{r['goles_favor']:.1f} / {r['goles_contra']:.1f}")
-c5.metric("xG a favor / en contra", f"{r['xg_favor']:.2f} / {r['xg_contra']:.2f}", help="xG sin penales por partido")
+c5.metric("Goles esperados (xG) a favor / en contra", f"{r['xg_favor']:.2f} / {r['xg_contra']:.2f}",
+          help="xG = calidad de las ocasiones: cuántos goles 'merecía' cada equipo por las oportunidades que tuvo (sin penales).")
 (st.info if info["nivel"] in ("era", "torneo") else st.warning)(info["aviso"])
-if set(r["muestras"]) - {"ventana"}:
-    st.caption("⚠ La selección incluye partidos de validación o prueba (fuera de la ventana oficial).")
 
 # --- calendario de rivales
 with st.expander(f"Calendario: contra quién jugó ({len(sel)} partidos)", expanded=info["nivel"] != "era"):
@@ -251,9 +298,9 @@ with st.expander(f"Calendario: contra quién jugó ({len(sel)} partidos)", expan
                         line=dict(width=1, color="white")),
             customdata=np.c_[g.opponent, g.rival_nivel.fillna("—"), g.localia, g.goals_for, g.goals_against, g.torneo],
             hovertemplate="%{x|%d %b %Y} · %{customdata[2]} vs %{customdata[0]} (rival %{customdata[1]})"
-                          "<br>%{customdata[3]}-%{customdata[4]} · diferencia de xG %{y:+.2f}<br>%{customdata[5]}<extra></extra>"))
+                          "<br>%{customdata[3]}-%{customdata[4]} · ocasiones (xG) a favor − en contra %{y:+.2f}<br>%{customdata[5]}<extra></extra>"))
     fig.add_hline(y=0, line=dict(color=MUTED, width=1))
-    fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), yaxis_title="xG a favor − en contra",
+    fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), yaxis_title="¿Quién tuvo mejores ocasiones? (xG a favor − en contra)",
                       legend=dict(orientation="h", y=1.15), plot_bgcolor="white")
     st.plotly_chart(fig, width="stretch")
     st.caption("Círculo = local · rombo = visita. El rival pesa más que la localía: un tramo con rivales grandes "
@@ -262,7 +309,7 @@ with st.expander(f"Calendario: contra quién jugó ({len(sel)} partidos)", expan
     st.caption("Rivales del periodo: " + " · ".join(f"{k} {v}" for k, v in lv.items()))
     st.dataframe(sel.sort_values("match_date", ascending=False).assign(
         fecha=lambda d: d.match_date.dt.strftime("%d %b %Y"), marcador=lambda d: d.goals_for.astype(str) + "-" + d.goals_against.astype(str))
-        [["fecha", "torneo", "coach", "localia", "opponent", "rival_nivel", "marcador", "xg_favor", "xg_contra", "sistema", "muestra"]]
+        [["fecha", "torneo", "coach", "localia", "opponent", "rival_nivel", "marcador", "xg_favor", "xg_contra", "sistema"]]
         .rename(columns={"coach": "técnico", "localia": "localía", "opponent": "rival", "rival_nivel": "nivel del rival",
                          "xg_favor": "xG a favor", "xg_contra": "xG en contra"}),
         hide_index=True, width="stretch", height=min(400, 40 + 35 * len(sel)))
@@ -279,19 +326,20 @@ with tabs[0]:
     with left:
         series = {f"{who} · selección": adn, base_label: adn_b}
         if info["nivel"] != "era":
-            era = K.select(P, coach=who, muestras="ventana" if who != "Almada" else "prueba")
-            series[f"{who} · era completa"] = K.adn_percentil(era, ref, EJES)
-        st.plotly_chart(radar(series, "ADN: percentil frente a los técnicos de la Liga MX"), width="stretch")
-        st.caption("Cada rasgo se compara con la liga del mismo torneo y se ajusta por rival y localía. "
-                   + ("" if info["rankings"] else "**Muestra chica: el percentil es solo orientativo.**"))
+            era = K.select(P, coach=who, muestras="ventana" if who != "Almada" else None)
+            series[f"{who} · toda su etapa"] = K.adn_percentil(era, ref, EJES)
+        st.plotly_chart(radar(series, "ADN del técnico: de 0 a 100 frente a los técnicos de la Liga MX"), width="stretch")
+        st.caption("100 = el técnico de la liga que más lo hace; 50 = el promedio. Cada rasgo se compara con la liga del "
+                   "mismo torneo y descuenta la fuerza del rival y la localía. "
+                   + ("" if info["rankings"] else "**Con pocos partidos es solo orientativo.**"))
     with right:
         if story_mode and "3.1" in TX:
             st.markdown("#### Jardine en 5 ideas")
-            st.markdown(TX["3.1"])
+            st.markdown(plain(TX["3.1"]))
         else:
             t = pd.DataFrame({"selección": adn.round(0), base_label: adn_b.round(0)})
             t["diferencia"] = t.iloc[:, 0] - t.iloc[:, 1]
-            st.markdown("#### Rasgos del ADN (percentil de liga)")
+            st.markdown("#### Rasgos del ADN (de 0 a 100 frente a la liga)")
             st.dataframe(t, width="stretch")
             top = t.diferencia.abs().sort_values(ascending=False).index[:3]
             st.markdown("**Lo que más lo distingue de la comparación:** " + "; ".join(
@@ -304,7 +352,7 @@ with tabs[0]:
 with tabs[1]:
     ids = sel.match_id
     a, b = st.columns(2)
-    a.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "tiros", "xg"), "¿De dónde vienen sus ocasiones? xG por partido",
+    a.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "tiros", "xg"), "¿De dónde vienen sus ocasiones? Goles esperados (xG) por partido",
                               "{:.2f}", "Greens"), width="stretch")
     b.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "pases_progresivos"), "¿Hasta dónde progresa? Pases progresivos por partido (donde terminan)"),
                    width="stretch")
@@ -319,7 +367,7 @@ with tabs[2]:
                    width="stretch")
     b.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "acciones_defensivas"), "¿Dónde defiende? Acciones defensivas por partido",
                               "{:.0f}"), width="stretch")
-    c.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "tiros_rival", "xg"), "¿Desde dónde le tiran? xG rival por partido",
+    c.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "tiros_rival", "xg"), "¿Desde dónde le generan peligro? xG del rival por partido",
                               "{:.2f}", "Reds"), width="stretch")
     st.caption("Todas las canchas en el sentido del América: ataca hacia la derecha; su portería está a la izquierda.")
     indicator_panel(sel, base, base_label, BLOCKS["Sin balón"])
@@ -335,8 +383,8 @@ with tabs[3]:
         st.markdown(f"#### {lado}")
         st.dataframe(pd.DataFrame({
             "por partido": d.por_partido.round(1), "con tiro (%)": d.pct_tiro.round(0),
-            "xG por jugada": d.xg_por_jugada.round(3), "xG por partido": d.xg_por_partido.round(2),
-            f"xG por partido · {base_label}": d.xg_por_partido_comp.round(2)}), width="stretch")
+            "peligro por jugada (xG)": d.xg_por_jugada.round(3), "peligro por partido (xG)": d.xg_por_partido.round(2),
+            f"peligro por partido · {base_label}": d.xg_por_partido_comp.round(2)}), width="stretch")
     z = K.balon_parado(C["balon_parado"], sel.match_id, ["lado", "kind", "target_zone"])
     zc = z[(z.kind == "Córner")]
     if len(zc):
@@ -353,7 +401,8 @@ with tabs[3]:
 
 # --- Contexto
 with tabs[4]:
-    labels = {"field_tilt": "Field tilt (%)", "possession_time_pct": "Posesión (% del tiempo)", "ppda": "PPDA"}
+    labels = {"field_tilt": "Dominio territorial (% de los pases en el último tercio)", "possession_time_pct": "Posesión (% del tiempo)",
+              "ppda": "Pases que deja dar al rival antes de presionar (menos = presiona más)"}
     var = st.radio("Métrica", list(labels), format_func=labels.get, horizontal=True)
     e = K.efecto_marcador(C["tramos"], sel.match_id, var)
     if e.empty:
@@ -367,7 +416,7 @@ with tabs[4]:
         fig.add_vline(x=0, line=dict(color=MUTED))
         fig.update_layout(title=f"¿Cómo cambia {labels[var].lower()} con el marcador? (mismo partido, frente al empate)",
                           height=320, margin=dict(l=10, r=10, t=45, b=10), plot_bgcolor="white",
-                          yaxis=dict(autorange="reversed"), xaxis_title="diferencia con el empate (IC 90 %)")
+                          yaxis=dict(autorange="reversed"), xaxis_title="diferencia con el mismo partido empatado (la línea es el margen de error)")
         st.plotly_chart(fig, width="stretch")
     cols = ["possession_time_pct", "field_tilt", "ppda", "high_press_pct", "np_xg_per100poss", "opp_np_xg_per100poss"]
     rows = []
@@ -377,18 +426,18 @@ with tabs[4]:
                          **{CAT.loc[c, "etiqueta"]: g[c].mean() for c in cols}})
     st.markdown("#### Según la localía y la fuerza del rival")
     st.dataframe(pd.DataFrame(rows).set_index("contexto").round(2), width="stretch")
-    st.caption("El PPDA de la liga sube con los años: compáralo dentro del mismo técnico, no entre técnicos de épocas distintas.")
+    st.caption("La presión de toda la liga cambió con los años: compara la presión dentro del mismo técnico, no entre épocas.")
     story_notes("Contexto", story_mode)
 
 # --- Jugadores
 with tabs[5]:
     j = K.jugadores_periodo(C["jugadores"], sel)
-    st.caption("Granularidad: técnico × torneo (los torneos que toca la selección).")
+    st.caption("Se cuentan los torneos completos que toca la selección.")
     top = j.head(18).iloc[::-1]
     fig = go.Figure(go.Bar(x=top.pct_minutos, y=top.jugador + " · " + top.linea.fillna("").str.lower(), orientation="h",
                            marker_color="#1baf7a", customdata=np.c_[top.titularidades, top.pct_obv_pos, top.rol.fillna("—")],
                            hovertemplate="%{y}: %{x:.0f} % de los minutos<br>%{customdata[0]} de titular · "
-                                         "%{customdata[1]:.1f} % del valor (OBV+) · rol: %{customdata[2]}<extra></extra>"))
+                                         "%{customdata[1]:.1f} % del aporte del equipo · rol: %{customdata[2]}<extra></extra>"))
     fig.add_vline(x=50, line=dict(color=MUTED, dash="dot"))
     fig.update_layout(title="¿Con quién juega? % de los minutos posibles", height=560, margin=dict(l=10, r=10, t=40, b=10),
                       xaxis=dict(range=[0, 105]), plot_bgcolor="white")
@@ -396,8 +445,9 @@ with tabs[5]:
     a.plotly_chart(fig, width="stretch")
     with b:
         st.markdown("#### ¿Quién genera el valor?")
+        st.caption("Aporte = cuánto mejora cada acción con balón las opciones de gol del equipo (OBV de StatsBomb).")
         st.dataframe(j.nlargest(10, "pct_obv_pos")[["jugador", "linea", "rol", "pct_obv_pos", "obv_pos_p90"]]
-                     .rename(columns={"linea": "línea", "pct_obv_pos": "% del OBV+", "obv_pos_p90": "OBV+ por 90'"}).round(2),
+                     .rename(columns={"linea": "línea", "pct_obv_pos": "% del aporte del equipo", "obv_pos_p90": "aporte por 90'"}).round(2),
                      hide_index=True, width="stretch")
         roles = j[j.minutos >= 270].groupby("rol").minutos.sum()
         st.caption("Roles (minutos): " + " · ".join(f"{k} {v / roles.sum():.0%}" for k, v in roles.sort_values(ascending=False).items()))
@@ -407,40 +457,32 @@ with tabs[5]:
         st.metric("Minuto medio del primer cambio", f"{sel.primer_cambio_min.mean():.0f}'")
     story_notes("Jugadores", story_mode)
 
-# --- Método
+# --- Cómo lo medimos
 with tabs[6]:
     st.markdown("""
-**Marco analítico**: `src/framework.py` es la fuente única de las definiciones y los supuestos:
-- posesión, secuencia ofensiva, transición, fase de presión y balón parado;
-- umbrales y zonas en `ASSUMPTIONS`.
+**De dónde salen los datos.** StatsBomb registra cada acción con balón de cada partido (unas 3,500 por partido). En algunas jugadas también registra la posición de todos los jugadores que se ven en la toma (360). Aquí están todos los partidos del América desde el Apertura 2021.
 
-Todas las cifras de esta página salen de esas definiciones.
+**Un mismo diccionario para todo.** Antes de medir, definimos cada concepto una sola vez, y todas las cifras de esta página usan esas mismas definiciones:
+- qué es una posesión;
+- qué es una transición;
+- qué es presionar arriba;
+- qué cuenta como balón parado.
 
-**Ventana de datos**:
+**El ADN del Entrenador** resume el estilo en 8 rasgos. Cada rasgo:
+- se compara con la liga **del mismo torneo**, porque la liga cambia con los años;
+- descuenta la fuerza del rival y si se jugó en casa o fuera;
+- se expresa de 0 a 100 frente a todos los técnicos de la Liga MX: 50 es el promedio y 100 el que más lo hace.
 
-| Muestra | Periodo |
+**Cuántos partidos hacen falta.** Un partido suelto cuenta poco: el estilo se ve con varios partidos.
+
+| Partidos elegidos | Qué se puede decir |
 |---|---|
-| Ventana oficial | Ap 2021 – Cl 2025 |
-| Validación | Ap 2025 |
-| Prueba | 2026 |
-
-Las cifras titulares solo usan la ventana oficial.
-
-**ADN del Entrenador**: 8 rasgos. Cada uno:
-- se calcula con métricas de equipo de toda la Liga MX;
-- se estandariza contra la liga **del mismo torneo**, porque la liga cambia con los años;
-- se ajusta por rival y localía;
-- se expresa en percentil frente a los técnicos de la liga con 15 partidos o más.
-
-**Regla de muestra**:
-
-| Partidos | Qué se puede afirmar |
-|---|---|
-| 1 | Se compara con el ADN; no define un estilo |
+| 1 | Si ese partido se pareció al ADN del técnico |
 | Menos de 5 | Tendencias |
-| Un torneo | Identidad aproximada |
-| La era completa | Cifras titulares |
+| Un torneo | El estilo de ese torneo |
+| Toda una etapa | El ADN del técnico |
 
-**Datos**: la app solo lleva agregados por partido (`src/cube.py`); nunca eventos ni frames 360.
+**Privacidad de los datos.** La aplicación solo usa resúmenes por partido, nunca los datos originales.
 """)
-    st.dataframe(CAT[["etiqueta", "criterio", "definición", "dirección"]], width="stretch")
+    with st.expander("Diccionario de indicadores"):
+        st.dataframe(CAT[["etiqueta", "criterio", "definición", "dirección"]], width="stretch")

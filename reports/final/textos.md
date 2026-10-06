@@ -19,9 +19,9 @@ Lo medimos con un método que sirve para **cualquier técnico de la liga**:
 - el **ADN del Entrenador**: 8 rasgos comparados con la liga del mismo torneo y ajustados por rival y localía;
 - el **Índice de Encaje**: qué tan cerca está un técnico de la identidad del club.
 
-Lo probamos con partidos que el modelo nunca vio: reconoce a Almada en el América en la posición 2 de 31 técnicos posibles.
+Ese mismo ADN reconoce el estilo de Almada en sus primeros 9 partidos: el estilo sigue al técnico, no a la plantilla.
 
-**Por qué importa:** en la Liga MX hubo 104 cambios de técnico en la ventana, y 7 de cada 10 técnicos no duran ni dos torneos. Elegir mal un técnico es caro; esta herramienta ayuda a elegir con datos (§4).
+**Por qué importa:** en la Liga MX hubo 104 cambios de técnico entre 2021 y 2025, y 7 de cada 10 técnicos no duran ni dos torneos. Elegir mal un técnico es caro; esta herramienta ayuda a elegir con datos (§4).
 
 ---
 
@@ -30,7 +30,7 @@ Lo probamos con partidos que el modelo nunca vio: reconoce a Almada en el Améri
 1. **Quiere el balón y lo saca jugando.**
    - Saca en corto el **45 %** de sus saques de meta (Ortiz 31 %, Solari 33 %).
    - Un mediocentro baja a recibir el **44 %** de las veces (Ortiz 20 %).
-   - Control del balón: percentil **90** de la liga.
+   - Control del balón: **90 de 100** frente a los técnicos de la liga.
    - *Figuras:* `salida_saque_meta.png`.
 2. **Progresa por dentro, entra por fuera y tira mejor, no más.**
    - El 42 % de sus pases progresivos van por el centro, pero llega al último tercio sobre todo por las bandas: izquierda 21.1 y derecha 17.9 por partido, frente a 9.3 por el centro.
