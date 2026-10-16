@@ -3,7 +3,7 @@ secrets.md
 .env
 
 # Datos StatsBomb: uso exclusivo de la competencia, no se comparten
-data/
+/data/
 
 # Modelos entrenados (se regeneran con el pipeline; las model cards .json sí se versionan) y logs
 models/*.joblib
