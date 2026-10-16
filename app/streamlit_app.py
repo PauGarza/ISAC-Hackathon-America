@@ -109,6 +109,7 @@ PLAIN = [  # texto para la marca: sin jerga de ciencia de datos ni de modelos
     (r"al percentil (\d+)", r"a \1"), (r"percentil (\d+)", r"\1 de 100"),
     (r"\s*en la ventana oficial", ""), (r"\s*de la ventana", ""), (r"\s*en la ventana", ""), (r"ventana oficial", "2021–2025"),
     (r"Lo probamos con partidos que el modelo nunca vio[^\n]*", ""),
+    (r"\(PPDA; ", "("), (r"\(PPDA ", "("), (r"PPDA", "pases que deja dar al rival antes de presionar"),
 ]
 
 
@@ -153,10 +154,12 @@ def selector():
         base = K.select(base, match_ids=mid)
     if tipo != "Un partido":
         sb.markdown("**Contexto**")
+        fase = sb.radio("Fase del torneo", ["Todo", "Fase regular", "Liguilla"], horizontal=True,
+                        help="Liguilla = cuartos, semifinal y final (y el play-in).")
         loc = sb.multiselect("Localía", ["Local", "Visita"], default=[])
         riv = sb.multiselect("Fuerza del rival", K.RIVAL_TIERS, default=[],
                              help="Puntos por partido del rival en sus 17 partidos previos, en terciles de la liga.")
-        base = K.select(base, localia=loc or None, rival=riv or None)
+        base = K.select(base, localia=loc or None, rival=riv or None, fase=None if fase == "Todo" else fase)
     others = [c for c in ["Ortiz", "Jardine", "Solari", "Almada"] if c not in coach] + ["América típico"]
     comp = sb.selectbox("Comparar con", others,
                         help="Toda la etapa del técnico elegido, o el América promedio de 2021 a 2025.")
@@ -282,11 +285,19 @@ r = K.resumen(sel)
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("Partidos", r["partidos"])
 c2.metric("Récord (G-E-P)", f"{r['ganados']}-{r['empatados']}-{r['perdidos']}")
-c3.metric("Puntos por partido", f"{r['puntos_por_partido']:.2f}")
+xp = K.puntos_esperados(sel)
+c3.metric("Puntos por partido", f"{r['puntos_por_partido']:.2f}",
+          delta=f"{xp['diferencia']:+.2f} frente a lo que merecía" if xp else None,
+          help="Lo que 'merecía': repetimos cada partido miles de veces con las ocasiones que tuvo cada equipo "
+               f"y promediamos los puntos ({xp.get('xpts', float('nan')):.2f} por partido). Positivo = sacó más de lo que merecía.")
 c4.metric("Goles a favor / en contra", f"{r['goles_favor']:.1f} / {r['goles_contra']:.1f}")
 c5.metric("Goles esperados (xG) a favor / en contra", f"{r['xg_favor']:.2f} / {r['xg_contra']:.2f}",
           help="xG = calidad de las ocasiones: cuántos goles 'merecía' cada equipo por las oportunidades que tuvo (sin penales).")
 (st.info if info["nivel"] in ("era", "torneo") else st.warning)(info["aviso"])
+if len(sel) == 1:
+    m1 = sel.iloc[0]
+    st.markdown(f"**¿Merecía el resultado?** Con las ocasiones que tuvo cada equipo, el América ganaba este partido "
+                f"**{m1.p_victoria:.0%}** de las veces, empataba {m1.p_empate:.0%} y perdía {m1.p_derrota:.0%}.")
 
 # --- calendario de rivales
 with st.expander(f"Calendario: contra quién jugó ({len(sel)} partidos)", expanded=info["nivel"] != "era"):
@@ -314,10 +325,12 @@ with st.expander(f"Calendario: contra quién jugó ({len(sel)} partidos)", expan
                          "xg_favor": "xG a favor", "xg_contra": "xG en contra"}),
         hide_index=True, width="stretch", height=min(400, 40 + 35 * len(sel)))
 
-tabs = st.tabs(["Identidad", "Con balón", "Sin balón", "Balón parado", "Contexto", "Jugadores", "Método"])
+TAB_NAMES = ["Identidad", "Torneo a torneo", "Con balón", "Sin balón", "Balón parado", "Contexto", "Rivales",
+             "Jugadores", "Cómo lo medimos"]
+T = dict(zip(TAB_NAMES, st.tabs(TAB_NAMES)))
 
 # --- Identidad
-with tabs[0]:
+with T["Identidad"]:
     ref = C["adn_ref"]
     adn = K.adn_percentil(sel, ref, EJES)
     adn_b = K.adn_percentil(base, ref, EJES)
@@ -348,8 +361,57 @@ with tabs[0]:
         st.caption("Sistemas titulares: " + " · ".join(f"{k} ({v})" for k, v in sis.head(4).items()))
     story_notes("Identidad", story_mode)
 
+# --- Torneo a torneo
+with T["Torneo a torneo"]:
+    TT = K.torneos(P)
+    st.markdown("#### Diez torneos, tres títulos: ¿qué hizo distinto el América campeón?")
+    LL_COLOR = {"Campeón": "#d4a017", "Final perdida": "#eb6834", "Semifinal": "#2a78d6", "Cuartos": "#8fb8ea",
+                "Play-in": "#c3c2b7", "No clasificó": "#c3c2b7", "En curso": "#c3c2b7"}
+    TT["t"] = TT.torneo.map(TORNEO_SHORT) + " · " + TT.tecnico
+    a, b = st.columns(2)
+    for col, (reg, lig, title, ytitle) in zip([a, b], [
+            ("posesion_regular", "posesion_liguilla", "Posesión: fase regular frente a liguilla", "% del tiempo"),
+            ("ppda_regular", "ppda_liguilla", "Presión: pases que deja dar al rival antes de presionar",
+             "más alto = presiona menos")]):
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=TT.t, y=TT[reg], mode="lines+markers", name="Fase regular",
+                                 line=dict(color=LINE, width=2), marker=dict(size=7, color=MUTED)))
+        fig.add_trace(go.Scatter(x=TT.t, y=TT[lig], mode="markers", name="Liguilla",
+                                 marker=dict(size=[18 if l == "Campeón" else 12 for l in TT.llego],
+                                             symbol=["star" if l == "Campeón" else "circle" for l in TT.llego],
+                                             color=[LL_COLOR.get(l, MUTED) for l in TT.llego], line=dict(width=1, color="white")),
+                                 customdata=TT.llego, hovertemplate="%{x}<br>liguilla: %{y:.1f}<br>%{customdata}<extra></extra>"))
+        fig.update_layout(title=dict(text=title, font=dict(size=13)), height=360, margin=dict(l=10, r=10, t=45, b=10),
+                          yaxis_title=ytitle, plot_bgcolor="white", legend=dict(orientation="h", y=1.12),
+                          xaxis=dict(tickangle=-45, tickfont=dict(size=10)))
+        col.plotly_chart(fig, width="stretch")
+    st.caption("★ dorada = liguilla que terminó en título. Liguilla: cuartos, semifinal y final.")
+    lg = K.liguilla_ganadora(P, C["tramos"], C["balon_parado"])
+    if {True, False} <= set(lg.index):
+        w, n = lg.loc[True], lg.loc[False]
+        _tt = TT[TT.llego != "En curso"].groupby(TT.llego.eq("Campeón"))[["posesion_regular", "xg_favor_regular"]].mean()
+        rw, rn = _tt.loc[True], _tt.loc[False]
+        st.markdown(f"""
+**El América campeón juega como el América en la fase regular y como un equipo de copa en la liguilla.**
+- En las **{int(w.torneos)} liguillas que ganó** tuvo **{w.posesion:.0f} %** de posesión y dejó dar **{w.ppda:.0f}** pases al rival antes de presionar. En las **{int(n.torneos)} que no ganó**: {n.posesion:.0f} % y {n.ppda:.0f}. **Cedió el balón y esperó.**
+- No es solo que fuera ganando: con el partido **empatado** pasa lo mismo ({w.posesion_empate:.0f} % frente a {n.posesion_empate:.0f} % de posesión), y el tiempo que pasó arriba en el marcador fue parecido ({w.pct_min_ganando:.0f} % frente a {n.pct_min_ganando:.0f} % de los minutos).
+- En la fase regular la posesión casi no cambia ({rw.posesion_regular:.0f} % frente a {rn.posesion_regular:.0f} %); lo que distingue al campeón es que **genera más**: {rw.xg_favor_regular:.2f} goles esperados por partido frente a {rn.xg_favor_regular:.2f}.
+- Balón parado en esas liguillas: generó {w.bp_xg_favor:.2f} xG por partido y concedió {w.bp_xg_contra:.2f} (en las no ganadas: {n.bp_xg_favor:.2f} y {n.bp_xg_contra:.2f}).
+
+*Son tres títulos: es un patrón que se repite, no una ley.*""")
+    show = TT.rename(columns={"torneo": "Torneo", "tecnico": "Técnico", "llego": "Hasta dónde llegó",
+                              "puntos_regular": "Puntos por partido (regular)", "xpts_regular": "Lo que merecía (regular)",
+                              "xg_favor_regular": "Goles esperados por partido (regular)",
+                              "posesion_regular": "Posesión regular (%)", "posesion_liguilla": "Posesión liguilla (%)",
+                              "ppda_regular": "Presión regular*", "ppda_liguilla": "Presión liguilla*"})
+    st.dataframe(show[["Torneo", "Técnico", "Hasta dónde llegó", "Puntos por partido (regular)", "Lo que merecía (regular)",
+                       "Goles esperados por partido (regular)", "Posesión regular (%)", "Posesión liguilla (%)",
+                       "Presión regular*", "Presión liguilla*"]].round(2), hide_index=True, width="stretch")
+    st.caption("*Presión = pases que deja dar al rival antes de presionar (más alto = presiona menos). "
+               "'Lo que merecía' = puntos esperados según las ocasiones de cada partido.")
+
 # --- Con balón
-with tabs[1]:
+with T["Con balón"]:
     ids = sel.match_id
     a, b = st.columns(2)
     a.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "tiros", "xg"), "¿De dónde vienen sus ocasiones? Goles esperados (xG) por partido",
@@ -360,7 +422,7 @@ with tabs[1]:
     story_notes("Con balón", story_mode)
 
 # --- Sin balón
-with tabs[2]:
+with T["Sin balón"]:
     ids = sel.match_id
     a, b, c = st.columns(3)
     a.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "recuperaciones"), "¿Dónde recupera? Robos por partido"),
@@ -370,11 +432,25 @@ with tabs[2]:
     c.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "tiros_rival", "xg"), "¿Desde dónde le generan peligro? xG del rival por partido",
                               "{:.2f}", "Reds"), width="stretch")
     st.caption("Todas las canchas en el sentido del América: ataca hacia la derecha; su portería está a la izquierda.")
+    rv, rvb = K.recuperacion_valor(C["recuperaciones"], sel.match_id), K.recuperacion_valor(C["recuperaciones"], base.match_id)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=rv.zona, y=rv.por_partido, name="Robos por partido", marker_color="#1baf7a",
+                         text=[f"{v:.1f} robos · {t:.0f} % acaban en tiro" for v, t in zip(rv.por_partido, rv.pct_tiro.fillna(0))],
+                         textposition="outside"))
+    fig.add_trace(go.Scatter(x=rvb.zona, y=rvb.por_partido, mode="markers", name=base_label,
+                             marker=dict(size=12, color=MUTED, symbol="line-ew-open", line=dict(width=3))))
+    fig.update_layout(title="¿Cuánto vale robar en cada zona? Robos por partido y % que termina en tiro", height=340,
+                      margin=dict(l=10, r=10, t=45, b=10), plot_bgcolor="white", legend=dict(orientation="h", y=1.12),
+                      yaxis=dict(range=[0, max(rv.por_partido.max(), rvb.por_partido.max()) * 1.35]))
+    st.plotly_chart(fig, width="stretch")
+    if rv.pct_tiro.notna().all() and rv.pct_tiro.iloc[1] > 0:
+        st.caption(f"Robar en el último tercio vale {rv.pct_tiro.iloc[2] / rv.pct_tiro.iloc[1]:.1f} veces más que robar en el medio: "
+                   f"el {rv.pct_tiro.iloc[2]:.0f} % de esas jugadas termina en tiro, frente a {rv.pct_tiro.iloc[1]:.0f} %.")
     indicator_panel(sel, base, base_label, BLOCKS["Sin balón"])
     story_notes("Sin balón", story_mode)
 
 # --- Balón parado
-with tabs[3]:
+with T["Balón parado"]:
     bp = K.balon_parado(C["balon_parado"], sel.match_id, ["lado", "kind"])
     bpb = K.balon_parado(C["balon_parado"], base.match_id, ["lado", "kind"])
     t = bp.merge(bpb, on=["lado", "kind"], suffixes=("", "_comp"))
@@ -400,7 +476,7 @@ with tabs[3]:
     story_notes("Balón parado", story_mode)
 
 # --- Contexto
-with tabs[4]:
+with T["Contexto"]:
     labels = {"field_tilt": "Dominio territorial (% de los pases en el último tercio)", "possession_time_pct": "Posesión (% del tiempo)",
               "ppda": "Pases que deja dar al rival antes de presionar (menos = presiona más)"}
     var = st.radio("Métrica", list(labels), format_func=labels.get, horizontal=True)
@@ -429,8 +505,39 @@ with tabs[4]:
     st.caption("La presión de toda la liga cambió con los años: compara la presión dentro del mismo técnico, no entre épocas.")
     story_notes("Contexto", story_mode)
 
+# --- Rivales
+with T["Rivales"]:
+    rv = K.rivales(sel)
+    mn = 3 if len(sel) >= 40 else 1
+    rv = rv[rv.partidos >= mn]
+    if rv.empty:
+        st.info("No hay rivales con suficientes partidos en esta selección.")
+    else:
+        fig = go.Figure(go.Scatter(
+            x=rv.xpts, y=rv.puntos, mode="markers+text", text=rv.opponent, textposition="top center", textfont=dict(size=10),
+            marker=dict(size=8 + rv.partidos * 1.5, color=[{"Fuerte": "#e34948", "Medio": "#c3c2b7", "Débil": "#1baf7a"}.get(n, MUTED)
+                                                         for n in rv.nivel], opacity=0.8, line=dict(width=1, color="white")),
+            customdata=np.c_[rv.partidos, rv.nivel.fillna("—"), rv.pct_victorias],
+            hovertemplate="%{text} (%{customdata[1]})<br>%{customdata[0]} partidos · %{customdata[2]:.0f} % victorias"
+                          "<br>sacó %{y:.2f} puntos por partido · merecía %{x:.2f}<extra></extra>"))
+        lo, hi = min(rv.xpts.min(), rv.puntos.min()) - 0.1, max(rv.xpts.max(), rv.puntos.max()) + 0.1
+        fig.add_shape(type="line", x0=lo, y0=lo, x1=hi, y1=hi, line=dict(color=MUTED, dash="dot"))
+        fig.update_layout(title="¿Contra quién saca más (o menos) de lo que merece?", height=480, plot_bgcolor="white",
+                          margin=dict(l=10, r=10, t=45, b=10), xaxis_title="puntos que merecía por partido (según sus ocasiones)",
+                          yaxis_title="puntos que sacó por partido")
+        st.plotly_chart(fig, width="stretch")
+        st.caption("Arriba de la línea punteada: sacó más de lo que merecía. Color = nivel del rival (rojo fuerte, gris medio, "
+                   f"verde débil); tamaño = partidos. Rivales con {mn} partido(s) o más.")
+        st.dataframe(rv.rename(columns={
+            "opponent": "Rival", "nivel": "Nivel", "partidos": "Partidos", "puntos": "Puntos por partido",
+            "xpts": "Lo que merecía", "diferencia": "Diferencia", "pct_victorias": "% victorias", "posesion": "Posesión (%)",
+            "ppda": "Pases que deja dar antes de presionar", "xg_favor": "Goles esperados a favor", "xg_contra": "Goles esperados en contra"})
+            [["Rival", "Nivel", "Partidos", "Puntos por partido", "Lo que merecía", "Diferencia", "% victorias", "Posesión (%)",
+              "Pases que deja dar antes de presionar", "Goles esperados a favor", "Goles esperados en contra"]].round(2),
+            hide_index=True, width="stretch")
+
 # --- Jugadores
-with tabs[5]:
+with T["Jugadores"]:
     j = K.jugadores_periodo(C["jugadores"], sel)
     st.caption("Se cuentan los torneos completos que toca la selección.")
     top = j.head(18).iloc[::-1]
@@ -458,7 +565,7 @@ with tabs[5]:
     story_notes("Jugadores", story_mode)
 
 # --- Cómo lo medimos
-with tabs[6]:
+with T["Cómo lo medimos"]:
     st.markdown("""
 **De dónde salen los datos.** StatsBomb registra cada acción con balón de cada partido (unas 3,500 por partido). En algunas jugadas también registra la posición de todos los jugadores que se ven en la toma (360). Aquí están todos los partidos del América desde el Apertura 2021.
 

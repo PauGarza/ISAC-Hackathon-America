@@ -137,6 +137,21 @@
 ### Vie 9 · Colchón y entrega
 - [ ] Ajustes de la prueba de lectura, regenerar el HTML y el cubo desde cero, subir el HTML, el video y el enlace a la app, README.
 
+### 16 oct · Ideas del reporte de Otho (`Otho/reporte_adn_america.html`, no se versiona)
+- [x] **Torneo a torneo / "ADN ganador"**:
+  - filtro Fase regular / Liguilla y hasta dónde llegó en cada torneo (`cube.stage_reached`);
+  - en las 3 liguillas ganadas el América cedió el balón y esperó (48 % de posesión, 21 pases antes de presionar; en las 7 no ganadas, 56 % y 11);
+  - **controlado por marcador**: con el partido empatado se repite (47 % frente a 54 %) y el tiempo que pasó ganando es parecido (25 % frente a 21 %);
+  - en fase regular la posesión casi no cambia; el campeón genera más (1.61 frente a 1.43 xG por partido).
+- [x] **Puntos esperados** (simulación del reto, sección 6): cálculo exacto de goles por posesión, 1 − ∏(1 − xG). Coincide con Otho: Jardine 1.86 reales frente a 1.78 esperados. Aparece en el encabezado, en un partido suelto ("ganaba X % de las veces"), en Rivales y en Torneo a torneo.
+- [x] **Rivales**: puntos frente a lo que merecía, por rival (Pachuca 1.31 con 31 % de victorias; Tigres 2.17).
+- [x] **Valor de recuperar por zona**: en el último tercio, 24 % de los robos termina en tiro; en el medio, 13 %; en campo propio, 8 %.
+- [ ] Revisar "balones recuperados en 5 s o menos": se mide por posesiones y puede subestimarse (Otho: 2.5 % por posesión frente a 24 % por evento; nosotros, 13–15 %).
+- [ ] Pendientes de Otho que no entraron:
+  - tipos de ataque (balón parado, contragolpe, directo, elaborado, corto);
+  - "lo que el América siempre es" frente a la liga;
+  - recetas de gol.
+
 ### Recortes (pasan a 🟡)
 - §3.10 H4–H8 → tabla corta solo con H1, H2, H3, H9, H10.
 - §6 campo `explicacion` → glosario fijo en el HTML.

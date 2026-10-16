@@ -60,6 +60,71 @@ def _grid(d: pd.DataFrame, capa: str, x: str, y: str, xg: str | None = None, goa
     return out.assign(capa=capa)
 
 
+STAGES = ["No clasificó", "Play-in", "Cuartos", "Semifinal", "Final perdida", "Campeón"]   # orden de avance
+REC_ZONES = ["Tercio propio", "Tercio medio", "Último tercio"]                            # tercios del marco
+
+
+def stage_of(competition_stage: str) -> str | None:
+    """Ronda de liguilla de un partido según el `competition_stage` de StatsBomb (None = fase regular)."""
+    s = str(competition_stage).lower()
+    if "quarter" in s:
+        return "Cuartos"
+    if "play-offs" in s or "play-in" in s:
+        return "Play-in"
+    if "semi" in s:
+        return "Semifinal"
+    if "final" in s:
+        return "Final"
+    return None
+
+
+def stage_reached(dim: pd.DataFrame, today=None) -> pd.Series:
+    """torneo -> hasta dónde llegó el América: la ronda más avanzada que jugó; en la final, campeón si ganó el
+    global (goles de ida + vuelta). Un torneo sin liguilla es 'No clasificó', o 'En curso' si es el más reciente
+    y su último partido es de hace menos de 60 días respecto de `today` (por defecto, la fecha del último partido)."""
+    d = dim.assign(ronda=dim.competition_stage.map(stage_of), match_date=pd.to_datetime(dim.match_date))
+    today = pd.Timestamp(today) if today is not None else d.match_date.max()
+    out = {}
+    for t, g in d.groupby("torneo"):
+        rounds = g.ronda.dropna()
+        if rounds.empty:
+            recent = (today - g.match_date.max()).days < 60 and g.match_date.max() == d.match_date.max()
+            out[t] = "En curso" if recent else "No clasificó"
+        elif (rounds == "Final").any():
+            f = g[g.ronda == "Final"]
+            out[t] = "Campeón" if f.goals_for.sum() > f.goals_against.sum() else "Final perdida"
+        else:
+            out[t] = max(rounds, key=["Play-in", "Cuartos", "Semifinal"].index)
+    return pd.Series(out, name="llego")
+
+
+def _goal_dist(probs) -> np.ndarray:
+    """Distribución exacta del número de goles cuando cada posesión con tiros es gol con probabilidad p
+    (Poisson-binomial por convolución): equivale a simular el partido infinitas veces."""
+    dist = np.array([1.0])
+    for q in probs:
+        dist = np.convolve(dist, [1 - q, q])
+    return dist
+
+
+def expected_points(ev: pd.DataFrame) -> pd.DataFrame:
+    """Simulación del reto (sección 6, para explicar, no predecir): por partido, P(victoria/empate/derrota) y
+    puntos esperados del América. Cada posesión con tiros es gol con probabilidad 1 − ∏(1 − xG) de sus tiros
+    (cuenta una vez los rebotes); penales incluidos, porque cuentan en el marcador real; sin tanda de penales."""
+    sh = ev[(ev.type == "Shot") & (ev.period < 5)]
+    pg = (sh.groupby(["match_id", "am", "possession"]).shot_statsbomb_xg
+          .apply(lambda x: 1 - np.prod(1 - x.fillna(0).clip(0, 0.999))).reset_index(name="p"))
+    rows = []
+    for mid in ev.match_id.unique():
+        g = pg[pg.match_id == mid]
+        a, b = _goal_dist(g[g.am].p), _goal_dist(g[~g.am].p)
+        m = np.outer(a, b)                                    # m[i, j] = P(América i, rival j)
+        pw, pd_ = np.tril(m, -1).sum(), np.trace(m)
+        rows.append({"match_id": mid, "p_victoria": pw, "p_empate": pd_, "p_derrota": 1 - pw - pd_,
+                     "xpts": 3 * pw + pd_, "xg_posesion_favor": g[g.am].p.sum(), "xg_posesion_contra": g[~g.am].p.sum()})
+    return pd.DataFrame(rows)
+
+
 def build(verbose: bool = True) -> dict[str, pd.DataFrame]:
     """Construye el cubo para TODOS los partidos del América (ventana, validación y prueba)."""
     import joblib
@@ -103,7 +168,21 @@ def build(verbose: bool = True) -> dict[str, pd.DataFrame]:
         lambda f: "-".join(str(f))))
     half = S.halftime_state(ev)
     p["marcador_descanso"] = p.match_id.map(half)
+    # fase y ronda de liguilla, hasta dónde llegó en el torneo y simulación de puntos esperados
+    dm = dim.set_index("match_id")
+    p["ronda"] = p.match_id.map(dm.competition_stage.map(stage_of)).fillna("Fase regular")
+    p["llego"] = p.torneo.map(stage_reached(dim))
+    p = p.merge(expected_points(ev), on="match_id", how="left")
     log("partidos listos")
+
+    # --- valor de recuperar por zona: robos (marco: regain) por tercio y cuántos terminan en tiro
+    import src.framework as fw
+    rv = poss[poss.is_team & poss.regain.fillna(False)].dropna(subset=["start_x"])
+    recup = (rv.assign(zona=pd.Categorical(np.asarray(fw.third(rv.start_x.values)), ["Propio", "Medio", "Último"])
+                       .rename_categories(REC_ZONES))
+             .groupby(["match_id", "zona"], observed=True)
+             .agg(robos=("shot", "size"), con_tiro=("shot", "sum"), xg=("xg", "sum")).reset_index())
+    recup["zona"] = recup.zona.astype(str)
 
     # --- rejillas por partido
     sh = ev[ev.np_shot]
@@ -172,7 +251,7 @@ def build(verbose: bool = True) -> dict[str, pd.DataFrame]:
     # --- catálogo de indicadores (etiqueta, bloque, definición, dirección)
     cat = pd.read_parquet(GOLD / "analysis" / "catalog.parquet").reindex(ind).reset_index()
 
-    out = {"partidos": p, "zonas": zonas, "balon_parado": bp, "tramos": tramos, "cambios": cambios,
+    out = {"partidos": p, "zonas": zonas, "recuperaciones": recup, "balon_parado": bp, "tramos": tramos, "cambios": cambios,
            "cambios_minutos": min_estado, "jugadores": jug, "adn_ref": ref, "adn_liga": liga, "catalogo": cat,
            "ejes": pd.DataFrame({"eje": C.AXES})}
     return {k: _guard(v, k) for k, v in out.items()}
@@ -191,7 +270,7 @@ def load(path: Path = CUBE) -> dict[str, pd.DataFrame]:
 
 # ------------------------------------------------------------------ consultas (solo pandas: la app las usa)
 def select(p: pd.DataFrame, coach=None, desde=None, hasta=None, torneos=None, match_ids=None, localia=None,
-           rival=None, muestras=None) -> pd.DataFrame:
+           rival=None, muestras=None, fase=None) -> pd.DataFrame:
     """Partidos del periodo y contexto elegidos. Cada argumento None = sin filtro; listas o valores sueltos."""
     m = pd.Series(True, index=p.index)
     as_list = lambda v: [v] if isinstance(v, (str, int, np.integer)) else list(v)  # noqa: E731
@@ -211,6 +290,8 @@ def select(p: pd.DataFrame, coach=None, desde=None, hasta=None, torneos=None, ma
         m &= p.rival_nivel.isin(as_list(rival))
     if muestras is not None:
         m &= p.muestra.isin(as_list(muestras))
+    if fase is not None:
+        m &= p.fase.isin(as_list(fase))
     return p[m].sort_values("match_date")
 
 
@@ -330,6 +411,80 @@ def jugadores_periodo(jug: pd.DataFrame, sel: pd.DataFrame) -> pd.DataFrame:
     out["pct_obv_pos"] = out.obv_pos / out.obv_pos.sum() * 100
     out["obv_pos_p90"] = out.obv_pos / out.minutos * 90
     return out.sort_values("minutos", ascending=False).reset_index()
+
+
+def puntos_esperados(sel: pd.DataFrame) -> dict:
+    """¿Merecía sus resultados? Puntos reales frente a los esperados por la simulación, por partido."""
+    if sel.empty or "xpts" not in sel:
+        return {}
+    return {"puntos": sel.puntos.mean(), "xpts": sel.xpts.mean(), "diferencia": sel.puntos.mean() - sel.xpts.mean(),
+            "p_victoria": sel.p_victoria.mean(), "partidos": len(sel)}
+
+
+def torneos(p: pd.DataFrame) -> pd.DataFrame:
+    """Torneo a torneo (una fila por técnico × torneo, orden cronológico): hasta dónde llegó, puntos y puntos
+    esperados en fase regular, y cómo jugó en fase regular frente a la liguilla (posesión y PPDA medianos)."""
+    rows = []
+    for (t, c), g in p.groupby(["torneo", "coach"], sort=False):
+        r, l = g[g.fase == "Fase regular"], g[g.fase != "Fase regular"]
+        rows.append({"torneo": t, "tecnico": c, "inicio": g.match_date.min(), "llego": g.llego.iat[0],
+                     "partidos_regular": len(r), "puntos_regular": r.puntos.mean(), "xpts_regular": r.xpts.mean(),
+                     "xg_favor_regular": r.xg_favor.mean(), "posesion_regular": r.possession_time_pct.mean(),
+                     "ppda_regular": r.ppda.median(), "partidos_liguilla": len(l),
+                     "posesion_liguilla": l.possession_time_pct.mean() if len(l) else np.nan,
+                     "ppda_liguilla": l.ppda.median() if len(l) else np.nan,
+                     "field_tilt_liguilla": l.field_tilt.mean() if len(l) else np.nan})
+    return pd.DataFrame(rows).sort_values("inicio").reset_index(drop=True)
+
+
+def rivales(sel: pd.DataFrame, min_partidos: int = 1) -> pd.DataFrame:
+    """El América contra cada rival en la selección: partidos, puntos y puntos esperados por partido, % de
+    victorias, posesión, PPDA mediano y xG a favor y en contra; nivel = el más frecuente del rival en esos partidos."""
+    g = sel.groupby("opponent")
+    out = pd.DataFrame({"partidos": g.size(), "puntos": g.puntos.mean(), "xpts": g.xpts.mean(),
+                        "pct_victorias": g.result.apply(lambda s: (s == "W").mean() * 100),
+                        "posesion": g.possession_time_pct.mean(), "ppda": g.ppda.median(),
+                        "xg_favor": g.xg_favor.mean(), "xg_contra": g.xg_contra.mean(),
+                        "nivel": g.rival_nivel.agg(lambda s: s.mode().iat[0] if s.notna().any() else None)})
+    out["diferencia"] = out.puntos - out.xpts
+    return out[out.partidos >= min_partidos].sort_values(["partidos", "puntos"], ascending=False).reset_index()
+
+
+def _wavg(d: pd.DataFrame, col: str) -> float:
+    ok = d[col].notna()
+    return float(np.average(d.loc[ok, col], weights=d.loc[ok, "duration_min"])) if ok.any() else np.nan
+
+
+def liguilla_ganadora(p: pd.DataFrame, tramos: pd.DataFrame, bp: pd.DataFrame) -> pd.DataFrame:
+    """El 'ADN ganador': partidos de liguilla de torneos que el América ganó frente a los que no. Además de la media
+    por partido, compara SOLO los minutos con el partido empatado (tramos × marcador), para descartar que ceder el
+    balón sea solo consecuencia de ir ganando, y el % de minutos que pasó ganando. Incluye el balón parado."""
+    l = p[p.fase != "Fase regular"].assign(ganada=lambda d: d.llego.eq("Campeón"))
+    t = tramos.merge(l[["match_id", "ganada"]], on="match_id")
+    rows = []
+    for gan, g in l.groupby("ganada"):
+        tt = t[t.ganada == gan]
+        te = tt[tt.game_state == "Empate"]
+        b = bp[bp.match_id.isin(g.match_id)]
+        rows.append({"ganada": gan, "partidos": len(g), "torneos": g.torneo.nunique(), "puntos": g.puntos.mean(),
+                     "posesion": g.possession_time_pct.mean(), "ppda": g.ppda.median(), "field_tilt": g.field_tilt.mean(),
+                     "posesion_empate": _wavg(te, "possession_time_pct"), "ppda_empate": _wavg(te, "ppda"),
+                     "pct_min_ganando": tt[tt.game_state.str.startswith("Gana")].duration_min.sum() / tt.duration_min.sum() * 100,
+                     "bp_xg_favor": b[b.lado == "A favor"].xg.sum() / len(g),
+                     "bp_xg_contra": b[b.lado == "En contra"].xg.sum() / len(g)})
+    return pd.DataFrame(rows).set_index("ganada")
+
+
+def recuperacion_valor(rec: pd.DataFrame, ids) -> pd.DataFrame:
+    """Robos por partido en cada tercio y qué % de esas posesiones termina en tiro (y su xG medio)."""
+    d = rec[rec.match_id.isin(list(ids))]
+    n = max(len(set(ids)), 1)
+    g = d.groupby("zona").agg(robos=("robos", "sum"), con_tiro=("con_tiro", "sum"), xg=("xg", "sum"))
+    g = g.reindex(REC_ZONES).fillna(0)
+    g["por_partido"] = g.robos / n
+    g["pct_tiro"] = g.con_tiro / g.robos.replace(0, np.nan) * 100
+    g["xg_por_robo"] = g.xg / g.robos.replace(0, np.nan)
+    return g.reset_index()
 
 
 if __name__ == "__main__":

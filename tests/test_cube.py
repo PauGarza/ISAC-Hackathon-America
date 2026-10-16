@@ -86,3 +86,38 @@ def test_celdas_recortan_a_la_cancha():
     cx, cy = K._cells(pd.Series([0.0, 119.9, 120.0, 130.0]), pd.Series([0.0, 79.9, 80.0, -1.0]))
     assert cx.tolist() == [0, 11, 11, 11] and cy.tolist() == [0, 7, 7, 0]
     assert np.all((cx >= 0) & (cx < K.NX))
+
+
+def test_ronda_y_hasta_donde_llego():
+    assert K.stage_of("Apertura - Quarter-finals") == "Cuartos"
+    assert K.stage_of("Clausura - Semi-finals") == "Semifinal"
+    assert K.stage_of("Play-offs - Semi-Finals") == "Play-in"
+    assert K.stage_of("Finals") == "Final" and K.stage_of("Clausura") is None
+    dim = pd.DataFrame({
+        "torneo": ["A", "A", "A", "B", "B", "B", "C", "D"],
+        "competition_stage": ["Apertura", "Finals", "Finals", "Clausura", "Clausura - Final", "Clausura - Final",
+                              "Quarter-finals", "Apertura"],
+        "goals_for": [1, 1, 3, 2, 0, 0, 1, 2], "goals_against": [0, 1, 0, 0, 0, 2, 2, 0],
+        "match_date": pd.to_datetime(["2023-08-01", "2023-12-15", "2023-12-18", "2024-02-01", "2024-05-23",
+                                      "2024-05-26", "2024-11-28", "2026-08-01"])})
+    r = K.stage_reached(dim)
+    assert r["A"] == "Campeón" and r["B"] == "Final perdida" and r["C"] == "Cuartos" and r["D"] == "En curso"
+
+
+def test_distribucion_de_goles_exacta():
+    d = K._goal_dist([0.5, 0.5])
+    assert d == pytest.approx([0.25, 0.5, 0.25])
+    assert K._goal_dist([]) == pytest.approx([1.0])
+
+
+def test_rivales_y_valor_de_recuperar():
+    p = _partidos().assign(opponent=["X", "Y", "X", "Y", "X", "Z"], xpts=[2.0, 1.0, 1.5, 1.5, 2.5, 0.5],
+                           possession_time_pct=50.0, ppda=10.0)
+    r = K.rivales(p).set_index("opponent")
+    assert r.loc["X", "partidos"] == 3 and r.loc["X", "puntos"] == pytest.approx(7 / 3)
+    assert r.loc["X", "diferencia"] == pytest.approx(7 / 3 - 2.0)
+    rec = pd.DataFrame({"match_id": [1, 1, 2], "zona": ["Último tercio", "Tercio medio", "Último tercio"],
+                        "robos": [2, 10, 2], "con_tiro": [1, 1, 1], "xg": [0.1, 0.1, 0.1]})
+    v = K.recuperacion_valor(rec, [1, 2]).set_index("zona")
+    assert v.loc["Último tercio", "pct_tiro"] == 50 and v.loc["Tercio medio", "por_partido"] == 5
+    assert v.loc["Tercio propio", "robos"] == 0
