@@ -245,7 +245,7 @@ def build() -> str:
     est = "".join(f"<li><strong>{html.escape(a)}.</strong> {html.escape(b)}</li>" for a, b in ESTRUCTURA)
     resumen = (f"{len(R)} hipótesis de los tres probadas con la misma regla: {conteo['se sostiene']} se sostienen, "
                f"{conteo['no cambia']} no cambian el resultado, {conteo['no se sostiene']} no se sostienen y {conteo['no alcanza']} no alcanzan.")
-    page = Template((Path(__file__).with_name("templates") / "prereporte.html").read_text(encoding="utf-8"))
+    page = Template((Path(__file__).with_name("templates") / "prereporte.html.tpl").read_text(encoding="utf-8"))
     return page.substitute(fecha=FECHA, resumen=html.escape(resumen), decisiones=dec, alineacion=alin, criterios=crit,
                            desvios=desv, frameworks=tabla(FRAMEWORKS, ["Concepto", "Pau (src/framework.py)", "Otho (framework.md)"]),
                            secciones="\n".join(secciones), estructura=est,
