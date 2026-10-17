@@ -15,6 +15,64 @@
 
 ---
 
+## ★ Plan vie 16 → jue 22 oct (entrega real: **22 oct**; el "9 oct" de abajo era un error)
+
+### Decisión del 16 oct: historia y app separadas
+- **Reporte HTML** = la historia fija; combina las ideas de los tres:
+  - Pau: historia de Jardine, ADN del Entrenador, Índice de Encaje;
+  - Otho: ADN del club, ADN ganador, liguillas, rivales;
+  - Emi: lenguaje de cancha, puntos críticos, recomendaciones con solución, hipótesis nuevas.
+- **App** = explorador **sin conclusiones escritas a mano**. Todo texto se calcula con la selección.
+- Las dos usan el mismo cubo y las mismas piezas visuales (`src/viz.py`).
+
+### Hecho (16 oct)
+- [x] App sin historia:
+  - fuera el modo "La historia de Jardine", textos, hallazgos y figuras fijas;
+  - Torneo a torneo con una tabla calculada;
+  - siglas explicadas y glosario de siglas en "Cómo lo medimos";
+  - `app/data/` sin `textos.md` ni `hallazgos.parquet`.
+- [x] `src/viz.py`: cancha, mapa de calor, radar y paleta compartidos (tests en `tests/test_viz.py`).
+- [x] **Hipótesis de los tres probadas**:
+  - `src/hipotesis.py`, notebook `06_hipotesis_equipo.ipynb` y registro en `data/gold/analysis/hipotesis_equipo.parquet` (31 hipótesis con origen, evidencia, veredicto y sección del reporte);
+  - **todas las formaciones, por minutos en el campo** (titular + cambios tácticos; la propia y la del rival), comparadas con el 4-2-3-1 con el mismo técnico, rival y marcador (`tramos_formacion`, `comparar_formacion`). Umbrales nuevos en `ASSUMPTIONS`: `big_chance_xg` 0.30 (ocasión clara) y `formation_min_minutes` 20;
+  - comparaciones dentro del mismo técnico y nivel de rival (permutación estratificada);
+  - el plan de juego se mide con el partido empatado.
+- Lo más importante del registro:
+  - el ADN del club es **control, peligro y solidez** (corrige H2: el balón parado depende del técnico);
+  - la **localía sí distingue**, en resultado y en estilo;
+  - en liguilla, **el que avanza cede el balón y presiona menos** (Otho, se sostiene serie por serie);
+  - que el campeón produzca más en la fase regular es solo una pista;
+  - **Ortiz perdió sus semifinales presionando como nunca**;
+  - el **cierre del primer tiempo** es su momento más vulnerable;
+  - al perder: tira peor, le hacen daño al contragolpe y domina menos con el partido empatado;
+  - formaciones:
+    - el 4-4-2 rinde igual que el 4-2-3-1 (solo presiona menos), pero contra rivales fuertes llega más al área sin conceder más;
+    - con **tres centrales el equipo se repliega sin protegerse más**, incluso contra rivales con línea de 3 (el espejo no ayuda);
+    - el 4-3-3 genera menos;
+  - **no había mejores jugadores** cuando ganó (por aporte, OBV);
+  - extremos a pierna cambiada desde Ortiz.
+
+### Pendiente
+- [ ] Revisar el registro de hipótesis con Emi y Otho.
+- [x] Otho pasó su parte (`Otho/Hackathon América/`: R, salidas agregadas, narrativa y framework). **`Otho/` completa está en `.gitignore`**: trae datos crudos de StatsBomb (`reto/`, 337 MB) y una tabla con un renglón por gol.
+- [ ] Para el reporte: copiar a `reports/final/` solo las tablas o figuras agregadas de Otho que entren (recetas y tipos de gol, defensa bajo ataque, finales, índice de rival). Nunca `goles_secuencias.csv`.
+- [ ] Reescribir `reports/final/textos.md` con la estructura acordada:
+  - 0 · en un minuto;
+  - 1 · ADN del América;
+  - 2 · lo que agregó Jardine;
+  - 3 · cómo ajusta;
+  - 4 · por qué ganó y por qué no ganaron;
+  - 5 · puntos críticos;
+  - 6 · lo que probamos y no cambia;
+  - 7 · recomendaciones;
+  - 8 · nuestro aporte;
+  - anexos: marco analítico y glosario.
+- [ ] `src/final_report.py` + `src/templates/final_report.html.j2` → `reports/final/reporte_america.html` (< 15 MB, solo agregados).
+- [ ] Video (≤ 5 min) y prueba de lectura con alguien de fuera de datos (21 oct).
+- [ ] Entrega por correo a itamsportsanalytics@gmail.com con los correos de los tres (22 oct).
+
+---
+
 ## ★ Plan lun 5 → vie 9 oct (una persona, ~6 h/día)
 
 ### Definición del producto (decidida el 5 oct)

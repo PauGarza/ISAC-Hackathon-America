@@ -41,6 +41,8 @@ ASSUMPTIONS = {
     "player_reference_window": 10,         # partidos previos para la referencia de un jugador
     "rival_strength_window": 17,           # partidos de liga previos para la fuerza del rival
     "sub_window_min": 15,                  # impacto de sustitución: 15' antes vs 15' después
+    "big_chance_xg": 0.30,                 # "ocasión clara": tiro sin penal con xG ≥ 0.30 (≈ 1 de cada 3 entra)
+    "formation_min_minutes": 20,           # minutos mínimos de una formación en un estrato para compararla
     # 360 (solo lo que se ve en la toma): forma defensiva del América en pases rivales de juego abierto
     "shape_line_players": 4,               # última línea = los 4 jugadores de campo visibles más retrasados
     "shape_block_players": 8,              # bloque = los 8 de campo más retrasados (última línea + la siguiente)
