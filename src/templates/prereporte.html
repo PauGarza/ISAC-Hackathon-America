@@ -1,0 +1,294 @@
+<title>Prerreporte ADN del Entrenador</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: una sola columna de lectura (documento de trabajo), con hallazgos en tarjetas de dos columnas en pantallas anchas. */
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --ink: #14181d; --ink-2: #48505b; --muted: #6f7782; --rule: #dde2e8;
+  --accent: #1d4e89; --accent-soft: #e6eef8;
+  --good: #0b7a0b; --good-soft: #e3f3e3; --warn: #8a5a00; --warn-soft: #fbf0d6;
+  --bad: #b42f2f; --bad-soft: #f8e3e3; --neutral: #4a515c; --neutral-soft: #eceff3;
+  --note: #fff8e6; --note-rule: #e9c46a;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101317; --surface: #171b21; --ink: #eef1f4; --ink-2: #bcc4ce; --muted: #8b94a1; --rule: #2a3039;
+    --accent: #8db6ee; --accent-soft: #1b2a3f;
+    --good: #6fd36f; --good-soft: #15301a; --warn: #f3c25a; --warn-soft: #33290f;
+    --bad: #f08a8a; --bad-soft: #3a1c1c; --neutral: #c2c9d2; --neutral-soft: #232932;
+    --note: #2a2410; --note-rule: #8a6d1f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101317; --surface: #171b21; --ink: #eef1f4; --ink-2: #bcc4ce; --muted: #8b94a1; --rule: #2a3039;
+  --accent: #8db6ee; --accent-soft: #1b2a3f;
+  --good: #6fd36f; --good-soft: #15301a; --warn: #f3c25a; --warn-soft: #33290f;
+  --bad: #f08a8a; --bad-soft: #3a1c1c; --neutral: #c2c9d2; --neutral-soft: #232932;
+  --note: #2a2410; --note-rule: #8a6d1f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 48px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(2.2rem, 6vw, 3.4rem); letter-spacing: 0.005em; }
+h2 { font-size: 1.9rem; }
+h3 { font-size: 1.45rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+h4 { margin: 0; font-size: 1.05rem; line-height: 1.35; }
+p { margin: 0; }
+.prose { max-width: 68ch; display: grid; gap: 12px; color: var(--ink-2); }
+.eyebrow { font: 600 0.78rem/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+header.top { display: grid; gap: 16px; border-bottom: 3px solid var(--ink); padding-bottom: 24px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--muted); font-size: 0.95rem; }
+.meta strong { color: var(--ink); font-weight: 600; }
+section.parte { display: grid; gap: 20px; }
+section.parte > header { display: grid; gap: 6px; }
+.lectura { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 0.9rem; color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 4px; }
+.tile .num { font: 700 2.2rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.tile .lab { font-size: 0.9rem; color: var(--ink-2); }
+.tile.good .num { color: var(--good); } .tile.neutral .num { color: var(--neutral); }
+.tile.bad .num { color: var(--bad); } .tile.warn .num { color: var(--warn); }
+ol.decisiones { list-style: none; counter-reset: d; margin: 0; padding: 0; display: grid; gap: 10px; }
+ol.decisiones li { counter-increment: d; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px;
+  padding: 14px 16px 14px 56px; position: relative; display: grid; gap: 4px; }
+ol.decisiones li::before { content: counter(d); position: absolute; left: 16px; top: 12px; font: 700 1.6rem/1 var(--display); color: var(--accent); }
+ol.decisiones li div { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.quien { font-size: 0.85rem; color: var(--muted); }
+.quien::before { content: "Decide: "; }
+.pregunta { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 14px 18px; border-radius: 0 6px 6px 0;
+  font-style: italic; color: var(--ink); max-width: 75ch; }
+.tabla { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; min-width: 560px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 0.78rem/1.2 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+tbody tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+ul.desvios { margin: 0; padding-left: 20px; display: grid; gap: 10px; max-width: 75ch; color: var(--ink-2); }
+ul.desvios strong { color: var(--ink); }
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 600; padding: 2px 9px; border-radius: 999px;
+  border: 1px solid transparent; line-height: 1.5; }
+.chip.good { background: var(--good-soft); color: var(--good); border-color: var(--good); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); }
+.chip.neutral { background: var(--neutral-soft); color: var(--neutral); border-color: var(--rule); }
+.who { font: 600 0.75rem/1.6 var(--body); padding: 0 8px; border-radius: 4px; border: 1px solid var(--rule); color: var(--ink-2); background: var(--bg); }
+.ids { font: 500 0.8rem/1 var(--mono); color: var(--muted); }
+.bloque { display: grid; gap: 16px; padding-top: 8px; border-top: 1px solid var(--rule); }
+.tarjetas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.hallazgo { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.hallazgo header { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.hallazgo p { color: var(--ink-2); font-size: 0.95rem; }
+.hid { font: 500 0.8rem/1 var(--mono); color: var(--accent); margin-right: 4px; }
+.nota { background: var(--note); border-left: 3px solid var(--note-rule); padding: 8px 12px; border-radius: 0 4px 4px 0; display: grid; gap: 2px; }
+.nota-tag { font: 600 0.72rem/1.3 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--warn); }
+.nota p { color: var(--ink); font-size: 0.92rem; }
+figure.viz { margin: 0; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 12px 10px; display: grid; gap: 6px; min-width: 0; }
+figure.viz figcaption { font-size: 0.85rem; color: var(--muted); padding: 0 4px; max-width: 80ch; }
+.plot { width: 100%; min-height: 320px; }
+ol.estructura { margin: 0; padding-left: 22px; display: grid; gap: 8px; max-width: 75ch; color: var(--ink-2); }
+ol.estructura strong { color: var(--ink); }
+footer.pie { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--rule); padding-top: 16px; display: grid; gap: 6px; max-width: 80ch; }
+code { font: 500 0.85em var(--mono); }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+nav.indice { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.92rem; }
+@media (max-width: 720px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tarjetas { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Prerreporte para el equipo · $fecha</span>
+    <h1>ADN del Entrenador: lo que tenemos y lo que falta decidir</h1>
+    <div class="prose">
+      <p>Juntamos lo de los tres: la historia de Jardine y el ADN del Entrenador (Pau), el ADN del club y el ADN ganador (Otho) y la revisión con ojos de entrenador (Emi). Cada idea se probó con la misma regla antes de decidir si entra al reporte final. Aquí están los resultados, las dudas abiertas y una revisión de si seguimos respondiendo lo que pide el reto.</p>
+      <p>Las notas amarillas <strong>"Para revisar"</strong> dicen quién decide. Entrega: <strong>jueves 22 de octubre</strong>.</p>
+    </div>
+    <div class="meta"><span>De: <strong>Pau</strong></span><span>Para: <strong>Emi y Otho</strong></span><span>Fuente: <code>notebooks/06_hipotesis_equipo.ipynb</code></span></div>
+    <nav class="indice" aria-label="Secciones">
+      <a href="#decidir">Qué decidir</a><a href="#reto">¿Vamos alineados con el reto?</a><a href="#framework">Dos frameworks</a>
+      <a href="#hallazgos">Lo que encontramos</a><a href="#estructura">Estructura del reporte</a>
+    </nav>
+  </header>
+
+  <section class="parte" aria-labelledby="t-resumen">
+    <header><h2 id="t-resumen">En una mirada</h2></header>
+    <p class="prose">$resumen</p>
+    <div class="tiles">
+      <div class="tile good"><span class="num">$c_good</span><span class="lab">✓ se sostienen</span></div>
+      <div class="tile neutral"><span class="num">$c_neutral</span><span class="lab">= no cambian el resultado</span></div>
+      <div class="tile bad"><span class="num">$c_bad</span><span class="lab">✕ no se sostienen</span></div>
+      <div class="tile warn"><span class="num">$c_warn</span><span class="lab">? no alcanzan los datos</span></div>
+    </div>
+    <div class="lectura">
+      <span>Cómo se prueba: siempre <strong>con el mismo técnico y el mismo nivel de rival</strong>; el plan de juego, <strong>con el partido empatado</strong>.</span>
+      <span>"Se sostiene" = diferencia clara (p &lt; 0.10) y de tamaño relevante, con 8 partidos o más por grupo.</span>
+    </div>
+  </section>
+
+  <section class="parte" id="decidir" aria-labelledby="t-decidir">
+    <header><span class="eyebrow">Antes de escribir el reporte</span><h2 id="t-decidir">Lo que necesitamos decidir</h2></header>
+    <ol class="decisiones">$decisiones</ol>
+  </section>
+
+  <section class="parte" id="reto" aria-labelledby="t-reto">
+    <header><span class="eyebrow">Revisión de rumbo</span><h2 id="t-reto">¿Vamos alineados con el reto?</h2></header>
+    <p class="pregunta">"¿Cuáles son los principios que definen a su equipo en fase ofensiva y defensiva, cómo se manifiestan estos patrones a lo largo del tiempo, y de qué manera el entrenador ajusta su comportamiento en función del contexto del partido (rival, marcador, localía o momento del juego)?"</p>
+    <div class="prose"><p><strong>En corto:</strong> el contenido cubre todos los componentes del reto. Los riesgos están en la forma: dos frameworks que no coinciden, datos fuera de la ventana del reto y demasiadas ideas para un reporte que debe entender alguien que no vio los partidos.</p></div>
+    <h3>Componentes del reto</h3>
+    <div class="tabla"><table><thead><tr><th>Componente</th><th>Dónde lo respondemos</th><th>Estado</th></tr></thead><tbody>$alineacion</tbody></table></div>
+    <h3>Criterios de evaluación</h3>
+    <div class="tabla"><table><thead><tr><th>Criterio</th><th>Peso</th><th>Cómo lo respondemos</th><th>Riesgo</th></tr></thead><tbody>$criterios</tbody></table></div>
+    <h3>Dónde nos podemos desviar</h3>
+    <ul class="desvios">$desvios</ul>
+  </section>
+
+  <section class="parte" id="framework" aria-labelledby="t-fw">
+    <header><span class="eyebrow">Coherencia interna</span><h2 id="t-fw">Dos frameworks, una sola entrega</h2></header>
+    <div class="prose"><p>El reto pide que cada cifra se pueda trazar a una definición escrita y que nada se contradiga. Hoy Otho y Pau medimos varias cosas distinto. Ninguna versión está mal, pero el reporte debe usar una sola.</p></div>
+    $frameworks
+  </section>
+
+  <section class="parte" id="hallazgos" aria-labelledby="t-hall">
+    <header><span class="eyebrow">Registro de hipótesis · $n entradas</span><h2 id="t-hall">Lo que encontramos</h2>
+      <div class="lectura">
+        <span class="chip good"><span aria-hidden="true">✓</span> se sostiene</span>
+        <span class="chip neutral"><span aria-hidden="true">=</span> no cambia</span>
+        <span class="chip bad"><span aria-hidden="true">✕</span> no se sostiene</span>
+        <span class="chip warn"><span aria-hidden="true">?</span> no alcanza</span>
+        <span class="who">Pau</span><span class="who">Otho</span><span class="who">Emi</span><span>= de quién es la idea</span>
+      </div>
+    </header>
+    $secciones
+  </section>
+
+  <section class="parte" id="estructura" aria-labelledby="t-est">
+    <header><span class="eyebrow">Propuesta</span><h2 id="t-est">Cómo quedaría el reporte final</h2></header>
+    <div class="prose"><p>Jardine es el protagonista; el ADN del club es la base para ver qué es suyo; el ADN ganador es el clímax. Cada sección abre con una pregunta de fútbol y un hallazgo con número. El método va en un anexo plegado y el glosario al final, como pidió Emi.</p></div>
+    <ol class="estructura">$estructura</ol>
+    <div class="prose"><p><strong>La app</strong> ya no cuenta la historia: es un explorador por periodo sin conclusiones escritas a mano, con las siglas explicadas. La historia vive solo en el reporte.</p>
+      <p><strong>Calendario:</strong> 17–18 oct revisión y decisiones · 19–20 oct textos y reporte · 21 oct video y prueba de lectura con alguien de fuera de datos · 22 oct entrega.</p></div>
+  </section>
+
+  <footer class="pie">
+    <p>Todo sale de resúmenes por partido o por serie (notebook 06, <code>src/hipotesis.py</code>); no hay datos crudos de StatsBomb en esta página. Cifras de Ap 2021 – Cl 2025 salvo donde se indica.</p>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script>
+var D = $data;
+function tok(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function base(extra) {
+  var ink = tok("--ink"), muted = tok("--muted"), rule = tok("--rule");
+  var l = { paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+    font: { family: "Source Sans 3, Segoe UI, sans-serif", size: 13, color: ink },
+    margin: { l: 10, r: 16, t: 36, b: 44 }, hoverlabel: { bgcolor: tok("--surface"), bordercolor: rule, font: { color: ink } },
+    legend: { orientation: "h", y: 1.12, x: 0, font: { color: ink } },
+    xaxis: { gridcolor: rule, zerolinecolor: muted, linecolor: rule, tickfont: { color: muted }, automargin: true, title: { font: { color: muted, size: 12 } } },
+    yaxis: { gridcolor: rule, zerolinecolor: muted, linecolor: rule, tickfont: { color: ink }, automargin: true, title: { font: { color: muted, size: 12 } } } };
+  for (var k in extra) { if (typeof extra[k] === "object" && l[k] && !Array.isArray(extra[k])) { for (var j in extra[k]) l[k][j] = extra[k][j]; } else l[k] = extra[k]; }
+  return l;
+}
+var CFG = { displayModeBar: false, responsive: true };
+var CC = D.coach_color;
+
+function gAdn() {
+  var a = D.adn, y = a.rasgos.map(function (r, i) { return a.club[i] === "siempre arriba de la liga" ? r + " · del club" : r; });
+  var traces = [{ type: "scatter", mode: "lines", x: [], y: [], line: { color: tok("--rule"), width: 9 }, hoverinfo: "skip", showlegend: false }];
+  y.forEach(function (lab, i) { traces[0].x.push(a.min[i], a.max[i], null); traces[0].y.push(lab, lab, null); });
+  ["Solari", "Ortiz", "Jardine"].forEach(function (c) {
+    traces.push({ type: "scatter", mode: "markers", name: c, x: a[c], y: y,
+      marker: { size: 12, color: CC[c], line: { color: tok("--surface"), width: 2 } },
+      hovertemplate: "%{y}<br>" + c + ": %{x:.0f} de 100<extra></extra>" });
+  });
+  Plotly.react("g-adn", traces, base({ height: 380, xaxis: { range: [0, 102], title: { text: "de 0 a 100 frente a los técnicos de la liga (50 = típico)" } },
+    yaxis: { autorange: "reversed", gridcolor: "rgba(0,0,0,0)" },
+    shapes: [{ type: "line", x0: 50, x1: 50, yref: "paper", y0: 0, y1: 1, line: { color: tok("--muted"), dash: "dot", width: 1 } }] }), CFG);
+}
+
+function gSeries() {
+  var traces = [];
+  ["Solari", "Ortiz", "Jardine"].forEach(function (c) {
+    [true, false].forEach(function (av) {
+      var s = D.series.filter(function (d) { return d.tecnico === c && d.avanzo === av; });
+      if (!s.length) return;
+      traces.push({ type: "scatter", mode: "markers", name: c + (av ? " · avanzó" : " · eliminado"), legendgroup: c,
+        x: s.map(function (d) { return d.posesion; }), y: s.map(function (d) { return d.ppda; }),
+        marker: { size: 13, symbol: s.map(function (d) { return (av ? "circle" : "circle-open") ; }),
+          color: CC[c], line: { width: s.map(function (d) { return d.reciente ? 3 : 2; }), color: CC[c] },
+          opacity: s.map(function (d) { return d.reciente ? 0.55 : 1; }) },
+        customdata: s.map(function (d) { return [d.serie, d.rival, d.global, d.reciente ? " (fuera de la ventana del reto)" : ""]; }),
+        hovertemplate: "%{customdata[0]} vs %{customdata[1]}%{customdata[3]}<br>global %{customdata[2]}<br>posesión %{x:.0f} % · deja dar %{y:.0f} pases<extra></extra>" });
+    });
+  });
+  Plotly.react("g-series", traces, base({ height: 420, margin: { t: 64 },
+    xaxis: { title: { text: "posesión en la serie (%)" } }, yaxis: { title: { text: "pases que deja dar antes de presionar (PPDA)" } },
+    annotations: [{ xref: "paper", yref: "paper", x: 0.01, y: 0.98, showarrow: false, xanchor: "left", text: "↑ presiona menos (espera)", font: { color: tok("--muted"), size: 12 } },
+                  { xref: "paper", yref: "paper", x: 0.99, y: 0.02, showarrow: false, xanchor: "right", text: "más balón y presión →", font: { color: tok("--muted"), size: 12 } }] }), CFG);
+}
+
+function gMinuto() {
+  var m = D.minuto, red = CC.Ortiz, blue = CC.Solari;
+  var traces = [
+    { type: "scatter", mode: "lines", x: m.tramo, y: m.hi, line: { width: 0 }, hoverinfo: "skip", showlegend: false },
+    { type: "scatter", mode: "lines", x: m.tramo, y: m.lo, fill: "tonexty", fillcolor: "rgba(235,104,52,0.16)", line: { width: 0 }, hoverinfo: "skip", showlegend: false },
+    { type: "scatter", mode: "lines+markers", name: "En contra", x: m.tramo, y: m.contra, line: { color: red, width: 2 }, marker: { size: 8, color: red },
+      customdata: m.minutos, hovertemplate: "%{x}: %{y:.2f} xG en contra por 90'<br>%{customdata:,.0f} minutos<extra></extra>" },
+    { type: "scatter", mode: "lines+markers", name: "A favor", x: m.tramo, y: m.favor, line: { color: blue, width: 2 }, marker: { size: 8, color: blue },
+      hovertemplate: "%{x}: %{y:.2f} xG a favor por 90'<extra></extra>" }];
+  Plotly.react("g-minuto", traces, base({ height: 340, xaxis: { title: { text: "tramo del partido (minutos)" }, type: "category" },
+    yaxis: { title: { text: "ocasiones (xG) por 90'" }, rangemode: "tozero" } }), CFG);
+}
+
+function gDerrotas() {
+  var d = D.derrotas;
+  Plotly.react("g-derrotas", [{ type: "bar", orientation: "h", y: d.map(function (r) { return r.metrica; }), x: d.map(function (r) { return r.dif_sd; }),
+    marker: { color: d.map(function (r) { return r.veredicto === "se sostiene" ? tok("--accent") : tok("--rule"); }) },
+    customdata: d.map(function (r) { return [r.no, r.si, r.veredicto]; }),
+    hovertemplate: "%{y}<br>victorias %{customdata[0]:.2f} · derrotas %{customdata[1]:.2f}<br>%{customdata[2]}<extra></extra>" }],
+    base({ height: 460, showlegend: false, bargap: 0.35, margin: { t: 16 },
+      xaxis: { title: { text: "← menos en derrotas · más en derrotas → (desviaciones estándar)" }, zeroline: true },
+      yaxis: { gridcolor: "rgba(0,0,0,0)" } }), CFG);
+}
+
+function gFormaciones() {
+  var f = D.formaciones, traces = [];
+  ["Ocasiones a favor (xG por 90')", "Ocasiones en contra (xG por 90')"].forEach(function (met, k) {
+    var rows = f.orden.map(function (o) { return f.filas.filter(function (r) { return r.formacion === o && r.metrica === met; })[0]; }).filter(Boolean);
+    var lab = rows.map(function (r) { return r.formacion + (r.frente_a !== "4-2-3-1" ? " vs " + r.frente_a : "") + " (" + r.min.toLocaleString("es-MX") + "')"; });
+    traces.push({ type: "scatter", mode: "markers", xaxis: k ? "x2" : "x", yaxis: "y", showlegend: false, x: rows.map(function (r) { return r.dif; }), y: lab,
+      error_x: { type: "data", symmetric: false, array: rows.map(function (r) { return r.hi - r.dif; }), arrayminus: rows.map(function (r) { return r.dif - r.lo; }),
+        color: tok("--muted"), thickness: 1.5, width: 0 },
+      marker: { size: 11, symbol: rows.map(function (r) { return r.veredicto === "se sostiene" ? "circle" : "circle-open"; }),
+        color: rows.map(function (r) { return r.veredicto === "no alcanza" ? tok("--muted") : (k ? CC.Ortiz : CC.Solari); }), line: { width: 2 } },
+      customdata: rows.map(function (r) { return [r.lo, r.hi, r.veredicto]; }),
+      hovertemplate: "%{y}<br>" + met + ": %{x:+.2f} (%{customdata[0]:+.2f} a %{customdata[1]:+.2f})<br>%{customdata[2]}<extra></extra>" });
+  });
+  var lay = base({ height: 440, margin: { t: 44 }, yaxis: { autorange: "reversed", gridcolor: "rgba(0,0,0,0)" },
+    xaxis: { domain: [0, 0.47], zeroline: true, title: { text: "a favor: diferencia vs 4-2-3-1" } },
+    annotations: [{ text: "Ocasiones a favor", xref: "paper", yref: "paper", x: 0, y: 1.08, showarrow: false, xanchor: "left", font: { size: 13, color: tok("--ink") } },
+                  { text: "Ocasiones en contra", xref: "paper", yref: "paper", x: 0.53, y: 1.08, showarrow: false, xanchor: "left", font: { size: 13, color: tok("--ink") } }] });
+  lay.xaxis2 = { domain: [0.53, 1], zeroline: true, zerolinecolor: tok("--muted"), gridcolor: tok("--rule"), linecolor: tok("--rule"), tickfont: { color: tok("--muted") },
+    title: { text: "en contra: diferencia vs 4-2-3-1", font: { color: tok("--muted"), size: 12 } }, anchor: "y" };
+  Plotly.react("g-formaciones", traces, lay, CFG);
+}
+
+function drawAll() {
+  if (!window.Plotly) return;
+  [gAdn, gSeries, gMinuto, gDerrotas, gFormaciones].forEach(function (fn) { try { fn(); } catch (e) { console.error(e); } });
+}
+drawAll();
+try { window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll); } catch (e) {}
+new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+</script>
