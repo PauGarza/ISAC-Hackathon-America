@@ -1,7 +1,8 @@
 # Guion del producto · ADN del Entrenador · Club América
 
 > **Para qué es este documento:** que cualquier persona del equipo entienda qué hace la app, de dónde sale cada número, qué decidimos, por qué, qué problemas encontramos y por qué el producto quedó como quedó.
-> **Estado:** 5 oct 2026. Código en `src/`, app en `app/`, pendientes en `todo.md`.
+> **Estado:** 16 oct 2026. Código en `src/`, app en `app/`, reporte en `reports/final/`, pendientes en `todo.md`.
+> **Cambio del 16 oct:** la historia y la app se separaron. La historia fija vive en el **reporte HTML**; la app es un **explorador sin conclusiones escritas a mano** (todo texto se calcula con la selección).
 
 ---
 
@@ -9,7 +10,7 @@
 
 **Una página donde eliges un periodo del América (una etapa, un torneo, unas fechas o un partido) y ves cómo jugó el equipo y qué ideas tenía su técnico, comparado con otros técnicos y con la liga.**
 
-Por defecto abre en la historia de André Jardine (2023–2025).
+Por defecto abre con Jardine, Ap 2021 – Cl 2025, sin textos: la historia se cuenta en el reporte HTML.
 
 ---
 
@@ -299,11 +300,11 @@ Aparte, guarda tablas complementarias:
 ### 10.2 Lo que ve el usuario
 
 1. **Eliges qué ver** (barra lateral):
-   - **"La historia de Jardine"**: la selección por defecto, con los textos y figuras de la historia;
-   - **"Explorar"**:
+   - selección inicial: Jardine, Ap 2021 – Cl 2025 (la app no lleva textos ni figuras fijas de la historia);
+   - filtros:
      - técnico;
      - periodo: toda la etapa, torneo, rango de fechas o un partido;
-     - localía y fuerza del rival;
+     - fase del torneo (fase regular o liguilla), localía y fuerza del rival;
      - con quién comparar: otro técnico o el América típico.
 2. **Arriba, el resumen del periodo**: partidos, récord, puntos, goles y goles esperados, y un aviso de cuánto se puede concluir con ese número de partidos.
 3. **El calendario: contra quién jugó.** Cada partido con su rival, la fuerza del rival, el resultado y quién tuvo mejores ocasiones.
@@ -312,11 +313,13 @@ Aparte, guarda tablas complementarias:
 
    | Pestaña | Qué muestra | De dónde sale |
    |---|---|---|
-   | **Identidad** | Radar del ADN de la selección frente a la comparación (y frente a toda la etapa del técnico si eliges menos); las 5 ideas; sistemas usados | Rasgos del ADN por partido, promediados y ubicados de 0 a 100 frente a los 70 técnicos |
+   | **Identidad** | Radar del ADN de la selección frente a la comparación (y frente a toda la etapa del técnico si eliges menos); tabla de rasgos y lo que más lo distingue de la comparación (calculado); sistemas usados | Rasgos del ADN por partido, promediados y ubicados de 0 a 100 frente a los 70 técnicos |
+   | **Torneo a torneo** | Posesión y presión en fase regular frente a liguilla en cada torneo, hasta dónde llegó, y tabla de torneos ganados frente a no ganados | `K.torneos`, `K.liguilla_ganadora` |
    | **Con balón** | Mapa de dónde vienen las ocasiones (xG) y hasta dónde progresa; indicadores de construcción, progresión, ocasiones y dominio | Rejillas por partido + indicadores del marco |
    | **Sin balón** | Mapas de robos, acciones defensivas y peligro concedido; indicadores de presión, organización defensiva y transiciones | Ídem |
    | **Balón parado** | Por tipo (córner, tiro libre, saque de banda), a favor y en contra: jugadas, % con tiro y peligro; a qué zona van los córners | Jugadas a balón parado del marco |
    | **Contexto** | Cómo cambian el dominio, la posesión y la presión con el marcador (mismo partido, con su margen de error); tabla por localía y fuerza del rival | Tramos de 15' × marcador, la misma regresión que el análisis |
+   | **Rivales** | Contra quién saca más o menos puntos de los que merecía por sus ocasiones | `K.rivales` (puntos esperados de la simulación) |
    | **Jugadores** | Minutos, quién genera el valor, roles, primer cambio | Jugadores por técnico × torneo |
    | **Cómo lo medimos** | El método en lenguaje simple y el diccionario de indicadores | — |
 
@@ -325,7 +328,7 @@ Aparte, guarda tablas complementarias:
 
 ---
 
-## 11. La historia de Jardine en 5 ideas (lo que la app cuenta por defecto)
+## 11. La historia de Jardine en 5 ideas (lo que cuenta el reporte)
 
 1. **Quiere el balón y lo saca jugando.**
    - Saca en corto el 45 % de sus saques de meta (Ortiz 31 %).
@@ -365,7 +368,7 @@ Detalle y recomendaciones: `reports/final/textos.md`.
 |---|---|---|
 | Un protagonista (Jardine) y los demás como contraste | Analizar a cada técnico por separado | El estilo solo se ve comparando; Jardine tiene la mejor muestra y la mejor historia |
 | Todo parte de elegir un periodo | Un reporte fijo | Que el usuario explore por torneo, fechas o partido |
-| La historia es el explorador con una selección predeterminada | Historia y explorador separados | Un solo producto, coherente: lo que lees es lo que exploras |
+| Historia (reporte HTML) y explorador (app) separados (16 oct) | La historia como selección predeterminada de la app | Las conclusiones fijas dejan de ser ciertas al cambiar el filtro. Coherencia: los dos usan el mismo cubo y las mismas piezas visuales (`src/viz.py`) |
 | Comparar con la liga del mismo torneo | Comparar con el promedio de todos los años | La liga y el etiquetado cambiaron (sección 9, reto 1) |
 | Descontar rival y localía en el ADN | Promedio crudo | Que el perfil sea del técnico y no de su calendario |
 | Balón parado = posesión que abre el saque propio | Usar la etiqueta de StatsBomb tal cual | Evita contar contragolpes como balón parado |
@@ -385,7 +388,8 @@ Detalle y recomendaciones: `reports/final/textos.md`.
 | Indicadores por partido (catálogo) | `src/features.py` (`FEATURES`) |
 | ADN del Entrenador, Índice de Encaje, validación | `src/coach_profile.py`, notebook `04_adn_entrenador.ipynb` |
 | La historia de Jardine (análisis y figuras) | `src/story.py`, `src/story_viz.py`, notebook `05_historia_jardine.ipynb`, `reports/figures/story/` |
-| Textos de la historia | `reports/final/textos.md` |
+| Textos de la historia (solo reporte y video) | `reports/final/textos.md` |
+| Piezas visuales compartidas (cancha, radar, paleta) | `src/viz.py` |
 | Cubo de agregados | `src/cube.py` (`python -m src.cube`) |
 | App | `app/streamlit_app.py` (`streamlit run app/streamlit_app.py`); datos: `python -m app.export_data` |
 | Pendientes y decisiones con fecha | `todo.md` |

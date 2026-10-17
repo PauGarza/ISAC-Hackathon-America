@@ -30,3 +30,6 @@ venv/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Carpeta de Otho (su código en R, salidas y datos crudos de StatsBomb): no se versiona
+Otho/

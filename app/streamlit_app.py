@@ -1,8 +1,10 @@
-"""ADN del Entrenador · Club América — explorador de la historia de un entrenador.
+"""ADN del Entrenador · Club América — explorador por periodo.
 
 Flujo: primero se elige el periodo (técnico, torneo, fechas o un partido) y el contexto (localía, fuerza del
-rival); después se despliega el análisis. La historia de Jardine es la selección predeterminada.
+rival); después se despliega el análisis. Selección inicial: Jardine, Ap 2021 – Cl 2025.
 Todo sale del cubo de agregados por partido (src/cube.py → app/data/): la app no lleva eventos.
+La app no lleva conclusiones escritas a mano: todo texto se calcula con la selección. La historia fija vive en el
+reporte (reports/final/).
 
 Correr: streamlit run app/streamlit_app.py
 """
@@ -19,22 +21,13 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src import cube as K  # noqa: E402
+from src.viz import (MUTED, RESULT_COLOR, RESULT_LABEL, STAGE_COLOR, LINE, TIER_COLOR,  # noqa: E402
+                     pitch_heat, radar, torneo_short)
 
 DATA = ROOT / "app" / "data"
-FIGS = ROOT / "reports" / "figures"
-COACH_COLOR = {"Solari": "#2a78d6", "Ortiz": "#eb6834", "Jardine": "#1baf7a", "Almada": "#4a3aa7",
-               "Cervantes": "#898781"}
-INK, MUTED, GRID, LINE = "#0b0b0b", "#898781", "#e1e0d9", "#c3c2b7"
-RESULT_COLOR = {"W": "#1baf7a", "D": "#c3c2b7", "L": "#e34948"}
-RESULT_LABEL = {"W": "Victoria", "D": "Empate", "L": "Derrota"}
-TORNEO_SHORT = lambda t: t.replace("Apertura ", "Ap ").replace("Clausura ", "Cl ")  # noqa: E731
 BLOCKS = {
     "Con balón": ["Construcción", "Progresión", "Ocasiones", "Dominio"],
     "Sin balón": ["Presión", "Organización defensiva", "Transiciones"],
-}
-STORY_BLOCKS = {  # bloque de la app -> prefijos de hallazgos de la historia (notebook 05)
-    "Con balón": ["3.2"], "Sin balón": ["3.3", "3.4"], "Balón parado": ["3.8"], "Contexto": ["3.5"],
-    "Jugadores": ["3.7"], "Identidad": ["3.6"],
 }
 
 st.set_page_config(page_title="ADN del Entrenador · Club América", page_icon="⚽", layout="wide")
@@ -46,23 +39,6 @@ def load() -> dict[str, pd.DataFrame]:
     d = K.load(DATA)
     d["partidos"]["match_date"] = pd.to_datetime(d["partidos"].match_date)
     return d
-
-
-@st.cache_data
-def textos() -> dict[str, str]:
-    """Secciones de reports/final/textos.md por encabezado '## clave · título'."""
-    f = DATA / "textos.md"
-    out, key, buf = {}, None, []
-    for line in f.read_text(encoding="utf-8").splitlines() if f.exists() else []:
-        if line.startswith("## "):
-            if key:
-                out[key] = "\n".join(buf).strip()
-            key, buf = line[3:].split(" · ")[0].strip(), []
-        elif key:
-            buf.append(line)
-    if key:
-        out[key] = "\n".join(buf).strip()
-    return out
 
 
 C = load()
@@ -78,17 +54,17 @@ FRIENDLY = {  # nombre para la marca (el catálogo técnico queda en "Cómo lo m
     "prog_lane_right_pct": "Avanza por la derecha (%)",
     "progression_rate": "Jugadas que llegan al último tercio (%)",
     "pass_x_mean": "Altura media de sus pases (yd)", "long_pass_pct": "Pases largos (%)",
-    "np_xg_per100poss": "Peligro creado (goles esperados por 100 posesiones)",
-    "np_xg_per_shot": "Calidad de cada tiro (goles esperados por tiro)",
+    "np_xg_per100poss": "Peligro creado (goles esperados, xG, por 100 posesiones)",
+    "np_xg_per_shot": "Calidad de cada tiro (goles esperados, xG, por tiro)",
     "shots_per100poss": "Tiros por 100 posesiones", "box_touches_per100poss": "Toques en el área rival por 100 posesiones",
     "xg_share_open_play": "Peligro que nace del juego elaborado (%)", "xg_share_transition": "Peligro que nace de contragolpes (%)",
     "xg_share_set_piece": "Peligro que nace del balón parado (%)", "cross_xg_share": "Peligro que nace de centros (%)",
-    "ppda": "Pases que deja dar al rival antes de presionar (menos = presiona más)",
+    "ppda": "Pases que deja dar al rival antes de presionar (PPDA; menos = presiona más)",
     "def_action_x_mean": "Altura a la que defiende (yd desde su portería)",
     "high_press_pct": "Acciones defensivas en campo rival (%)",
     "high_regains_per100opp": "Robos en campo rival (por 100 posesiones rivales)",
     "counterpress_per_loss": "Presión inmediata tras perder el balón",
-    "opp_np_xg_per100poss": "Peligro que concede (goles esperados del rival por 100 posesiones)",
+    "opp_np_xg_per100poss": "Peligro que concede (goles esperados del rival, xG, por 100 posesiones)",
     "opp_shots_per100poss": "Tiros que concede por 100 posesiones rivales",
     "opp_f3_entry_pct": "Jugadas rivales que llegan a su último tercio (%)",
     "block_x_mean": "Altura del bloque defensivo (yd)",
@@ -97,38 +73,17 @@ FRIENDLY = {  # nombre para la marca (el catálogo técnico queda en "Cómo lo m
     "opp_transition_xg_per100poss": "Peligro que concede al contragolpe (por 100 posesiones rivales)",
     "quick_regain_pct": "Balones perdidos que recupera en 5 s o menos (%)",
     "possession_time_pct": "Posesión (% del tiempo)",
-    "field_tilt": "Dominio territorial (% de los pases en el último tercio)",
-    "obv_net": "Valor generado menos valor concedido (OBV)", "np_xg_diff": "Goles esperados a favor menos en contra",
+    "field_tilt": "Dominio territorial (field tilt: % de los pases en el último tercio)",
+    "obv_net": "Aporte generado menos aporte concedido (OBV)",
+    "np_xg_diff": "Goles esperados (xG) a favor menos en contra",
 }
 CAT["etiqueta"] = [FRIENDLY.get(v, e) for v, e in zip(CAT.index, CAT.etiqueta)]
-HALL = pd.read_parquet(DATA / "hallazgos.parquet") if (DATA / "hallazgos.parquet").exists() else pd.DataFrame()
-TX = textos()
-PLAIN = [  # texto para la marca: sin jerga de ciencia de datos ni de modelos
-    (r"\s*\(2026, prueba\)", " (2026)"), (r"\s*\(prueba\)", ""), (r",? ?prueba\)", ")"),
-    (r"puntos de percentil", "puntos (en la escala de 0 a 100)"), (r"del percentil (\d+)", r"de \1"),
-    (r"al percentil (\d+)", r"a \1"), (r"percentil (\d+)", r"\1 de 100"),
-    (r"\s*en la ventana oficial", ""), (r"\s*de la ventana", ""), (r"\s*en la ventana", ""), (r"ventana oficial", "2021–2025"),
-    (r"Lo probamos con partidos que el modelo nunca vio[^\n]*", ""),
-    (r"\(PPDA; ", "("), (r"\(PPDA ", "("), (r"PPDA", "pases que deja dar al rival antes de presionar"),
-]
-
-
-def plain(t: str) -> str:
-    import re
-    for a, b in PLAIN:
-        t = re.sub(a, b, t)
-    return t
 
 
 # ------------------------------------------------------------------ selector (barra lateral)
 def selector():
     sb = st.sidebar
     sb.markdown("## ADN del Entrenador\n**Club América · Liga MX**")
-    modo = sb.radio("¿Qué quieres ver?", ["La historia de Jardine", "Explorar"], horizontal=True,
-                    help="La historia del América de André Jardine (2023–2025), contada con datos.")
-    if modo == "La historia de Jardine":
-        sel = K.select(P, coach="Jardine", muestras="ventana")
-        return sel, "Jardine · 2023–2025", modo, "Ortiz"
     coaches = [c for c in ["Jardine", "Ortiz", "Solari", "Almada", "Cervantes"] if c in set(P.coach)]
     coach = sb.multiselect("Técnico", coaches, default=["Jardine"])
     otras = sb.checkbox("Incluir temporadas recientes (Ap 2025 y 2026)", value=False,
@@ -164,7 +119,7 @@ def selector():
     comp = sb.selectbox("Comparar con", others,
                         help="Toda la etapa del técnico elegido, o el América promedio de 2021 a 2025.")
     label = f"{', '.join(coach) or 'Todos'} · {tipo.lower()}"
-    return base, label, modo, comp
+    return base, label, comp
 
 
 def comparison(comp: str) -> tuple[pd.DataFrame, str]:
@@ -175,48 +130,7 @@ def comparison(comp: str) -> tuple[pd.DataFrame, str]:
     return K.select(P, coach=comp, muestras="ventana"), f"{comp} (toda su etapa)"
 
 
-# ------------------------------------------------------------------ piezas visuales
-def pitch_shapes(fig, row=None, col=None):
-    kw = dict(line=dict(color=LINE, width=1), layer="above")
-    shapes = [dict(type="rect", x0=0, y0=0, x1=120, y1=80), dict(type="line", x0=60, y0=0, x1=60, y1=80),
-              dict(type="rect", x0=0, y0=18, x1=18, y1=62), dict(type="rect", x0=102, y0=18, x1=120, y1=62),
-              dict(type="rect", x0=0, y0=30, x1=6, y1=50), dict(type="rect", x0=114, y0=30, x1=120, y1=50),
-              dict(type="circle", x0=50, y0=30, x1=70, y1=50)]
-    for s in shapes:
-        fig.add_shape(**s, **kw)
-
-
-def pitch_heat(m: np.ndarray, title: str, fmt: str = "{:.1f}", scale="Blues", zmax=None) -> go.Figure:
-    xs = np.arange(K.CELL / 2, 120, K.CELL)
-    ys = np.arange(K.CELL / 2, 80, K.CELL)
-    text = [[fmt.format(v) if v >= (np.nanmax(m) * 0.15 if np.nanmax(m) > 0 else 1) else "" for v in row] for row in m]
-    fig = go.Figure(go.Heatmap(z=m, x=xs, y=ys, colorscale=scale, zmin=0, zmax=zmax, showscale=False,
-                               text=text, texttemplate="%{text}", textfont=dict(size=10),
-                               hovertemplate="x %{x} · y %{y}<br>%{z:.2f} por partido<extra></extra>"))
-    pitch_shapes(fig)
-    fig.update_layout(title=dict(text=title, font=dict(size=13)), height=300, margin=dict(l=5, r=5, t=40, b=5),
-                      xaxis=dict(visible=False, range=[-2, 122]), yaxis=dict(visible=False, range=[82, -2], scaleanchor="x"),
-                      plot_bgcolor="white")
-    fig.add_annotation(x=118, y=81.5, text="ataca →", showarrow=False, font=dict(size=10, color=MUTED), xanchor="right")
-    return fig
-
-
-def radar(series: dict[str, pd.Series], title: str) -> go.Figure:
-    fig = go.Figure()
-    for name, s in series.items():
-        coach = name.split(" ")[0]
-        r = list(s.values) + [s.values[0]]
-        th = list(s.index) + [s.index[0]]
-        fig.add_trace(go.Scatterpolar(r=r, theta=th, name=name, fill="toself", opacity=0.55,
-                                      line=dict(color=COACH_COLOR.get(coach, MUTED), width=2),
-                                      hovertemplate="%{theta}: %{r:.0f} de 100<extra>" + name + "</extra>"))
-    fig.update_layout(polar=dict(radialaxis=dict(range=[0, 100], tickvals=[25, 50, 75], gridcolor=GRID),
-                                 angularaxis=dict(gridcolor=GRID)),
-                      title=dict(text=title, font=dict(size=13)), height=430, margin=dict(l=40, r=40, t=60, b=30),
-                      legend=dict(orientation="h", y=-0.08))
-    return fig
-
-
+# ------------------------------------------------------------------ piezas visuales (las de cancha y radar: src/viz.py)
 def indicator_panel(sel, base, base_label, criterios):
     """Para cada indicador: valor del periodo, valor de la comparación y dónde cae el periodo entre los partidos
     de la comparación (más que X de cada 10 partidos)."""
@@ -249,32 +163,12 @@ def indicator_panel(sel, base, base_label, criterios):
         st.plotly_chart(fig, width="stretch")
 
 
-def story_notes(block: str, show: bool):
-    """Hallazgos y figuras fijas de la historia de Jardine (2023–2025) para un bloque."""
-    if not show or HALL.empty:
-        return
-    pref = tuple(STORY_BLOCKS.get(block, []))
-    h = HALL[HALL.bloque.str.startswith(pref)] if pref else HALL.iloc[0:0]
-    if h.empty:
-        return
-    with st.expander("La historia de Jardine en este bloque (2023–2025)", expanded=True):
-        for r in h.itertuples():
-            st.markdown(f"**{r.pregunta}**  \n{plain(r.hallazgo)}")
-            for f in [x.strip() for x in str(r.figuras).split(",") if x.strip()]:
-                path = next((p for p in [FIGS / "story" / f, FIGS / "coach" / f] if p.exists()), None)
-                if path:
-                    st.image(str(path), width="stretch")
-
-
 # ------------------------------------------------------------------ página
-sel, label, modo, comp = selector()
+sel, label, comp = selector()
 base, base_label = comparison(comp)
 info = K.nivel_muestra(len(sel))
-story_mode = modo == "La historia de Jardine"
 
 st.title("ADN del Entrenador · Club América")
-if story_mode and "resumen" in TX:
-    st.markdown(plain(TX["resumen"].split("**Por qué importa")[0]))
 st.caption(f"Viendo: **{label}** · comparado con: **{base_label}** · Datos: StatsBomb")
 
 if info["nivel"] == "vacio":
@@ -314,8 +208,8 @@ with st.expander(f"Calendario: contra quién jugó ({len(sel)} partidos)", expan
     fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10), yaxis_title="¿Quién tuvo mejores ocasiones? (xG a favor − en contra)",
                       legend=dict(orientation="h", y=1.15), plot_bgcolor="white")
     st.plotly_chart(fig, width="stretch")
-    st.caption("Círculo = local · rombo = visita. El rival pesa más que la localía: un tramo con rivales grandes "
-               "no es un cambio de estilo.")
+    st.caption("Círculo = local · rombo = visita. Arriba de la línea, el América tuvo mejores ocasiones que su rival. "
+               "Antes de leer un cambio de estilo, revisa contra quién jugó en ese tramo.")
     lv = sel.rival_nivel.value_counts().reindex(K.RIVAL_TIERS).fillna(0).astype(int)
     st.caption("Rivales del periodo: " + " · ".join(f"{k} {v}" for k, v in lv.items()))
     st.dataframe(sel.sort_values("match_date", ascending=False).assign(
@@ -346,28 +240,22 @@ with T["Identidad"]:
                    "mismo torneo y descuenta la fuerza del rival y la localía. "
                    + ("" if info["rankings"] else "**Con pocos partidos es solo orientativo.**"))
     with right:
-        if story_mode and "3.1" in TX:
-            st.markdown("#### Jardine en 5 ideas")
-            st.markdown(plain(TX["3.1"]))
-        else:
-            t = pd.DataFrame({"selección": adn.round(0), base_label: adn_b.round(0)})
-            t["diferencia"] = t.iloc[:, 0] - t.iloc[:, 1]
-            st.markdown("#### Rasgos del ADN (de 0 a 100 frente a la liga)")
-            st.dataframe(t, width="stretch")
-            top = t.diferencia.abs().sort_values(ascending=False).index[:3]
-            st.markdown("**Lo que más lo distingue de la comparación:** " + "; ".join(
-                f"{e.lower()} {t.loc[e, 'diferencia']:+.0f}" for e in top))
+        t = pd.DataFrame({"selección": adn.round(0), base_label: adn_b.round(0)})
+        t["diferencia"] = t.iloc[:, 0] - t.iloc[:, 1]
+        st.markdown("#### Rasgos del ADN (de 0 a 100 frente a la liga)")
+        st.dataframe(t, width="stretch")
+        top = t.diferencia.abs().sort_values(ascending=False).index[:3]
+        st.markdown("**Lo que más lo distingue de la comparación:** " + "; ".join(
+            f"{e.lower()} {t.loc[e, 'diferencia']:+.0f}" for e in top))
         sis = sel.sistema.value_counts()
-        st.caption("Sistemas titulares: " + " · ".join(f"{k} ({v})" for k, v in sis.head(4).items()))
-    story_notes("Identidad", story_mode)
+        st.caption("Sistemas titulares: " + " · ".join(f"{k} ({v} partidos)" for k, v in sis.head(4).items()))
 
 # --- Torneo a torneo
 with T["Torneo a torneo"]:
     TT = K.torneos(P)
-    st.markdown("#### Diez torneos, tres títulos: ¿qué hizo distinto el América campeón?")
-    LL_COLOR = {"Campeón": "#d4a017", "Final perdida": "#eb6834", "Semifinal": "#2a78d6", "Cuartos": "#8fb8ea",
-                "Play-in": "#c3c2b7", "No clasificó": "#c3c2b7", "En curso": "#c3c2b7"}
-    TT["t"] = TT.torneo.map(TORNEO_SHORT) + " · " + TT.tecnico
+    st.markdown("#### ¿Cómo jugó cada torneo, en la fase regular y en la liguilla?")
+    st.caption("Todos los torneos del América, sin importar el filtro de la izquierda.")
+    TT["t"] = TT.torneo.map(torneo_short) + " · " + TT.tecnico
     a, b = st.columns(2)
     for col, (reg, lig, title, ytitle) in zip([a, b], [
             ("posesion_regular", "posesion_liguilla", "Posesión: fase regular frente a liguilla", "% del tiempo"),
@@ -379,7 +267,7 @@ with T["Torneo a torneo"]:
         fig.add_trace(go.Scatter(x=TT.t, y=TT[lig], mode="markers", name="Liguilla",
                                  marker=dict(size=[18 if l == "Campeón" else 12 for l in TT.llego],
                                              symbol=["star" if l == "Campeón" else "circle" for l in TT.llego],
-                                             color=[LL_COLOR.get(l, MUTED) for l in TT.llego], line=dict(width=1, color="white")),
+                                             color=[STAGE_COLOR.get(l, MUTED) for l in TT.llego], line=dict(width=1, color="white")),
                                  customdata=TT.llego, hovertemplate="%{x}<br>liguilla: %{y:.1f}<br>%{customdata}<extra></extra>"))
         fig.update_layout(title=dict(text=title, font=dict(size=13)), height=360, margin=dict(l=10, r=10, t=45, b=10),
                           yaxis_title=ytitle, plot_bgcolor="white", legend=dict(orientation="h", y=1.12),
@@ -388,17 +276,21 @@ with T["Torneo a torneo"]:
     st.caption("★ dorada = liguilla que terminó en título. Liguilla: cuartos, semifinal y final.")
     lg = K.liguilla_ganadora(P, C["tramos"], C["balon_parado"])
     if {True, False} <= set(lg.index):
-        w, n = lg.loc[True], lg.loc[False]
         _tt = TT[TT.llego != "En curso"].groupby(TT.llego.eq("Campeón"))[["posesion_regular", "xg_favor_regular"]].mean()
-        rw, rn = _tt.loc[True], _tt.loc[False]
-        st.markdown(f"""
-**El América campeón juega como el América en la fase regular y como un equipo de copa en la liguilla.**
-- En las **{int(w.torneos)} liguillas que ganó** tuvo **{w.posesion:.0f} %** de posesión y dejó dar **{w.ppda:.0f}** pases al rival antes de presionar. En las **{int(n.torneos)} que no ganó**: {n.posesion:.0f} % y {n.ppda:.0f}. **Cedió el balón y esperó.**
-- No es solo que fuera ganando: con el partido **empatado** pasa lo mismo ({w.posesion_empate:.0f} % frente a {n.posesion_empate:.0f} % de posesión), y el tiempo que pasó arriba en el marcador fue parecido ({w.pct_min_ganando:.0f} % frente a {n.pct_min_ganando:.0f} % de los minutos).
-- En la fase regular la posesión casi no cambia ({rw.posesion_regular:.0f} % frente a {rn.posesion_regular:.0f} %); lo que distingue al campeón es que **genera más**: {rw.xg_favor_regular:.2f} goles esperados por partido frente a {rn.xg_favor_regular:.2f}.
-- Balón parado en esas liguillas: generó {w.bp_xg_favor:.2f} xG por partido y concedió {w.bp_xg_contra:.2f} (en las no ganadas: {n.bp_xg_favor:.2f} y {n.bp_xg_contra:.2f}).
-
-*Son tres títulos: es un patrón que se repite, no una ley.*""")
+        cmp_ = pd.DataFrame({
+            "Torneos": lg.torneos, "Partidos de liguilla": lg.partidos,
+            "Posesión en liguilla (%)": lg.posesion, "Posesión en liguilla con el partido empatado (%)": lg.posesion_empate,
+            "Pases que deja dar antes de presionar (PPDA), liguilla": lg.ppda,
+            "% de los minutos de liguilla ganando": lg.pct_min_ganando,
+            "Posesión en fase regular (%)": _tt.posesion_regular,
+            "Goles esperados (xG) por partido, fase regular": _tt.xg_favor_regular,
+            "Balón parado: xG a favor por partido, liguilla": lg.bp_xg_favor,
+            "Balón parado: xG en contra por partido, liguilla": lg.bp_xg_contra,
+        }).rename(index={True: "Torneos que ganó", False: "Torneos que no ganó"}).T
+        st.markdown("#### Torneos que ganó frente a los que no ganó")
+        st.dataframe(cmp_[["Torneos que ganó", "Torneos que no ganó"]].round(2), width="stretch")
+        st.caption(f"Son {int(lg.loc[True].torneos)} torneos ganados y {int(lg.loc[False].torneos)} no ganados: "
+                   "con tan pocos torneos, una diferencia es una pista, no una regla.")
     show = TT.rename(columns={"torneo": "Torneo", "tecnico": "Técnico", "llego": "Hasta dónde llegó",
                               "puntos_regular": "Puntos por partido (regular)", "xpts_regular": "Lo que merecía (regular)",
                               "xg_favor_regular": "Goles esperados por partido (regular)",
@@ -419,7 +311,6 @@ with T["Con balón"]:
     b.plotly_chart(pitch_heat(K.rejilla(C["zonas"], ids, "pases_progresivos"), "¿Hasta dónde progresa? Pases progresivos por partido (donde terminan)"),
                    width="stretch")
     indicator_panel(sel, base, base_label, BLOCKS["Con balón"])
-    story_notes("Con balón", story_mode)
 
 # --- Sin balón
 with T["Sin balón"]:
@@ -447,7 +338,6 @@ with T["Sin balón"]:
         st.caption(f"Robar en el último tercio vale {rv.pct_tiro.iloc[2] / rv.pct_tiro.iloc[1]:.1f} veces más que robar en el medio: "
                    f"el {rv.pct_tiro.iloc[2]:.0f} % de esas jugadas termina en tiro, frente a {rv.pct_tiro.iloc[1]:.0f} %.")
     indicator_panel(sel, base, base_label, BLOCKS["Sin balón"])
-    story_notes("Sin balón", story_mode)
 
 # --- Balón parado
 with T["Balón parado"]:
@@ -473,7 +363,6 @@ with T["Balón parado"]:
                           margin=dict(l=10, r=10, t=40, b=10), plot_bgcolor="white")
         st.plotly_chart(fig, width="stretch")
     st.caption("Definición del marco: jugadas que abre el saque del propio equipo (córner, tiro libre, saque de banda).")
-    story_notes("Balón parado", story_mode)
 
 # --- Contexto
 with T["Contexto"]:
@@ -503,7 +392,6 @@ with T["Contexto"]:
     st.markdown("#### Según la localía y la fuerza del rival")
     st.dataframe(pd.DataFrame(rows).set_index("contexto").round(2), width="stretch")
     st.caption("La presión de toda la liga cambió con los años: compara la presión dentro del mismo técnico, no entre épocas.")
-    story_notes("Contexto", story_mode)
 
 # --- Rivales
 with T["Rivales"]:
@@ -515,8 +403,8 @@ with T["Rivales"]:
     else:
         fig = go.Figure(go.Scatter(
             x=rv.xpts, y=rv.puntos, mode="markers+text", text=rv.opponent, textposition="top center", textfont=dict(size=10),
-            marker=dict(size=8 + rv.partidos * 1.5, color=[{"Fuerte": "#e34948", "Medio": "#c3c2b7", "Débil": "#1baf7a"}.get(n, MUTED)
-                                                         for n in rv.nivel], opacity=0.8, line=dict(width=1, color="white")),
+            marker=dict(size=8 + rv.partidos * 1.5, color=[TIER_COLOR.get(n, MUTED) for n in rv.nivel],
+                        opacity=0.8, line=dict(width=1, color="white")),
             customdata=np.c_[rv.partidos, rv.nivel.fillna("—"), rv.pct_victorias],
             hovertemplate="%{text} (%{customdata[1]})<br>%{customdata[0]} partidos · %{customdata[2]:.0f} % victorias"
                           "<br>sacó %{y:.2f} puntos por partido · merecía %{x:.2f}<extra></extra>"))
@@ -531,9 +419,10 @@ with T["Rivales"]:
         st.dataframe(rv.rename(columns={
             "opponent": "Rival", "nivel": "Nivel", "partidos": "Partidos", "puntos": "Puntos por partido",
             "xpts": "Lo que merecía", "diferencia": "Diferencia", "pct_victorias": "% victorias", "posesion": "Posesión (%)",
-            "ppda": "Pases que deja dar antes de presionar", "xg_favor": "Goles esperados a favor", "xg_contra": "Goles esperados en contra"})
+            "ppda": "Pases que deja dar antes de presionar (PPDA)", "xg_favor": "Goles esperados (xG) a favor",
+            "xg_contra": "Goles esperados (xG) en contra"})
             [["Rival", "Nivel", "Partidos", "Puntos por partido", "Lo que merecía", "Diferencia", "% victorias", "Posesión (%)",
-              "Pases que deja dar antes de presionar", "Goles esperados a favor", "Goles esperados en contra"]].round(2),
+              "Pases que deja dar antes de presionar (PPDA)", "Goles esperados (xG) a favor", "Goles esperados (xG) en contra"]].round(2),
             hide_index=True, width="stretch")
 
 # --- Jugadores
@@ -558,11 +447,12 @@ with T["Jugadores"]:
                      hide_index=True, width="stretch")
         roles = j[j.minutos >= 270].groupby("rol").minutos.sum()
         st.caption("Roles (minutos): " + " · ".join(f"{k} {v / roles.sum():.0%}" for k, v in roles.sort_values(ascending=False).items()))
-        fc = sel.primer_cambio_descanso.mean() * 100
+        fc, fcb = sel.primer_cambio_descanso.mean() * 100, base.primer_cambio_descanso.mean() * 100
         st.metric("Primer cambio en el descanso", f"{fc:.0f} % de los partidos",
-                  help="Minuto 45 del segundo tiempo. Jardine en su era: 26 %; Ortiz 13 %; Solari 11 %.")
-        st.metric("Minuto medio del primer cambio", f"{sel.primer_cambio_min.mean():.0f}'")
-    story_notes("Jugadores", story_mode)
+                  delta=f"{fc - fcb:+.0f} puntos frente a {base_label} ({fcb:.0f} %)", delta_color="off",
+                  help="Partidos en los que el primer cambio entra al minuto 45, al empezar el segundo tiempo.")
+        st.metric("Minuto medio del primer cambio", f"{sel.primer_cambio_min.mean():.0f}'",
+                  delta=f"{base_label}: {base.primer_cambio_min.mean():.0f}'", delta_color="off")
 
 # --- Cómo lo medimos
 with T["Cómo lo medimos"]:
@@ -590,6 +480,16 @@ with T["Cómo lo medimos"]:
 | Toda una etapa | El ADN del técnico |
 
 **Privacidad de los datos.** La aplicación solo usa resúmenes por partido, nunca los datos originales.
+
+**Siglas**
+
+| Sigla | Qué quiere decir |
+|---|---|
+| xG (goles esperados) | Qué tan clara fue cada ocasión: la probabilidad de que ese tiro sea gol, según desde dónde y cómo se tiró. Sumado, cuántos goles "merecía" un equipo |
+| OBV (aporte) | Cuánto mejora o empeora cada acción con balón las opciones de marcar o de recibir gol |
+| PPDA | Pases que deja dar al rival antes de intentar robar. Menos = presiona más |
+| Field tilt (dominio territorial) | De los pases en el último tercio, qué % son del América |
+| 360 | Posición de los jugadores que se ven en la toma de TV en el momento de cada acción |
 """)
     with st.expander("Diccionario de indicadores"):
         st.dataframe(CAT[["etiqueta", "criterio", "definición", "dirección"]], width="stretch")
