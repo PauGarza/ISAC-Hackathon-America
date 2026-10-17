@@ -52,8 +52,22 @@
   - **no había mejores jugadores** cuando ganó (por aporte, OBV);
   - extremos a pierna cambiada desde Ortiz.
 
+### Decidido (17 oct)
+- **El reporte HTML es el producto principal**; la app es un complemento para explorar.
+- **Ventana:** cifras de Ap 2021 – Cl 2025; 2025–26 solo como epílogo. La liguilla del notebook 06 ya se recalculó con la ventana:
+  - C2 (presión de espera en liguilla) se sostiene con pocas series;
+  - C4 (balón parado en liguilla) ahora se sostiene en ocasiones a favor;
+  - H6/D8 pasa al epílogo.
+- **Recuperación tras pérdida:** por evento, ≤ 5 s tras perder.
+  - [ ] Llevarla a `src/framework.py` y al cubo.
+- Los documentos del equipo van en "nosotros", sin atribuir ideas a nadie.
+
 ### Pendiente
-- [ ] Revisar el registro de hipótesis con Emi y Otho.
+- [ ] Discutir el prerreporte (`reports/prereporte/prereporte_equipo.html`, `python -m src.prereporte`):
+  - elegir una definición para cada diferencia entre el marco en Python y el de R;
+  - las 5–6 ideas del reporte;
+  - las recomendaciones;
+  - el material del análisis en R que entra.
 - [x] Otho pasó su parte (`Otho/Hackathon América/`: R, salidas agregadas, narrativa y framework). **`Otho/` completa está en `.gitignore`**: trae datos crudos de StatsBomb (`reto/`, 337 MB) y una tabla con un renglón por gol.
 - [ ] Para el reporte: copiar a `reports/final/` solo las tablas o figuras agregadas de Otho que entren (recetas y tipos de gol, defensa bajo ataque, finales, índice de rival). Nunca `goles_secuencias.csv`.
 - [ ] Reescribir `reports/final/textos.md` con la estructura acordada:
