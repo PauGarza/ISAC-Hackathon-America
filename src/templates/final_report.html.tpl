@@ -45,7 +45,9 @@ ol.minuto .num { font: 700 2.4rem/1 var(--display); color: var(--accent); }
 ol.minuto h3 { font-size: 1.35rem; margin-bottom: 4px; }
 ol.minuto p { color: var(--ink-2); }
 figure.viz { margin: 4px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding-block: 12px 10px; display: grid; gap: 6px; min-width: 0; }
-figure.viz figcaption { font-size: 0.88rem; color: var(--muted); max-width: 80ch; }
+figure.viz figcaption { font-size: 0.88rem; color: var(--muted); max-width: 80ch; display: grid; gap: 8px; }
+figure.viz figcaption .leer, figure.viz figcaption .muestra span { font-weight: 700; color: var(--ink); }
+figure.viz figcaption .muestra { font-size: 0.97rem; color: var(--ink); background: var(--paper); border-left: 3px solid var(--accent); padding: 8px 12px; border-radius: 0 6px 6px 0; }
 .plot { width: 100%; }
 .reco { background: var(--paper); border-radius: 8px; padding: 18px 20px; display: grid; gap: 10px; border-left: 4px solid var(--accent); }
 .reco dl { margin: 0; display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 6px 14px; }

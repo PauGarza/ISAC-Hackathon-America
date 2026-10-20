@@ -293,9 +293,83 @@ FIGURAS = {"g-radar": f_radar, "g-mapas": f_mapas, "g-tipos": f_tipos_gol, "g-ma
            "g-epilogo": f_epilogo}
 
 
-def fig_html(gid: str, pie: str, alto: int) -> str:
+def fig_html(gid: str, pie: str, alto: int, muestra: str = "") -> str:
+    """Gráfica con dos pies: cómo leerla y, en palabras, lo que muestra (para quien no lee gráficas)."""
+    s = set()
+    lo = f'<p class="muestra"><span>Lo que muestra.</span> {e(muestra, s)}</p>' if muestra else ""
     return (f'<figure class="viz"><div id="{gid}" class="plot" style="min-height:{alto}px"></div>'
-            f'<figcaption>{e(pie)}</figcaption></figure>')
+            f'<figcaption><p><span class="leer">Cómo leerla.</span> {e(pie, s)}</p>{lo}</figcaption></figure>')
+
+
+def lecturas(N) -> dict:
+    """'Lo que muestra' de cada gráfica, con las cifras calculadas desde los agregados."""
+    L = {}
+    adn = N["adn"]
+    club = [r.lower() for r in adn.index if adn.loc[r, "del_club"] == "siempre arriba de la liga"]
+    pa = adn.loc["Presión alta"]
+    L["g-radar"] = (f"Las tres figuras se estiran igual hacia {', '.join(club[:-1])} y {club[-1]}: los tres técnicos quedan arriba de "
+                    f"la liga en esos rasgos, y eso es el ADN del club. Donde se separan es la presión alta: Ortiz la llevaba muy arriba "
+                    f"({pa.Ortiz:.0f} de 100) y Jardine por debajo del técnico típico ({pa.Jardine:.0f}).")
+    C = K.load()
+    ids = N["W"].query("coach == 'Jardine'").match_id
+    rob = K.rejilla(C["zonas"], ids, "recuperaciones", "n")
+    tir = K.rejilla(C["zonas"], ids, "tiros", "xg")
+    cy, cx = np.unravel_index(np.nanargmax(rob), rob.shape)
+    carril = "por la izquierda" if cy <= 1 else ("por la derecha" if cy >= 6 else "por el centro")
+    area = np.nansum(tir[2:6, 10:]) / np.nansum(tir) * 100          # celdas dentro del área rival (x ≥ 100, y 20–60)
+    L["g-mapas"] = (f"El {area:.0f} % del peligro que genera (xG) nace dentro del área, frente al arco (las celdas verdes más oscuras). Donde más "
+                    f"roba es a {cx * K.CELL}–{(cx + 1) * K.CELL} yardas de su portería, {carril}: espera en su mitad y recupera ahí, "
+                    f"no arriba.")
+    rep = N["reparto"]
+    L["g-tipos"] = (f"Cada barra suma 100 %. Jardine y Ortiz reparten sus goles casi igual: un tercio de balón parado "
+                    f"({rep.loc['Jardine', 'Balón parado']:.0f} % y {rep.loc['Ortiz', 'Balón parado']:.0f} %) y casi otro tercio de ataque "
+                    f"rápido. Solari dependía del ataque rápido ({rep.loc['Solari', 'Ataque rápido tras recuperar']:.0f} % de sus goles) y casi "
+                    f"no hacía goles de jugada elaborada ({rep.loc['Solari', 'Ataque elaborado']:.0f} %).")
+    ft, po = N["mar"].loc["field_tilt"], N["mar"].loc["possession_time_pct"]
+    L["g-marcador"] = (f"A la derecha del cero, más que con el partido empatado; a la izquierda, menos. Perdiendo por uno, el América "
+                       f"empuja: más dominio ({ft['Pierde por 1']:+.0f}) y más posesión ({po['Pierde por 1']:+.0f}). Ganando por uno, la "
+                       f"posesión casi no cambia ({po['Gana por 1']:+.0f}) pero el dominio cae ({ft['Gana por 1']:+.0f}): sigue teniendo el "
+                       f"balón, pero lejos del área rival.")
+    mi = N["min"]
+    L["g-minuto"] = (f"La línea naranja (lo que le generan) sube en el tramo sombreado, del 30' al descanso "
+                     f"({mi.loc['30-45+', 'xg_contra_90']:.2f} xG por 90'), y baja al volver del descanso ({mi.loc['45-60', 'xg_contra_90']:.2f}). "
+                     f"La azul (lo que genera) crece hacia el final: {mi.loc['75-90', 'xg_favor_90']:.2f} entre el 75' y el 90', frente a "
+                     f"{mi.loc['0-15', 'xg_favor_90']:.2f} al inicio.")
+    P = N["P"]
+    TT = K.torneos(P)
+    TT = TT[TT.torneo.isin(P[P.muestra == "ventana"].torneo.unique()) & TT.tecnico.isin(COACHES) & TT.partidos_liguilla.gt(0)]
+    ca, no = TT[TT.llego == "Campeón"].ppda_liguilla, TT[TT.llego != "Campeón"].ppda_liguilla
+    sep = "siempre por debajo de cualquier liguilla ganada" if no.max() < ca.min() else "casi siempre por debajo de las ganadas"
+    L["g-torneos"] = (f"Las tres estrellas (títulos) son los puntos más altos de color: en esas liguillas dejó dar entre {ca.min():.0f} y "
+                      f"{ca.max():.0f} pases al rival antes de presionar. En las liguillas que no ganó se quedó entre {no.min():.0f} y "
+                      f"{no.max():.0f}, {sep}: presionó más cuando quedó eliminado.")
+    s = N["series"]
+    tope = s[~s.avanzo.astype(bool)].ppda.max()
+    arriba = s[s.ppda > tope]
+    L["g-series"] = (f"Ninguna serie perdida pasa de {tope:.0f} pases antes de presionar. Las {len(arriba)} series que están más arriba "
+                     f"son todas rellenas: el América las pasó esperando al rival, {(arriba.posesion < 50).sum()} de ellas con menos "
+                     f"de la mitad del balón. Los "
+                     f"puntos vacíos (eliminado) quedan abajo y hacia la derecha: mucho balón y presión alta, como las semifinales de Ortiz.")
+    d = N["der"]
+    d = d[d.veredicto == "se sostiene"].sort_values("dif_sd")
+    L["g-derrotas"] = (f"Las barras azules, a la izquierda, son lo que baja cuando pierde; la más larga es "
+                       f"{d.index[0][0].lower() + d.index[0][1:]}. Las naranjas, a la derecha, lo que sube: sobre todo {d.index[-1][0].lower() + d.index[-1][1:]}. Mientras más "
+                       f"larga la barra, más grande la diferencia. La presión no aparece: es igual gane o pierda.")
+    f = N["fue"].set_index(["formacion", "metrica"])
+    box = f.loc[("4-4-2", "Toques en el área rival (por 100 posesiones)"), "dif"]
+    L["g-fuertes"] = (f"La línea vertical es el 4-2-3-1. El 4-4-2 (verde) queda a la derecha en llegadas al área ({box:+.0f} toques "
+                      f"por 100 posesiones) y sobre la línea en ocasiones en contra: llega más sin conceder más. Tres centrales "
+                      f"(naranja) queda a la izquierda en llegadas y en posesión, y no mejora en ocasiones en contra: se repliega.")
+    enc = N["encaje"]
+    fuera = enc[~enc.index.str.contains("América")].head(2)
+    L["g-encaje"] = (f"Jardine y Ortiz, en verde, son los más cercanos al ADN del club; es lógico, porque la identidad del club se "
+                     f"calculó con sus partidos. Lo útil está en los demás: fuera del América, los perfiles más parecidos son "
+                     + " y ".join(f"{i.split(' (')[0]} ({v:.0f})" for i, v in fuera.indice_encaje.items()) + ".")
+    jt = K.torneos(P).query("tecnico == 'Jardine'")
+    L["g-epilogo"] = (f"La línea baja de {jt.xg_favor_regular.iloc[0]:.2f} ocasiones por partido en el Apertura 2023 a "
+                      f"{jt.xg_favor_regular.iloc[-1]:.2f} en el Clausura 2026, aunque la posesión se mantuvo entre "
+                      f"{jt.posesion_regular.min():.0f} % y {jt.posesion_regular.max():.0f} %: tenía el balón, pero ya no lo convertía en peligro.")
+    return L
 
 
 # ------------------------------------------------------------------ texto
@@ -471,6 +545,7 @@ def build() -> str:
     N = cifras()
     S = cuerpo(N)
     figs = {gid: json.loads(fn(N).to_json()) for gid, fn in FIGURAS.items()}
+    LEC = lecturas(N)
     sm = set()
     minuto = "".join(f'<li><span class="num">{i}</span><div><h3>{e(t, sm)}</h3><p>{e(p, sm)}</p></div></li>'
                      for i, (t, p) in enumerate(S["minuto"], start=1))
@@ -493,17 +568,17 @@ def build() -> str:
         minuto=minuto, adn=S["adn"], jardine_con=S["jardine_con"], jardine_sin=S["jardine_sin"], jardine_bp=S["jardine_bp"],
         ajusta=S["ajusta"], ganador=S["ganador"], criticos=S["criticos"], recos=recos, probamos=S["probamos"],
         aporte=S["aporte"], epilogo=S["epilogo"], app=app, importa=importa,
-        g_radar=fig_html("g-radar", "El ADN de cada técnico: 8 rasgos de 0 a 100 frente a los 70 técnicos de la liga (50 = típico). Apertura 2021 – Clausura 2025.", 460),
-        g_mapas=fig_html("g-mapas", "Jardine, Apertura 2023 – Clausura 2025. Izquierda: ocasiones (xG) por partido según dónde se tiró. Derecha: robos por partido según dónde recuperó el balón.", 330),
-        g_tipos=fig_html("g-tipos", "Goles sin penal de cada técnico según cómo fue la jugada. El balón parado sigue la definición de nuestro marco.", 260),
-        g_marcador=fig_html("g-marcador", "Jardine: cómo cambian el dominio territorial y la posesión según el marcador, frente al mismo partido empatado. La línea es el margen del 90 %.", 300),
-        g_minuto=fig_html("g-minuto", "Jardine: ocasiones (xG) a favor y en contra por 90 minutos en cada tramo. La banda es el margen del 90 % de las ocasiones en contra; el tramo sombreado es el cierre del primer tiempo.", 320),
-        g_torneos=fig_html("g-torneos", "Cada torneo: cuántos pases deja dar al rival antes de presionar en la fase regular (gris) y en la liguilla (color según hasta dónde llegó; estrella = título).", 340),
-        g_series=fig_html("g-series", "Cada punto es una serie de liguilla. Arriba = espera más antes de presionar. Relleno = el América pasó; vacío = quedó eliminado.", 420),
-        g_derrotas=fig_html("g-derrotas", "Lo que cambia en las derrotas frente a las victorias, con el mismo técnico y el mismo nivel de rival (solo diferencias claras). Dominio y presión se miden con el partido empatado.", 340),
-        g_fuertes=fig_html("g-fuertes", "Contra rivales fuertes, con el mismo técnico y marcador: cada dibujo frente al 4-2-3-1. Punto relleno = diferencia clara; la línea es el margen del 90 %.", 260),
-        g_encaje=fig_html("g-encaje", "Índice de Encaje: los 10 técnicos de la Liga MX más cercanos al ADN del América (2021–2025, 15 partidos o más).", 380),
-        g_epilogo=fig_html("g-epilogo", "Epílogo. Jardine en fase regular: ocasiones (xG) por partido. Los puntos vacíos (2025–26) están fuera de la ventana del reto.", 280),
+        g_radar=fig_html("g-radar", "El ADN de cada técnico: 8 rasgos de 0 a 100 frente a los 70 técnicos de la liga (50 = típico). Apertura 2021 – Clausura 2025.", 460, LEC["g-radar"]),
+        g_mapas=fig_html("g-mapas", "Jardine, Apertura 2023 – Clausura 2025. Izquierda: ocasiones (xG) por partido según dónde se tiró. Derecha: robos por partido según dónde recuperó el balón.", 330, LEC["g-mapas"]),
+        g_tipos=fig_html("g-tipos", "Goles sin penal de cada técnico según cómo fue la jugada. El balón parado sigue la definición de nuestro marco.", 260, LEC["g-tipos"]),
+        g_marcador=fig_html("g-marcador", "Jardine: cómo cambian el dominio territorial y la posesión según el marcador, frente al mismo partido empatado. La línea es el margen del 90 %.", 300, LEC["g-marcador"]),
+        g_minuto=fig_html("g-minuto", "Jardine: ocasiones (xG) a favor y en contra por 90 minutos en cada tramo. La banda es el margen del 90 % de las ocasiones en contra; el tramo sombreado es el cierre del primer tiempo.", 320, LEC["g-minuto"]),
+        g_torneos=fig_html("g-torneos", "Cada torneo: cuántos pases deja dar al rival antes de presionar en la fase regular (gris) y en la liguilla (color según hasta dónde llegó; estrella = título).", 340, LEC["g-torneos"]),
+        g_series=fig_html("g-series", "Cada punto es una serie de liguilla. Arriba = espera más antes de presionar. Relleno = el América pasó; vacío = quedó eliminado.", 420, LEC["g-series"]),
+        g_derrotas=fig_html("g-derrotas", "Lo que cambia en las derrotas frente a las victorias, con el mismo técnico y el mismo nivel de rival (solo diferencias claras). Dominio y presión se miden con el partido empatado.", 340, LEC["g-derrotas"]),
+        g_fuertes=fig_html("g-fuertes", "Contra rivales fuertes, con el mismo técnico y marcador: cada dibujo frente al 4-2-3-1. Punto relleno = diferencia clara; la línea es el margen del 90 %.", 260, LEC["g-fuertes"]),
+        g_encaje=fig_html("g-encaje", "Índice de Encaje: los 10 técnicos de la Liga MX más cercanos al ADN del América (2021–2025, 15 partidos o más).", 380, LEC["g-encaje"]),
+        g_epilogo=fig_html("g-epilogo", "Epílogo. Jardine en fase regular: ocasiones (xG) por partido. Los puntos vacíos (2025–26) están fuera de la ventana del reto.", 280, LEC["g-epilogo"]),
         figs=json.dumps(figs, ensure_ascii=False).replace("</", "<\\/"))
 
 
