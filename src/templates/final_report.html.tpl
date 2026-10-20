@@ -104,7 +104,7 @@ a { color: var(--accent); }
 <header class="hero">
   <span class="eyebrow">Hackathon ISAC 2026 · Club América · La historia de un entrenador a través de los datos</span>
   <h1>El ADN de André Jardine</h1>
-  <p class="lead">Entre 2023 y 2024 el América de André Jardine ganó tres torneos seguidos, el primer tricampeonato de la era de torneos cortos. Aquí contamos cómo juega, qué conserva del club, cómo ajusta según el partido y qué lo hizo campeón, con datos y para quien no vio los partidos.</p>
+  <p class="lead">Entre 2023 y 2024 el América de André Jardine ganó tres torneos seguidos. Aquí contamos cómo juega, qué conserva del club, cómo ajusta según el partido y qué lo hizo campeón.</p>
   <p class="autores">Emilio Villalobos García Padilla · Othoniel Reyes Camacho · Paulina Garza Allende</p>
   <div class="meta"><span>22 de octubre de 2026</span><span>Liga MX · Apertura 2021 – Clausura 2025</span><span>Jardine 91 partidos · Ortiz 55 · Solari 27</span><span>Datos: StatsBomb (eventos y 360)</span></div>
   <nav class="toc" aria-label="Contenido">
