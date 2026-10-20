@@ -62,13 +62,26 @@
   - [ ] Llevarla a `src/framework.py` y al cubo.
 - Los documentos del equipo van en "nosotros", sin atribuir ideas a nadie.
 
-### Decidido (20 oct, Pau)
-- Marco: Python como base; del marco en R solo la recuperacion tras perdida por evento (ya en framework, gold, cubo y app).
-- Historia en 5 ideas: ADN del club, lo que puso Jardine, lee el partido, ADN ganador, puntos criticos.
-- Recomendaciones: plan de liguilla, 4-4-2 contra fuertes, cierre del primer tiempo y cambios, primer palo y relevo de Fidalgo.
-- Del analisis en R entran finales, rivales, tipos de gol y defensa bajo ataque, recalculados en Python (notebook 07).
-- [x] Reporte final: `python -m src.final_report` -> `reports/final/reporte_america.html`.
-- [ ] Enlace a la app publicada (APP_URL en src/final_report.py), nombres del equipo, video y correo de entrega.
+### Decidido (20 oct)
+- **Marco:** Python como base. Del marco en R solo entra la recuperación tras pérdida por evento, que ya está en el marco, la capa gold, el cubo y la app.
+- **Historia en 5 ideas:**
+  1. el ADN del club;
+  2. lo que puso Jardine;
+  3. lee el partido;
+  4. el ADN ganador;
+  5. los puntos críticos.
+- **Recomendaciones:**
+  - plan de liguilla;
+  - 4-4-2 contra rivales fuertes;
+  - cierre del primer tiempo y cambios;
+  - primer palo y relevo de Fidalgo.
+- **Del análisis en R** entran finales, rivales, tipos de gol y defensa bajo ataque, recalculados en Python (notebook 07).
+- [x] Reporte final: `python -m src.final_report` → `reports/final/reporte_america.html`.
+- [ ] Antes de entregar:
+  - enlace a la app publicada (`APP_URL` en `src/final_report.py`);
+  - nombres del equipo;
+  - video;
+  - correo de entrega.
 
 ### Pendiente
 - [ ] Discutir el prerreporte (`reports/prereporte/prereporte_equipo.html`, `python -m src.prereporte`):
