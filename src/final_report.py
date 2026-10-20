@@ -179,9 +179,10 @@ def f_tipos_gol(N) -> go.Figure:
                xaxis=dict(range=[0, 100], ticksuffix=" %"), yaxis=dict(autorange="reversed"))
 
 
-def f_marcador(N, coach: str = "Jardine") -> go.Figure:
+def f_marcador(N, coach: str = "Jardine", d: pd.DataFrame | None = None) -> go.Figure:
+    """`d` (opcional): efectos ya calculados para otro periodo (columnas variable, estado, efecto, lo, hi; la app)."""
     est = ["Pierde por 2+", "Pierde por 1", "Gana por 1", "Gana por 2+"]
-    d = N["marcador"].query("coach == @coach and estado in @est")
+    d = (N["marcador"].query("coach == @coach") if d is None else d).query("estado in @est")
     fig = go.Figure()
     for var, lab, col in [("field_tilt", "Dominio territorial", SERIES[0]), ("possession_time_pct", "Posesión", SERIES[1])]:
         s = d[d.variable == var].set_index("estado").reindex(est)
