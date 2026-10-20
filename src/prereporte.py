@@ -83,19 +83,26 @@ SIGLAS_EXTRA = [("Ap / Cl", "Apertura / Clausura (en las gráficas)"), ("90'", "
                 ("Desviaciones estándar", "cuánto se separa algo de su variación normal; 0.5 ya es una diferencia notable")]
 
 
-def siglas(texto: str) -> str:
-    """Recibe texto YA escapado; expande la primera aparición de cada sigla y marca las demás con <abbr>."""
+def siglas(texto: str, seen: set | None = None) -> str:
+    """Recibe texto YA escapado (puede traer etiquetas HTML); expande la primera aparición de cada sigla y marca las
+    demás con <abbr>. `seen` (opcional) comparte el registro entre bloques: una sigla ya explicada en la misma sección
+    no se vuelve a explicar. Dentro de un paréntesis, "(xG)" queda "(xG: goles esperados)"."""
     import re
+    seen = set() if seen is None else seen
     t = re.sub(r"\bAp (\d{4})", r"Apertura \1", texto)
     t = re.sub(r"\bCl (\d{4})", r"Clausura \1", t)
     t = re.sub(r"(\d) yd\b", r"\1 yardas", t)
     for pat, sig, corto, largo in SIGLAS:
-        primera = [True]
-
         def sub(m, sig=sig, corto=corto, largo=largo):
-            exp = f' <span class="exp">({html.escape(corto)})</span>' if primera[0] else ""
-            primera[0] = False
-            return f'<abbr title="{html.escape(largo)}">{sig}</abbr>{exp}{m.group(0)[len(sig):]}'   # conserva " = " o " ≥ "
+            tag = f'<abbr title="{html.escape(largo)}">{sig}</abbr>'
+            rest = m.group(0)[len(sig):]                                   # conserva " = " o " ≥ "
+            if sig in seen:
+                return tag + rest
+            seen.add(sig)
+            s, i, j = m.string, m.start(), m.end()
+            if i > 0 and s[i - 1] == "(" and j < len(s) and s[j] == ")":
+                return f'{tag}<span class="exp">: {html.escape(corto)}</span>{rest}'
+            return f'{tag} <span class="exp">({html.escape(corto)})</span>{rest}'
         t = re.sub(pat, sub, t)
     return t
 
