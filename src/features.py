@@ -235,7 +235,9 @@ def aggregate(ev: pd.DataFrame, poss: pd.DataFrame, keys: list[str], team: str =
     if keys == ["match_id"]:
         lr = fw.losses_and_regains(poss)
         out["counterpress_per_loss"] = _ratio(ga.cp_action.sum(), lr.losses)
-        out["quick_regain_pct"] = _ratio(lr.quick_regains, lr.losses, 100)
+        # recuperación tras pérdida POR EVENTO (decidido el 17 oct): la versión por posesión la subestima
+        le = fw.losses_and_regains_events(e, team).groupby("match_id").recuperada
+        out["quick_regain_pct"] = _ratio(le.sum(), le.size(), 100)
     else:
         n_loss = pa.groupby(keys, observed=True).size()  # aprox.: cada posesión propia termina en pérdida
         out["counterpress_per_loss"] = _ratio(ga.cp_action.sum(), n_loss)

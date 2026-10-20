@@ -239,6 +239,45 @@ def losses_and_regains(p: pd.DataFrame, team: str = TEAM) -> pd.DataFrame:
     return pd.DataFrame({"losses": loss.groupby(p.match_id).sum(), "quick_regains": quick.groupby(p.match_id).sum()})
 
 
+WON = ["Won", "Success", "Success In Play", "Success Out"]
+
+
+def losses_and_regains_events(ev: pd.DataFrame, team: str = TEAM) -> pd.DataFrame:
+    """Recuperación tras pérdida medida POR EVENTO (decidido el 17 oct; `losses_and_regains` la mide por posesión y
+    la subestima, porque una recuperación inmediata casi nunca llega a abrir una posesión rival en StatsBomb).
+
+    Pérdida = acción propia en juego que entrega el balón: pase fallido (no reanudación), regate fallido, robo sufrido
+    (`Dispossessed`) o mal control (`Miscontrol`). Se recupera si en los `counterpress_window_s` segundos siguientes,
+    dentro del mismo periodo, el equipo gana el balón (recuperación, intercepción o entrada ganadas) o vuelve a jugarlo
+    (pase, conducción, regate o tiro) después de que el rival lo tocó. Una fila por pérdida."""
+    e = ev if "t" in ev else add_clock(ev)
+    e = e[e.period < 5].sort_values(["match_id", "index"])
+    own = (e.team == team).to_numpy()
+    typ = e.type.to_numpy()
+    loss = own & (((typ == "Pass") & e.pass_outcome.notna().to_numpy() & e.pass_type.isna().to_numpy()
+                   & ~e.pass_outcome.isin(["Injury Clearance", "Unknown"]).to_numpy())
+                  | ((typ == "Dribble") & (e.dribble_outcome == "Incomplete").to_numpy())
+                  | np.isin(typ, ["Dispossessed", "Miscontrol"]))
+    won = own & (((typ == "Ball Recovery") & (e.ball_recovery_recovery_failure != True).to_numpy())  # noqa: E712
+                 | ((typ == "Interception") & e.interception_outcome.isin(WON).to_numpy())
+                 | ((typ == "Duel") & (e.duel_type == "Tackle").to_numpy() & e.duel_outcome.isin(WON).to_numpy()))
+    on_ball = own & np.isin(typ, ["Pass", "Carry", "Dribble", "Shot"])
+    rival = ~own & ~np.isin(typ, ["Pressure", "Ball Receipt*"])
+    t, per, mid = e.t.to_numpy(), e.period.to_numpy(), e.match_id.to_numpy()
+    w = A["counterpress_window_s"]
+    rows = []
+    for i in np.flatnonzero(loss):
+        regained, touched, j = False, False, i + 1
+        while j < len(t) and mid[j] == mid[i] and per[j] == per[i] and t[j] - t[i] <= w:
+            touched |= rival[j]
+            if won[j] or (on_ball[j] and touched):
+                regained = True
+                break
+            j += 1
+        rows.append((mid[i], per[i], t[i], e.location_x.iat[i], typ[i], regained))
+    return pd.DataFrame(rows, columns=["match_id", "period", "t", "x", "tipo", "recuperada"])
+
+
 def gini(x) -> float:
     """Índice de Gini (0 = reparto perfecto, 1 = todo en un jugador) sobre valores ≥ 0."""
     x = np.sort(np.clip(np.asarray(x, dtype=float), 0, None))

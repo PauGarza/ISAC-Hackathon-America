@@ -1150,3 +1150,108 @@ def save_story(df: pd.DataFrame, name: str, muestra: str = "ventana") -> str:
     path = ANALYSIS / f"story_{name}.parquet"
     df.assign(muestra=muestra).to_parquet(path, index=False)
     return str(path)
+
+
+# ------------------------------------------------------------------ complementos del 20 oct (recalculados con este marco)
+GOAL_FEATURES = ["inicio_x", "duracion_s", "pases", "conducciones", "jugadores", "avance", "velocidad", "pases_largos",
+                 "progresivos"]
+GOAL_TYPES = ["Ataque elaborado", "Ataque corto en campo rival", "Ataque rápido tras recuperar", "Balón parado"]
+
+
+def counterpress_events_summary(ev: pd.DataFrame, scope: pd.DataFrame) -> pd.DataFrame:
+    """Recuperación tras pérdida POR EVENTO (framework.losses_and_regains_events) por técnico, en total y según el
+    tercio donde se perdió el balón."""
+    lr = fw.losses_and_regains_events(ev).merge(scope[["match_id", "coach"]], on="match_id")
+    lr["tercio"] = fw.third(lr.x)
+    tot = lr.groupby("coach").agg(perdidas=("recuperada", "size"), recuperadas=("recuperada", "sum"))
+    tot["perdidas_por_partido"] = per_match(tot.perdidas, scope)
+    tot["pct_recuperadas"] = tot.recuperadas / tot.perdidas * 100
+    by = lr.pivot_table(index="coach", columns="tercio", values="recuperada", aggfunc="mean") * 100
+    by.columns = [f"pct_recuperadas_{c}" for c in by.columns]
+    return tot.join(by).reindex(COACHES).reset_index()
+
+
+def goal_sequences(ev: pd.DataFrame, poss: pd.DataFrame) -> pd.DataFrame:
+    """Goles del América sin penales (en memoria): la jugada completa desde que el equipo tuvo el balón hasta el
+    remate, con su origen (marco) y la jugada previa (classify_assist). Una fila por gol."""
+    s = shots(ev, poss)
+    am = ev[ev.am]
+    gl = am.loc[s.index[s.goal]]
+    own = am[am.type != "Ball Receipt*"]
+    pk = poss.set_index(["match_id", "possession"])
+    rows = []
+    for i, g in gl.iterrows():
+        seq = own[(own.match_id == g.match_id) & (own.possession == g.possession) & (own.t <= g.t)]
+        p0 = pk.loc[(g.match_id, g.possession)]
+        x0 = p0.start_x if pd.notna(p0.start_x) else seq.location_x.iloc[0]
+        dur = max(float(g.t - p0.t_start), 0.0)
+        rows.append({"idx": i, "match_id": g.match_id, "coach": g.coach, "inicio_x": x0, "duracion_s": dur,
+                     "pases": int((seq.type == "Pass").sum()), "conducciones": int((seq.type == "Carry").sum()),
+                     "jugadores": int(seq.player_id.nunique()), "avance": float(g.location_x - x0),
+                     "velocidad": float(g.location_x - x0) / max(dur, 1.0),
+                     "pases_largos": int(((seq.type == "Pass") & (seq.pass_length >= A["long_pass_yd"])).sum()),
+                     "progresivos": int((seq.prog_pass | seq.prog_carry).sum()), "xg": g.shot_statsbomb_xg})
+    out = pd.DataFrame(rows).set_index("idx")
+    return out.join(s[["origin", "assist", "body_part"]])
+
+
+def goal_types(gs: pd.DataFrame, k: int = 3, seed: int = 0) -> tuple[pd.DataFrame, dict]:
+    """Tipos de gol: los de balón parado (marco) van aparte; el resto se resume con un PCA de GOAL_FEATURES
+    estandarizadas y se agrupa con k-means (k = 3). Los grupos se nombran por su centro: el de más pases es
+    'Ataque elaborado'; de los otros, el que empieza más arriba es 'Ataque corto en campo rival'; el último,
+    'Ataque rápido tras recuperar'. Devuelve los goles con su tipo y PC1/PC2, y el modelo (cargas y varianza)."""
+    from sklearn.cluster import KMeans
+    from sklearn.decomposition import PCA
+    gs = gs.copy()
+    op = gs.origin != "Balón parado"
+    X = gs.loc[op, GOAL_FEATURES].astype(float)
+    Z = (X - X.mean()) / X.std(ddof=0)
+    pca = PCA(n_components=2, random_state=seed).fit(Z)
+    pcs = pca.transform(Z)
+    km = KMeans(n_clusters=k, n_init=50, random_state=seed).fit(Z)
+    cent = pd.DataFrame(km.cluster_centers_ * X.std(ddof=0).values + X.mean().values, columns=GOAL_FEATURES)
+    elab = cent.pases.idxmax()
+    rest = cent.drop(elab)
+    corto = rest.inicio_x.idxmax()
+    rapido = rest.drop(corto).index[0]
+    names = {elab: GOAL_TYPES[0], corto: GOAL_TYPES[1], rapido: GOAL_TYPES[2]}
+    gs["tipo"] = GOAL_TYPES[3]
+    gs.loc[op, "tipo"] = [names[c] for c in km.labels_]
+    gs.loc[op, "PC1"], gs.loc[op, "PC2"] = pcs[:, 0], pcs[:, 1]
+    model = {"varianza": pca.explained_variance_ratio_.round(3).tolist(),
+             "cargas": pd.DataFrame(pca.components_.T, index=GOAL_FEATURES, columns=["PC1", "PC2"]).round(3)}
+    return gs, model
+
+
+def goal_type_summary(gs: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """(1) Cada tipo de gol: goles, % y la jugada típica (medianas). (2) Reparto de los goles de cada técnico por tipo."""
+    g = gs.groupby("tipo")
+    tipos = pd.DataFrame({"goles": g.size(), "pct": g.size() / len(gs) * 100,
+                          **{f"mediana_{c}": g[c].median() for c in ["inicio_x", "duracion_s", "pases", "jugadores"]},
+                          "pct_transicion_marco": g.origin.apply(lambda s: (s == "Transición").mean() * 100),
+                          "xg_medio": g.xg.mean()}).reindex(GOAL_TYPES).reset_index()
+    rep = (pd.crosstab(gs.coach, gs.tipo, normalize="index") * 100).reindex(index=COACHES, columns=GOAL_TYPES)
+    rep["goles"] = gs.coach.value_counts().reindex(COACHES)
+    return tipos, rep.reset_index()
+
+
+def goal_recipes(gs: pd.DataFrame, top: int = 8) -> pd.DataFrame:
+    """Las recetas de gol más repetidas: origen de la jugada (marco) × jugada previa al remate."""
+    r = gs.groupby(["origin", "assist"]).size().rename("goles").reset_index()
+    r["pct"] = r.goles / len(gs) * 100
+    return r.sort_values("goles", ascending=False).head(top).reset_index(drop=True)
+
+
+def defense_under_attack(ev: pd.DataFrame, poss: pd.DataFrame, scope: pd.DataFrame, zone_yd: float = 30) -> pd.DataFrame:
+    """Cuando el rival llega a las `zone_yd` yardas más cercanas a la portería del América (x ≥ 120 − zone_yd en el
+    marco del rival): llegadas por partido y cómo terminan (cortada sin tiro, tiro, gol), por técnico."""
+    r = poss[~poss.is_team & (poss.max_x >= 120 - zone_yd)].copy()
+    goals = ev[~ev.am & (ev.type == "Shot") & (ev.shot_outcome == "Goal") & (ev.shot_type != "Penalty")]
+    gk = set(zip(goals.match_id, goals.possession))
+    r["gol"] = [k in gk for k in zip(r.match_id, r.possession)]
+    r["coach"] = r.match_id.map(scope.set_index("match_id").coach)
+    g = r.groupby("coach")
+    out = pd.DataFrame({"llegadas": g.size(), "pct_sin_tiro": 100 - g.shot.mean() * 100, "pct_tiro": g.shot.mean() * 100,
+                        "pct_gol": g.gol.mean() * 100, "xg_por_llegada": g.xg.mean()})
+    out["llegadas_por_partido"] = per_match(out.llegadas, scope)
+    return out.reindex(COACHES).reset_index()

@@ -17,6 +17,25 @@ def test_zones():
     assert fw.in_box(np.array([110]), np.array([40]))[0] and not fw.in_box(np.array([95]), np.array([40]))[0]
 
 
+def test_losses_and_regains_events():
+    """Pérdida recuperada: el rival toca el balón y el América lo vuelve a jugar en ≤ 5 s. No recuperada: pasa más
+    tiempo, o el América 'juega' sin que el rival haya tocado el balón (no es recuperación)."""
+    cols = ["match_id", "index", "period", "minute", "second", "team", "type", "location_x", "pass_outcome", "pass_type",
+            "dribble_outcome", "ball_recovery_recovery_failure", "interception_outcome", "duel_type", "duel_outcome"]
+    rows = [
+        (1, 1, 1, 10, 0, fw.TEAM, "Pass", 70, "Incomplete", None, None, None, None, None, None),   # pérdida
+        (1, 2, 1, 10, 1, "Rival", "Ball Receipt*", 70, None, None, None, None, None, None, None),
+        (1, 3, 1, 10, 2, "Rival", "Pass", 60, None, None, None, None, None, None, None),            # el rival la toca
+        (1, 4, 1, 10, 3, fw.TEAM, "Pass", 62, None, None, None, None, None, None, None),            # ...y la recuperamos
+        (1, 5, 1, 20, 0, fw.TEAM, "Dispossessed", 40, None, None, None, None, None, None, None),    # pérdida
+        (1, 6, 1, 20, 2, "Rival", "Carry", 80, None, None, None, None, None, None, None),
+        (1, 7, 1, 20, 9, fw.TEAM, "Ball Recovery", 30, None, None, None, None, None, None, None),   # 9 s: tarde
+    ]
+    out = fw.losses_and_regains_events(pd.DataFrame(rows, columns=cols))
+    assert list(out.tipo) == ["Pass", "Dispossessed"]
+    assert list(out.recuperada) == [True, False]
+
+
 def test_gini():
     assert fw.gini([1, 1, 1, 1]) == pytest.approx(0)
     assert fw.gini([0, 0, 0, 10]) == pytest.approx(0.75)
