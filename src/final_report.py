@@ -32,8 +32,30 @@ INK, MUTED, RULE, ACCENT = "#14181d", "#6f7782", "#dde2e8", "#1d4e89"
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 
 
-def rd(name: str) -> pd.DataFrame:
-    return pd.read_parquet(A / f"{name}.parquet")
+def rd(name: str, a: Path = A) -> pd.DataFrame:
+    return pd.read_parquet(a / f"{name}.parquet")
+
+
+# tablas que usan las gráficas; la app lleva una copia en app/data/reporte (app/export_data.py)
+TABLAS_GRAFICAS = ["hipotesis_adn_comun", "story_goles_reparto", "story_contexto_marcador", "hipotesis_minuto",
+                   "hipotesis_series_liguilla", "hipotesis_derrotas", "hipotesis_formacion_fuertes", "coach_fit_top15"]
+
+
+def base(a: Path = A, C: dict | None = None) -> dict:
+    """Lo que necesitan las gráficas y sus 'Lo que muestra'. El reporte lee data/gold; la app, sus copias."""
+    C = C if C is not None else K.load()
+    P = C["partidos"]
+    N = {"C": C, "P": P, "W": P[(P.muestra == "ventana") & P.coach.isin(COACHES)]}
+    N["adn"] = rd("hipotesis_adn_comun", a).set_index("rasgo")
+    N["reparto"] = rd("story_goles_reparto", a).set_index("coach")
+    N["marcador"] = rd("story_contexto_marcador", a)
+    N["mar"] = N["marcador"].query("coach == 'Jardine'").set_index(["variable", "estado"]).efecto
+    N["min"] = rd("hipotesis_minuto", a).query("tecnico == 'Jardine'").set_index("tramo")
+    N["series"] = rd("hipotesis_series_liguilla", a)
+    N["der"] = rd("hipotesis_derrotas", a).set_index("metrica")
+    N["fue"] = rd("hipotesis_formacion_fuertes", a)
+    N["encaje"] = rd("coach_fit_top15", a)
+    return N
 
 
 def e(s: str, seen: set | None = None) -> str:
@@ -43,9 +65,7 @@ def e(s: str, seen: set | None = None) -> str:
 
 # ------------------------------------------------------------------ cifras (todas salen de los agregados)
 def cifras() -> dict:
-    N: dict = {}
-    adn = rd("hipotesis_adn_comun").set_index("rasgo")
-    N["adn"] = adn
+    N = base()
     sal = rd("story_salida_resumen").query("kind == 'Saque de meta'").set_index("coach").pct_corto
     rec = rd("story_salida_receptor").query("kind == 'Saque de meta' and length == 'Corto' and receiver_group == 'Medio defensivo'").set_index("coach").share * 100
     N.update(corto=sal, mc_baja=rec)
@@ -71,36 +91,24 @@ def cifras() -> dict:
     N["def_area"], N["pegados"], N["azar"] = bpd.defensores_area_media, bpd.pct_pegados, bpd.pct_pegados_azar
     z = rd("story_bp_zonas_remate").query("coach == 'Jardine' and lado == 'En contra' and dimension == 'palo'").set_index("valor")
     N["primer_palo"] = z.loc["Primer palo", "pct_xg"]
-    mar = rd("story_contexto_marcador").query("coach == 'Jardine'").set_index(["variable", "estado"]).efecto
-    N["mar"] = mar
     rl = rd("story_contexto_rival_localia").query("coach == 'Jardine'").set_index("contexto")
     N["pos_debil"], N["pos_fuerte"] = rl.loc["Débil", "possession_time_pct"], rl.loc["Fuerte", "possession_time_pct"]
     loc = rd("hipotesis_localia").set_index("metrica")
     N["loc"] = loc
-    mi = rd("hipotesis_minuto").query("tecnico == 'Jardine'").set_index("tramo")
-    N["min"] = mi
     cam = rd("hipotesis_cambios").set_index(["marcador", "sale"])
     N["cam_perd"] = cam.loc[("Perdiendo", "Sale un defensor")]
-    P = K.load()["partidos"]
-    W = P[(P.muestra == "ventana") & P.coach.isin(COACHES)]
+    W = N["W"]
     N["descanso"] = W.groupby("coach").primer_cambio_descanso.mean() * 100
-    N["P"], N["W"] = P, W
     ser = rd("hipotesis_series_avanzo_todas").set_index("metrica")
     N["ser"] = ser
-    N["series"] = rd("hipotesis_series_liguilla")
-    der = rd("hipotesis_derrotas").set_index("metrica")
-    N["der"] = der
-    fue = rd("hipotesis_formacion_fuertes")
-    N["fue"] = fue
     N["forms"] = rd("hipotesis_formaciones").set_index("formacion")
     N["fvs"] = rd("hipotesis_formacion_vs")
     N["tipos"], N["reparto"] = rd("story_goles_tipos").set_index("tipo"), rd("story_goles_reparto").set_index("coach")
     N["recetas"] = rd("story_goles_recetas")
     N["finales"] = rd("story_finales")
     N["rivales"] = rd("story_rivales").set_index("opponent")
-    N["encaje"] = rd("coach_fit_top15")
     N["hip"] = rd("hipotesis_equipo").set_index("id")
-    jug = K.jugadores_periodo(K.load()["jugadores"], W[W.coach == "Jardine"]).set_index("jugador")
+    jug = K.jugadores_periodo(N["C"]["jugadores"], W[W.coach == "Jardine"]).set_index("jugador")
     N["fidalgo"] = jug.loc[[j for j in jug.index if "Fidalgo" in j][0], "pct_obv_pos"]
     N["xpts"] = W.groupby("coach").agg(puntos=("puntos", "mean"), xpts=("xpts", "mean"))
     N["rotacion"] = rd("coach_turnover").valor          # cambios de técnico en la liga, ventana oficial
@@ -134,11 +142,11 @@ def f_radar(N) -> go.Figure:
                           angularaxis=dict(gridcolor=RULE, tickfont=dict(size=12, color=INK))))
 
 
-def f_mapas(N) -> go.Figure:
-    """Dos canchas lado a lado (Jardine): de dónde vienen sus ocasiones y dónde roba el balón."""
+def f_mapas(N, coach: str = "Jardine") -> go.Figure:
+    """Dos canchas lado a lado: de dónde vienen sus ocasiones y dónde roba el balón."""
     from plotly.subplots import make_subplots
-    C = K.load()
-    ids = N["W"].query("coach == 'Jardine'").match_id
+    C = N["C"]
+    ids = N["W"].query("coach == @coach").match_id
     fig = make_subplots(rows=1, cols=2, horizontal_spacing=0.04,
                         subplot_titles=("¿De dónde vienen sus ocasiones? (xG por partido)", "¿Dónde roba el balón? (robos por partido)"))
     xs, ys = np.arange(K.CELL / 2, 120, K.CELL), np.arange(K.CELL / 2, 80, K.CELL)
@@ -171,9 +179,9 @@ def f_tipos_gol(N) -> go.Figure:
                xaxis=dict(range=[0, 100], ticksuffix=" %"), yaxis=dict(autorange="reversed"))
 
 
-def f_marcador(N) -> go.Figure:
+def f_marcador(N, coach: str = "Jardine") -> go.Figure:
     est = ["Pierde por 2+", "Pierde por 1", "Gana por 1", "Gana por 2+"]
-    d = rd("story_contexto_marcador").query("coach == 'Jardine' and estado in @est")
+    d = N["marcador"].query("coach == @coach and estado in @est")
     fig = go.Figure()
     for var, lab, col in [("field_tilt", "Dominio territorial", SERIES[0]), ("possession_time_pct", "Posesión", SERIES[1])]:
         s = d[d.variable == var].set_index("estado").reindex(est)
@@ -277,13 +285,13 @@ def f_encaje(N) -> go.Figure:
                yaxis=dict(gridcolor="white"))
 
 
-def f_epilogo(N) -> go.Figure:
-    jt = K.torneos(N["P"]).query("tecnico == 'Jardine'")
+def f_epilogo(N, coach: str = "Jardine") -> go.Figure:
+    jt = K.torneos(N["P"]).query("tecnico == @coach")
     rec = ~jt.torneo.isin(N["P"][N["P"].muestra == "ventana"].torneo.unique())
     fig = go.Figure(go.Scatter(x=jt.torneo.map(torneo_short), y=jt.xg_favor_regular, mode="lines+markers",
-                               line=dict(color=COACH_COLOR["Jardine"], width=2),
-                               marker=dict(size=11, color=COACH_COLOR["Jardine"], symbol=["circle-open" if r else "circle" for r in rec],
-                                           line=dict(width=2, color=COACH_COLOR["Jardine"])),
+                               line=dict(color=COACH_COLOR[coach], width=2),
+                               marker=dict(size=11, color=COACH_COLOR[coach], symbol=["circle-open" if r else "circle" for r in rec],
+                                           line=dict(width=2, color=COACH_COLOR[coach])),
                                customdata=jt.posesion_regular, hovertemplate="%{x}<br>%{y:.2f} xG por partido · posesión %{customdata:.0f} %<extra></extra>"))
     return lay(fig, 280, showlegend=False, yaxis=dict(title="ocasiones (xG) por partido", rangemode="tozero"))
 
@@ -291,6 +299,28 @@ def f_epilogo(N) -> go.Figure:
 FIGURAS = {"g-radar": f_radar, "g-mapas": f_mapas, "g-tipos": f_tipos_gol, "g-marcador": f_marcador, "g-minuto": f_minuto,
            "g-torneos": f_torneos, "g-series": f_series, "g-derrotas": f_derrotas, "g-fuertes": f_fuertes, "g-encaje": f_encaje,
            "g-epilogo": f_epilogo}
+POR_TECNICO = {"g-mapas", "g-marcador", "g-epilogo"}   # aceptan `coach`; las demás comparan a los tres o son de Jardine
+
+# "Cómo leerla" de cada gráfica: (texto, alto). {tecnico} y {periodo} los llenan el reporte (Jardine) y la app.
+PIES = {
+    "g-radar": ("El ADN de cada técnico: 8 rasgos de 0 a 100 frente a los 70 técnicos de la liga (50 = típico). Apertura 2021 – Clausura 2025.", 460),
+    "g-mapas": ("{tecnico}, {periodo}. Izquierda: ocasiones (xG) por partido según dónde se tiró. Derecha: robos por partido según dónde recuperó el balón.", 330),
+    "g-tipos": ("Goles sin penal de cada técnico según cómo fue la jugada. El balón parado sigue la definición de nuestro marco.", 260),
+    "g-marcador": ("{tecnico}: cómo cambian el dominio territorial y la posesión según el marcador, frente al mismo partido empatado. La línea es el margen del 90 %.", 300),
+    "g-minuto": ("Jardine: ocasiones (xG) a favor y en contra por 90 minutos en cada tramo. La banda es el margen del 90 % de las ocasiones en contra; el tramo sombreado es el cierre del primer tiempo.", 320),
+    "g-torneos": ("Cada torneo: cuántos pases deja dar al rival antes de presionar en la fase regular (gris) y en la liguilla (color según hasta dónde llegó; estrella = título).", 340),
+    "g-series": ("Cada punto es una serie de liguilla. Arriba = espera más antes de presionar. Relleno = el América pasó; vacío = quedó eliminado.", 420),
+    "g-derrotas": ("Lo que cambia en las derrotas frente a las victorias, con el mismo técnico y el mismo nivel de rival (solo diferencias claras). Dominio y presión se miden con el partido empatado.", 340),
+    "g-fuertes": ("Contra rivales fuertes, con el mismo técnico y marcador: cada dibujo frente al 4-2-3-1. Punto relleno = diferencia clara; la línea es el margen del 90 %.", 260),
+    "g-encaje": ("Índice de Encaje: los 10 técnicos de la Liga MX más cercanos al ADN del América (2021–2025, 15 partidos o más).", 380),
+    "g-epilogo": ("{tecnico} en fase regular, torneo a torneo: ocasiones (xG) por partido. Los puntos vacíos son las temporadas recientes (2025–26).", 280),
+}
+
+
+def pie(gid: str, N, coach: str = "Jardine") -> str:
+    t = N["W"].query("coach == @coach").sort_values("match_date").torneo
+    periodo = f"{t.iat[0]} – {t.iat[-1]}" if len(t) else ""
+    return PIES[gid][0].format(tecnico=coach, periodo=periodo)
 
 
 def fig_html(gid: str, pie: str, alto: int, muestra: str = "") -> str:
@@ -310,7 +340,7 @@ def lecturas(N) -> dict:
     L["g-radar"] = (f"Las tres figuras se estiran igual hacia {', '.join(club[:-1])} y {club[-1]}: los tres técnicos quedan arriba de "
                     f"la liga en esos rasgos, y eso es el ADN del club. Donde se separan es la presión alta: Ortiz la llevaba muy arriba "
                     f"({pa.Ortiz:.0f} de 100) y Jardine por debajo del técnico típico ({pa.Jardine:.0f}).")
-    C = K.load()
+    C = N["C"]
     ids = N["W"].query("coach == 'Jardine'").match_id
     rob = K.rejilla(C["zonas"], ids, "recuperaciones", "n")
     tir = K.rejilla(C["zonas"], ids, "tiros", "xg")
@@ -568,17 +598,8 @@ def build() -> str:
         minuto=minuto, adn=S["adn"], jardine_con=S["jardine_con"], jardine_sin=S["jardine_sin"], jardine_bp=S["jardine_bp"],
         ajusta=S["ajusta"], ganador=S["ganador"], criticos=S["criticos"], recos=recos, probamos=S["probamos"],
         aporte=S["aporte"], epilogo=S["epilogo"], app=app, importa=importa,
-        g_radar=fig_html("g-radar", "El ADN de cada técnico: 8 rasgos de 0 a 100 frente a los 70 técnicos de la liga (50 = típico). Apertura 2021 – Clausura 2025.", 460, LEC["g-radar"]),
-        g_mapas=fig_html("g-mapas", "Jardine, Apertura 2023 – Clausura 2025. Izquierda: ocasiones (xG) por partido según dónde se tiró. Derecha: robos por partido según dónde recuperó el balón.", 330, LEC["g-mapas"]),
-        g_tipos=fig_html("g-tipos", "Goles sin penal de cada técnico según cómo fue la jugada. El balón parado sigue la definición de nuestro marco.", 260, LEC["g-tipos"]),
-        g_marcador=fig_html("g-marcador", "Jardine: cómo cambian el dominio territorial y la posesión según el marcador, frente al mismo partido empatado. La línea es el margen del 90 %.", 300, LEC["g-marcador"]),
-        g_minuto=fig_html("g-minuto", "Jardine: ocasiones (xG) a favor y en contra por 90 minutos en cada tramo. La banda es el margen del 90 % de las ocasiones en contra; el tramo sombreado es el cierre del primer tiempo.", 320, LEC["g-minuto"]),
-        g_torneos=fig_html("g-torneos", "Cada torneo: cuántos pases deja dar al rival antes de presionar en la fase regular (gris) y en la liguilla (color según hasta dónde llegó; estrella = título).", 340, LEC["g-torneos"]),
-        g_series=fig_html("g-series", "Cada punto es una serie de liguilla. Arriba = espera más antes de presionar. Relleno = el América pasó; vacío = quedó eliminado.", 420, LEC["g-series"]),
-        g_derrotas=fig_html("g-derrotas", "Lo que cambia en las derrotas frente a las victorias, con el mismo técnico y el mismo nivel de rival (solo diferencias claras). Dominio y presión se miden con el partido empatado.", 340, LEC["g-derrotas"]),
-        g_fuertes=fig_html("g-fuertes", "Contra rivales fuertes, con el mismo técnico y marcador: cada dibujo frente al 4-2-3-1. Punto relleno = diferencia clara; la línea es el margen del 90 %.", 260, LEC["g-fuertes"]),
-        g_encaje=fig_html("g-encaje", "Índice de Encaje: los 10 técnicos de la Liga MX más cercanos al ADN del América (2021–2025, 15 partidos o más).", 380, LEC["g-encaje"]),
-        g_epilogo=fig_html("g-epilogo", "Epílogo. Jardine en fase regular: ocasiones (xG) por partido. Los puntos vacíos (2025–26) están fuera de la ventana del reto.", 280, LEC["g-epilogo"]),
+        **{gid.replace("-", "_"): fig_html(gid, ("Epílogo. " if gid == "g-epilogo" else "") + pie(gid, N), PIES[gid][1], LEC[gid])
+           for gid in FIGURAS},
         figs=json.dumps(figs, ensure_ascii=False).replace("</", "<\\/"))
 
 
