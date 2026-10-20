@@ -67,6 +67,29 @@ dl.glosario dd { margin: 0; color: var(--ink-2); }
 abbr[title] { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
 .exp { color: var(--muted); font-size: 0.92em; }
 .nota { background: var(--gold-soft); border-left: 3px solid var(--gold); padding: 10px 14px; border-radius: 0 6px 6px 0; color: var(--ink); font-size: 0.95rem; max-width: 70ch; }
+.autores { font-weight: 600; color: var(--ink); font-size: 1.02rem; }
+.importa { background: var(--accent-soft); border-radius: 8px; padding: 16px 18px; display: grid; gap: 10px; }
+.importa-t { font: 600 0.8rem/1 var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.cifras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.cifras div { display: grid; gap: 4px; }
+.cifras b { font: 700 2.1rem/1 var(--display); color: var(--accent); font-variant-numeric: tabular-nums; }
+.cifras span { font-size: 0.92rem; color: var(--ink-2); }
+ol.flujo { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; counter-reset: f; }
+ol.flujo li { counter-increment: f; background: var(--paper); border-radius: 8px; padding: 12px; display: grid; gap: 6px; align-content: start; position: relative; }
+ol.flujo li::before { content: counter(f); font: 700 1.3rem/1 var(--display); color: var(--accent); }
+ol.flujo li:not(:last-child)::after { content: "→"; position: absolute; right: -9px; top: 12px; color: var(--muted); font-weight: 700; }
+ol.flujo strong { font-size: 0.98rem; }
+ol.flujo span { font-size: 0.86rem; color: var(--ink-2); }
+.ideas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ideas article { border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; }
+.ideas .de { font: 600 0.78rem/1.2 var(--body); letter-spacing: 0.07em; text-transform: uppercase; color: var(--gold); }
+.ideas p { font-size: 0.95rem; color: var(--ink-2); }
+ol.refs { margin: 14px 0 0; padding-left: 22px; display: grid; gap: 8px; color: var(--ink-2); font-size: 0.92rem; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .cifras, .ideas { grid-template-columns: minmax(0, 1fr); }
+  ol.flujo { grid-template-columns: minmax(0, 1fr); }
+  ol.flujo li:not(:last-child)::after { content: "↓"; right: 12px; top: auto; bottom: 6px; }
+}
 footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.88rem; display: grid; gap: 6px; }
 a { color: var(--accent); }
 @media (max-width: 640px) {
@@ -81,18 +104,23 @@ a { color: var(--accent); }
 <header class="hero">
   <span class="eyebrow">Hackathon ISAC 2026 · Club América · La historia de un entrenador a través de los datos</span>
   <h1>El ADN de André Jardine</h1>
-  <p class="lead">Cómo juega el América de Jardine, qué conserva del club, cómo ajusta según el partido y qué lo hizo campeón tres veces seguidas. Contado con datos para quien no vio los partidos.</p>
-  <div class="meta"><span>Liga MX · Apertura 2021 – Clausura 2025</span><span>Jardine 91 partidos · Ortiz 55 · Solari 27</span><span>Datos: StatsBomb (eventos y 360)</span></div>
+  <p class="lead">Entre 2023 y 2024 el América de André Jardine ganó tres torneos seguidos, el primer tricampeonato de la era de torneos cortos. Aquí contamos cómo juega, qué conserva del club, cómo ajusta según el partido y qué lo hizo campeón, con datos y para quien no vio los partidos.</p>
+  <p class="autores">Emilio Villalobos García Padilla · Othoniel Reyes Camacho · Paulina Garza Allende</p>
+  <div class="meta"><span>22 de octubre de 2026</span><span>Liga MX · Apertura 2021 – Clausura 2025</span><span>Jardine 91 partidos · Ortiz 55 · Solari 27</span><span>Datos: StatsBomb (eventos y 360)</span></div>
   <nav class="toc" aria-label="Contenido">
     <a href="#minuto">En un minuto</a><a href="#s1">El ADN del club</a><a href="#s2">Lo que puso Jardine</a><a href="#s3">Cómo ajusta</a>
     <a href="#s4">El ADN ganador</a><a href="#s5">Puntos críticos</a><a href="#s6">Recomendaciones</a><a href="#s7">Lo que probamos</a>
-    <a href="#s8">Nuestro aporte</a><a href="#metodo">Metodología</a><a href="#glosario">Glosario</a>
+    <a href="#s8">Nuestro aporte</a><a href="#metodo">Metodología</a><a href="#glosario">Glosario</a><a href="#referencias">Referencias</a>
   </nav>
 </header>
 
 <section class="s" id="minuto" aria-labelledby="t-min">
   <header><h2 id="t-min">En un minuto</h2></header>
   <ol class="minuto">$minuto</ol>
+  <aside class="importa" aria-label="Por qué importa">
+    <p class="importa-t">¿Por qué importa?</p>
+    <div class="cifras">$importa</div>
+  </aside>
 </section>
 
 <section class="s" id="s1">
@@ -150,6 +178,21 @@ a { color: var(--accent); }
   <header><span class="num-s">8</span><h2>Nuestro aporte</h2><p class="q">¿Cómo se usa esto más allá de Jardine?</p></header>
   <div class="prose">$aporte<p>Para explorar cualquier periodo, técnico o partido con las mismas gráficas está $app.</p></div>
   $g_encaje
+  <h3>Cómo lo hicimos</h3>
+  <ol class="flujo" aria-label="Del dato a la recomendación">
+    <li><strong>Datos</strong><span>Eventos y 360 de StatsBomb del América y estadísticas por partido de toda la Liga MX, Apertura 2021 – Clausura 2025.</span></li>
+    <li><strong>Un solo marco</strong><span>Cada objeto (posesión, transición, presión, balón parado…) definido una vez y usado en todo el reporte.</span></li>
+    <li><strong>Indicadores por partido</strong><span>41 indicadores de juego y 8 rasgos del ADN para cada partido y cada técnico de la liga.</span></li>
+    <li><strong>Comparaciones justas</strong><span>Mismo técnico, mismo nivel de rival y, para el plan de juego, el partido empatado. Cada idea se prueba antes de contarla.</span></li>
+    <li><strong>Historia y recomendaciones</strong><span>Lo que se sostiene se cuenta en lenguaje de cancha, con un indicador para seguirlo.</span></li>
+  </ol>
+  <h3>De dónde tomamos las ideas</h3>
+  <div class="ideas">
+    <article><p class="de">Béisbol · OPS+ y ERA+</p><p>Las estadísticas del béisbol se ajustan por estadio y por época para comparar jugadores de distintos años. El ADN del Entrenador hace lo mismo: compara cada rasgo con la liga del mismo torneo y descuenta rival y localía.</p></article>
+    <article><p class="de">Medicina · ensayos clínicos</p><p>Un tratamiento se compara contra pacientes parecidos, no contra cualquiera. Nosotros comparamos con el mismo técnico y el mismo nivel de rival, y medimos el plan con el partido empatado para no confundir causa y consecuencia.</p></article>
+    <article><p class="de">Recomendadores · Spotify y Amazon</p><p>"Si te gusta esto, te gustará aquello": la distancia entre perfiles. El Índice de Encaje mide qué tan cerca está un técnico del ADN del club.</p></article>
+    <article><p class="de">Física y finanzas · Monte Carlo</p><p>Repetir un experimento miles de veces para ver qué tan probable fue un resultado. Simulamos cada partido con sus ocasiones para saber qué tanto mereció el América sus puntos.</p></article>
+  </div>
 </section>
 
 <section class="s" id="epilogo">
@@ -218,7 +261,21 @@ a { color: var(--accent); }
 </details>
 </section>
 
+<section class="s" id="referencias">
+<details class="anexo">
+  <summary>Anexo C · Referencias</summary>
+  <ol class="refs">
+    <li>Hudl StatsBomb. Datos de eventos y 360 de la Liga MX, Apertura 2021 – Clausura 2025. Proporcionados para el Hackathon ISAC 2026.</li>
+    <li>StatsBomb (2021). <em>Introducing On-Ball Value (OBV)</em>. https://blogarchive.statsbomb.com/news/introducing-on-ball-value-obv/</li>
+    <li>StatsBomb. <em>Set-pieces remain an under-utilised game-changer</em>. https://blogarchive.statsbomb.com/articles/soccer/set-pieces-remain-an-underutilised-gamechanger/</li>
+    <li>Clijmans, J., Van Roy, M. y Davis, J. (2022). <em>Looking Beyond the Past: Analyzing the Intrinsic Playing Style of Soccer Teams</em>. ECML PKDD.</li>
+    <li>Baseball-Reference. Glosario de estadísticas ajustadas por estadio y liga (OPS+, ERA+). https://www.baseball-reference.com/about/bat_glossary.shtml</li>
+  </ol>
+</details>
+</section>
+
 <footer>
+  <p>Emilio Villalobos García Padilla · Othoniel Reyes Camacho · Paulina Garza Allende</p>
   <p>Hackathon ISAC 2026 · ITAM Sports Analytics Conference · reto presentado por Club América. Datos de StatsBomb usados solo para la competencia; el reporte muestra resultados, no datos crudos.</p>
 </footer>
 </div>

@@ -103,6 +103,7 @@ def cifras() -> dict:
     jug = K.jugadores_periodo(K.load()["jugadores"], W[W.coach == "Jardine"]).set_index("jugador")
     N["fidalgo"] = jug.loc[[j for j in jug.index if "Fidalgo" in j][0], "pct_obv_pos"]
     N["xpts"] = W.groupby("coach").agg(puntos=("puntos", "mean"), xpts=("xpts", "mean"))
+    N["rotacion"] = rd("coach_turnover").valor          # cambios de técnico en la liga, ventana oficial
     return N
 
 
@@ -481,10 +482,17 @@ def build() -> str:
   <dl><dt>Qué hacer</dt><dd>{e(q, sr)}</dd><dt>Por qué</dt><dd>{e(p, sr)}</dd><dt>Cómo medirlo</dt><dd>{e(k, sr)}</dd><dt>Ojo</dt><dd>{e(o, sr)}</dd></dl>
 </article>""" for t, q, p, k, o in S["recos"])
     app = (f'<a href="{APP_URL}">{APP_URL}</a>' if APP_URL else "el explorador interactivo que acompaña este reporte")
+    rot = N["rotacion"]
+    importa = (f'<div><b>{int(rot["cambios de técnico"])}</b><span>cambios de técnico en la Liga MX en 8 torneos '
+               f'({rot["cambios por torneo (liga)"]:.0f} por torneo).</span></div>'
+               f'<div><b>7 de cada 10</b><span>técnicos no completan dos torneos en su equipo '
+               f'({rot["% de periodos de menos de 2 torneos"]:.0f} %).</span></div>'
+               f'<div><b>3 títulos</b><span>seguidos con un mismo técnico. Entender qué los hizo posibles ayuda a elegir, '
+               f'sostener y evaluar al siguiente con datos.</span></div>')
     return Template(TPL.read_text(encoding="utf-8")).substitute(
         minuto=minuto, adn=S["adn"], jardine_con=S["jardine_con"], jardine_sin=S["jardine_sin"], jardine_bp=S["jardine_bp"],
         ajusta=S["ajusta"], ganador=S["ganador"], criticos=S["criticos"], recos=recos, probamos=S["probamos"],
-        aporte=S["aporte"], epilogo=S["epilogo"], app=app,
+        aporte=S["aporte"], epilogo=S["epilogo"], app=app, importa=importa,
         g_radar=fig_html("g-radar", "El ADN de cada técnico: 8 rasgos de 0 a 100 frente a los 70 técnicos de la liga (50 = típico). Apertura 2021 – Clausura 2025.", 460),
         g_mapas=fig_html("g-mapas", "Jardine, Apertura 2023 – Clausura 2025. Izquierda: ocasiones (xG) por partido según dónde se tiró. Derecha: robos por partido según dónde recuperó el balón.", 330),
         g_tipos=fig_html("g-tipos", "Goles sin penal de cada técnico según cómo fue la jugada. El balón parado sigue la definición de nuestro marco.", 260),
