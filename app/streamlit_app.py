@@ -330,6 +330,15 @@ with T[4]:
              "pases que deja dar antes de presionar": g.ppda.mean(), "xG a favor": g.xg_favor.mean(), "xG en contra": g.xg_contra.mean()}
             for dim, key in [("Localía", "localia"), ("Rival", "rival_nivel")] for v, g in sel.groupby(key)]
     st.dataframe(pd.DataFrame(rows).set_index("contexto").round(2), width="stretch")
+    st.markdown("#### Rivales fuertes, medios y débiles")
+    st.markdown('<span class="rep">Del reporte · Apertura 2021 – Clausura 2025 · no cambia con los filtros</span>',
+                unsafe_allow_html=True)
+    txt, niv = FR.niveles_rival(N)
+    st.markdown(f'<div class="pie">{FR.siglas(txt, set())}</div>', unsafe_allow_html=True)
+    st.dataframe(niv, hide_index=True, width="stretch", column_config={
+        c: st.column_config.NumberColumn(format="%.2f") for c in ["Puntos por partido", "Según sus ocasiones", "Jardine: puntos por partido"]}
+        | {c: st.column_config.NumberColumn(format="%.0f %%") for c in ["Victorias (%)", "Posesión (%)"]})
+    st.caption(FR.NIVELES_NOTA)
     fc, fcb = sel.primer_cambio_descanso.mean() * 100, base.primer_cambio_descanso.mean() * 100
     st.metric("Primer cambio en el descanso", f"{fc:.0f} % de los partidos",
               delta=f"{fc - fcb:+.0f} puntos frente a {base_label} ({fcb:.0f} %)", delta_color="off")
@@ -348,7 +357,7 @@ with T[6]:
     st.markdown("#### ¿Dónde se le escapan los partidos?")
     for gid in ["g-minuto", "g-derrotas", "g-fuertes"]:
         del_reporte(gid)
-    st.markdown("#### ¿Contra quién saca más (o menos) de lo que merece?")
+    st.markdown("#### ¿Contra quién le fue mejor (o peor) de lo que jugó?")
     rv = K.rivales(sel)
     rv = rv[rv.partidos >= (3 if len(sel) >= 40 else 1)]
     if rv.empty:
@@ -360,13 +369,17 @@ with T[6]:
                         line=dict(width=1, color="white")),
             customdata=np.c_[rv.partidos, rv.nivel.fillna("—"), rv.pct_victorias],
             hovertemplate="%{text} (%{customdata[1]})<br>%{customdata[0]} partidos · %{customdata[2]:.0f} % victorias"
-                          "<br>sacó %{y:.2f} puntos por partido · merecía %{x:.2f}<extra></extra>"))
-        lo, hi = min(rv.xpts.min(), rv.puntos.min()) - 0.1, max(rv.xpts.max(), rv.puntos.max()) + 0.1
-        fig.add_shape(type="line", x0=lo, y0=lo, x1=hi, y1=hi, line=dict(color=MUTED, dash="dot"))
-        show(FR.lay(fig, 480, showlegend=False, xaxis=dict(title="puntos que merecía por partido (según sus ocasiones)"),
-                    yaxis=dict(title="puntos que sacó por partido")))
-        st.markdown('<p class="pie"><b>Cómo leerla.</b> Arriba de la línea punteada sacó más de lo que merecía. '
-                    'Color = nivel del rival (rojo fuerte, gris medio, verde débil); tamaño = partidos.</p>', unsafe_allow_html=True)
+                          "<br>sacó %{y:.2f} puntos por partido · por sus ocasiones, %{x:.2f}<extra></extra>"))
+        fig.add_shape(type="line", x0=0, y0=0, x1=3, y1=3, line=dict(color=MUTED, dash="dot"))
+        ejes = dict(range=[-0.15, 3.15], tickvals=[0, 1, 2, 3])
+        show(FR.lay(fig, 520, showlegend=False,
+                    xaxis=dict(ejes, title="puntos por partido que le daban sus ocasiones (xG)"),
+                    yaxis=dict(ejes, title="puntos por partido que sacó de verdad", ticktext=["0 perdió todo", "1 empató todo", "2", "3 ganó todo"])))
+        st.markdown('<p class="pie"><b>Cómo leerla.</b> Cada punto es un rival. Los dos ejes son puntos <b>por partido</b> '
+                    '(no acumulados), de 0 a 3: 3 es ganarle todos los partidos, 1 empatarlos todos. '
+                    'Arriba de la línea punteada sacó más puntos de los que le daban sus ocasiones: fue muy efectivo o tuvo suerte; '
+                    'abajo, jugó para más y no le alcanzó. Color = nivel del rival (rojo fuerte, gris medio, verde débil); '
+                    'tamaño = partidos.</p>', unsafe_allow_html=True)
 
 # --- 8 · Cómo lo medimos
 with T[7]:

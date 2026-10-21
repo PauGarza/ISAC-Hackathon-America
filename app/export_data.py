@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pandas as pd
+
 from src import cube as K
 from src import final_report as FR
 
@@ -26,6 +28,7 @@ def main() -> None:
     rep.mkdir(exist_ok=True)
     for name in FR.TABLAS_GRAFICAS:
         K._guard(FR.rd(name), name).to_parquet(rep / f"{name}.parquet")   # con su índice (p. ej. el técnico en el encaje)
+    pd.DataFrame({"corte": FR.cortes_rival()}).to_parquet(rep / "rival_cortes.parquet")   # niveles del rival (débil|medio|fuerte)
     for old in ["hallazgos.parquet", "textos.md"]:   # restos de cuando la app contaba la historia
         (OUT / old).unlink(missing_ok=True)
     files = [f for f in OUT.rglob("*.parquet")]

@@ -147,6 +147,13 @@ a { color: var(--accent); }
   <header><span class="num-s">3</span><h2>Cómo ajusta</h2><p class="q">¿Qué cambia según el marcador, el rival, la cancha y el banco?</p></header>
   <div class="prose">$ajusta</div>
   $g_marcador
+  <h3>Rivales fuertes, medios y débiles</h3>
+  <div class="prose">$rivales_txt</div>
+  <div class="tabla"><table>
+    <thead><tr><th>Nivel</th><th>Quiénes suelen caer ahí</th><th>Partidos</th><th>Puntos por partido</th><th>Según sus ocasiones</th><th>Victorias</th><th>Posesión</th><th>Jardine: puntos por partido</th></tr></thead>
+    <tbody>$rivales</tbody>
+  </table></div>
+  <p class="exp">$rivales_nota</p>
 </section>
 
 <section class="s" id="s4">
@@ -223,7 +230,7 @@ a { color: var(--accent); }
       <tr><td>Presión</td><td>Altura de cada acción defensiva: alta x ≥ 60, media 40–60, baja x &lt; 40. PPDA: pases rivales en su 60 % del campo entre acciones defensivas propias en nuestro 60 % alto.</td></tr>
       <tr><td>Balón parado</td><td>Posesión que abre el saque del propio equipo: córner, tiro libre o saque de banda en el último tercio.</td></tr>
       <tr><td>Marcador</td><td>Diferencia de goles antes de cada acción, en cinco estados (pierde por 2+, pierde por 1, empate, gana por 1, gana por 2+).</td></tr>
-      <tr><td>Fuerza del rival</td><td>Puntos por partido del rival en sus 17 partidos previos de liga, en tres niveles (débil, medio, fuerte).</td></tr>
+      <tr><td>Fuerza del rival</td><td>Puntos por partido del rival en sus 17 partidos previos de liga, en tres niveles que parten a la liga en tercios: fuerte con 1.59 o más, débil con menos de 1.12, medio en medio. Se mide en cada partido (sección 3).</td></tr>
       <tr><td>Bloque (360)</td><td>Con el rival en posesión: última línea = los 4 jugadores de campo más retrasados; bloque = los 8 más retrasados; solo tomas con 8 o más jugadores visibles.</td></tr>
       <tr><td>Ocasión clara</td><td>Tiro sin penal con xG de 0.30 o más.</td></tr>
       <tr><td>Formación en el campo</td><td>La titular y cada cambio táctico registrado; cada minuto lleva la formación vigente, propia y del rival.</td></tr>

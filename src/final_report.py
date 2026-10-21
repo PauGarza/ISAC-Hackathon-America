@@ -20,6 +20,7 @@ import plotly.graph_objects as go
 from src import cube as K
 from src.pipeline.config import GOLD
 from src.prereporte import siglas
+from src.story import rival_terciles
 from src.viz import COACH_COLOR, STAGE_COLOR, pitch_shapes, torneo_short
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,7 +56,16 @@ def base(a: Path = A, C: dict | None = None) -> dict:
     N["der"] = rd("hipotesis_derrotas", a).set_index("metrica")
     N["fue"] = rd("hipotesis_formacion_fuertes", a)
     N["encaje"] = rd("coach_fit_top15", a)
+    N["cortes"] = cortes_rival(a)
     return N
+
+
+def cortes_rival(a: Path = A) -> np.ndarray:
+    """Cortes de fuerza del rival (puntos por partido en sus 17 previos). La app lee su copia (app/export_data.py)."""
+    f = a / "rival_cortes.parquet"
+    if f.exists():
+        return pd.read_parquet(f).corte.to_numpy()
+    return rival_terciles(pd.read_parquet(GOLD / "fct_team_match_league.parquet"))
 
 
 def e(s: str, seen: set | None = None) -> str:
@@ -404,6 +414,38 @@ def lecturas(N) -> dict:
 
 
 # ------------------------------------------------------------------ texto
+CORTO = {"Tigres UANL": "Tigres", "Pumas UNAM": "Pumas", "Atlético San Luis": "San Luis", "Santos Laguna": "Santos"}
+
+
+def niveles_rival(N) -> tuple[str, pd.DataFrame]:
+    """Quién es rival fuerte, medio y débil y cómo le va al América contra cada nivel (ventana, los tres técnicos).
+    El nivel se mide en cada partido; el de cada club es el de su forma promedio en sus partidos contra el América.
+    Devuelve el texto (HTML) y la tabla, que el reporte y la app muestran igual."""
+    W, (c1, c2) = N["W"], N["cortes"]
+    forma = W.groupby("opponent").rival_ppg_prev.mean().sort_values(ascending=False)
+    club = pd.Series(np.select([forma < c1, forma < c2], ["Débil", "Medio"], "Fuerte"), index=forma.index)
+    tol = W[W.opponent == "Toluca"]
+    txt = (f"<p><strong>¿Quién es un rival fuerte?</strong> El nivel del rival se mide en cada partido, con lo que venía sumando "
+           f"en sus 17 partidos de liga anteriores (un torneo completo): <strong>fuerte</strong> si traía {c2:.2f} puntos por partido "
+           f"o más, <strong>débil</strong> si traía menos de {c1:.2f} y <strong>medio</strong> en medio. Los cortes parten a la liga "
+           f"en tres partes iguales. Así, un mismo club puede ser fuerte en un torneo y medio en otro (Toluca llegó como fuerte "
+           f"a {(tol.rival_nivel == 'Fuerte').sum()} de sus {len(tol)} partidos contra el América), pero casi siempre cae en el "
+           f"mismo grupo. Esta es la clasificación que usamos cuando hablamos de rivales fuertes, medios y débiles.</p>")
+    filas = []
+    for niv in ["Fuerte", "Medio", "Débil"]:
+        g, j = W[W.rival_nivel == niv], W[(W.rival_nivel == niv) & (W.coach == "Jardine")]
+        filas.append({"Nivel": niv, "Quiénes suelen caer ahí": ", ".join(CORTO.get(c, c) for c in club[club == niv].index),
+                      "Partidos": len(g), "Puntos por partido": g.puntos.mean(), "Según sus ocasiones": g.xpts.mean(),
+                      "Victorias (%)": (g.result == "W").mean() * 100, "Posesión (%)": g.possession_time_pct.mean(),
+                      "Jardine: puntos por partido": j.puntos.mean()})
+    return txt, pd.DataFrame(filas)
+
+
+NIVELES_NOTA = ('América con Solari, Ortiz y Jardine, Apertura 2021 – Clausura 2025. "Según sus ocasiones": puntos por partido '
+                'que le tocaban según las ocasiones (xG) de cada equipo. Cada club va en el nivel de su forma promedio en sus '
+                'partidos contra el América, de más fuerte a más débil.')
+
+
 def cuerpo(N) -> dict:
     adn, c, x = N["adn"], N["corto"], N["xg_tiro"]
     L, ser, der, mi = N["loc"], N["ser"], N["der"], N["min"]
@@ -492,6 +534,10 @@ def cuerpo(N) -> dict:
         f"partidos (Ortiz {N['descanso']['Ortiz']:.0f} %, Solari {N['descanso']['Solari']:.0f} %). Perdiendo, cuando entra alguien más "
         f"ofensivo por un defensor, las ocasiones a favor suben {cp.cambio_xg_favor:+.2f} xG por cada 100 posesiones sin que suban las "
         f"del rival.</p>")
+    S["rivales_txt"], niv = niveles_rival(N)
+    S["rivales"] = "".join(
+        f"<tr><td><strong>{r[0]}</strong></td><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]:.2f}</td><td>{r[4]:.2f}</td>"
+        f"<td>{r[5]:.0f} %</td><td>{r[6]:.0f} %</td><td>{r[7]:.2f}</td></tr>" for r in niv.itertuples(index=False))
     S["ganador"] = (
         f"<p>Ocho torneos en la ventana del reto, tres títulos, todos con Jardine. ¿Qué hizo distinto el campeón? <strong>En la fase regular jugó como el "
         f"América de siempre; en la liguilla, como un equipo de copa.</strong></p>"
@@ -581,7 +627,7 @@ def build() -> str:
     minuto = "".join(f'<li><span class="num">{i}</span><div><h3>{e(t, sm)}</h3><p>{e(p, sm)}</p></div></li>'
                      for i, (t, p) in enumerate(S["minuto"], start=1))
     sj = set()
-    for k in ["adn", "jardine_con", "jardine_sin", "jardine_bp", "ajusta", "ganador", "criticos", "aporte", "epilogo"]:
+    for k in ["adn", "jardine_con", "jardine_sin", "jardine_bp", "ajusta", "rivales_txt", "ganador", "criticos", "aporte", "epilogo"]:
         S[k] = siglas(S[k], sj if k.startswith("jardine") else set())
     sr = set()
     recos = "".join(f"""<article class="reco"><h3>{e(t, sr)}</h3>
@@ -597,7 +643,7 @@ def build() -> str:
                f'sostener y evaluar al siguiente con datos.</span></div>')
     return Template(TPL.read_text(encoding="utf-8")).substitute(
         minuto=minuto, adn=S["adn"], jardine_con=S["jardine_con"], jardine_sin=S["jardine_sin"], jardine_bp=S["jardine_bp"],
-        ajusta=S["ajusta"], ganador=S["ganador"], criticos=S["criticos"], recos=recos, probamos=S["probamos"],
+        ajusta=S["ajusta"], rivales_txt=S["rivales_txt"], rivales=S["rivales"], rivales_nota=html.escape(NIVELES_NOTA), ganador=S["ganador"], criticos=S["criticos"], recos=recos, probamos=S["probamos"],
         aporte=S["aporte"], epilogo=S["epilogo"], app=app, importa=importa,
         **{gid.replace("-", "_"): fig_html(gid, ("Epílogo. " if gid == "g-epilogo" else "") + pie(gid, N), PIES[gid][1], LEC[gid])
            for gid in FIGURAS},
