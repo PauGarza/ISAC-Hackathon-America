@@ -31,7 +31,9 @@ p { margin: 0; }
 .lead { font-size: 1.2rem; color: var(--ink-2); max-width: 60ch; }
 .meta { display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--muted); font-size: 0.92rem; }
 nav.toc { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.95rem; padding-top: 4px; }
-nav.toc a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-soft); }
+nav.toc a, a.arriba { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-soft); }
+a.arriba { justify-self: start; font-size: 0.95rem; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 section.s { padding-block: 44px 8px; display: grid; gap: 18px; }
 section.s > header { display: grid; gap: 8px; }
 .num-s { font: 700 1rem/1 var(--mono); color: var(--accent); }
@@ -98,12 +100,12 @@ a { color: var(--accent); }
   .reco dl, dl.glosario { grid-template-columns: minmax(0, 1fr); }
   ol.minuto li { grid-template-columns: 40px minmax(0, 1fr); }
 }
-@media print { details.anexo { display: block; } .plot { break-inside: avoid; } }
+@media print { a.arriba { display: none; } details.anexo { display: block; } .plot { break-inside: avoid; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-<header class="hero">
+<header class="hero" id="inicio">
   <span class="eyebrow">Hackathon ISAC 2026 · Club América · La historia de un entrenador a través de los datos</span>
   <h1>El ADN de André Jardine</h1>
   <p class="lead">Entre 2023 y 2024 el América de André Jardine ganó tres torneos seguidos. Aquí contamos cómo juega, qué conserva del club, cómo ajusta según el partido y qué lo hizo campeón.</p>
@@ -129,6 +131,7 @@ a { color: var(--accent); }
   <header><span class="num-s">1</span><h2>El ADN del América</h2><p class="q">¿Qué es del club y qué es del técnico?</p></header>
   <div class="prose">$adn</div>
   $g_radar
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="s2">
@@ -141,6 +144,7 @@ a { color: var(--accent); }
   <div class="prose">$jardine_sin</div>
   <h3>Balón parado y jugadores</h3>
   <div class="prose">$jardine_bp</div>
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="s3">
@@ -154,6 +158,7 @@ a { color: var(--accent); }
     <tbody>$rivales</tbody>
   </table></div>
   <p class="exp">$rivales_nota</p>
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="s4">
@@ -161,6 +166,7 @@ a { color: var(--accent); }
   <div class="prose">$ganador</div>
   $g_torneos
   $g_series
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="s5">
@@ -169,18 +175,21 @@ a { color: var(--accent); }
   $g_minuto
   $g_derrotas
   $g_fuertes
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="s6">
   <header><span class="num-s">6</span><h2>Recomendaciones</h2><p class="q">¿Qué repetir y qué cambiar?</p></header>
   <div class="prose"><p>Cada recomendación sale de un patrón que se repite en los datos, con un indicador para seguirla partido a partido. Describen lo que pasó; no garantizan resultados.</p></div>
   <div class="recos">$recos</div>
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="s7">
   <header><span class="num-s">7</span><h2>Lo que probamos y no cambia el resultado</h2><p class="q">¿Qué ideas no se sostienen con los datos?</p></header>
   <div class="prose"><p>Probamos más ideas de las que contamos. Estas no se sostienen o los datos no alcanzan para afirmarlas; también son información para el cuerpo técnico.</p></div>
   <div class="tabla"><table><thead><tr><th>Idea</th><th>Lo que encontramos</th></tr></thead><tbody>$probamos</tbody></table></div>
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="s8">
@@ -202,12 +211,14 @@ a { color: var(--accent); }
     <article><p class="de">Genética · comparar perfiles</p><p>Para saber qué tan emparentados están dos organismos se compara su perfil genético marcador por marcador. El Índice de Encaje compara a cada técnico con el ADN del club rasgo por rasgo y mide qué tan cerca está.</p></article>
     <article><p class="de">Física y finanzas · Monte Carlo</p><p>Repetir un experimento miles de veces para ver qué tan probable fue un resultado. Como propone el reto, simulamos cada partido con sus ocasiones para saber qué tanto mereció el América sus puntos.</p></article>
   </div>
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="epilogo">
   <header><span class="num-s">+</span><h2>Epílogo: 2025–26</h2><p class="q">¿Qué pasó después?</p></header>
   <div class="prose">$epilogo</div>
   $g_epilogo
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="metodo">
@@ -246,8 +257,11 @@ a { color: var(--accent); }
     <p>Repetimos cada partido con las ocasiones que tuvo cada equipo (cada posesión con tiros es gol con su probabilidad) para obtener los puntos que "merecía". El América de Jardine sumó más o menos lo que mereció: la simulación sirve para explicar, no para predecir.</p>
     <h3>Límites</h3>
     <p>No hay datos físicos (cuánto corre, ritmo) ni de lesiones. El 360 solo ve a los jugadores dentro de la toma. Son tres títulos y pocas series de liguilla: el ADN ganador es un patrón que se repite, no una ley. Las sustituciones se describen antes y después; no aíslan el efecto del cambio. Solo hay eventos del América: el resto de la liga entra por sus estadísticas por partido.</p>
+    <h3>Uso de inteligencia artificial</h3>
+    <p>Usamos Claude, el asistente de inteligencia artificial de Anthropic, a través de Claude Code: para escribir y revisar el código del análisis, de este reporte y del explorador; para redactar y editar textos; y para preparar el guion y las diapositivas del video. Todas las cifras salen del código que corre sobre los datos de StatsBomb, y revisamos los resultados y los textos antes de incluirlos.</p>
   </div>
 </details>
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="glosario">
@@ -268,6 +282,7 @@ a { color: var(--accent); }
     <dt>Ap / Cl</dt><dd>Apertura / Clausura.</dd>
   </dl>
 </details>
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <section class="s" id="referencias">
@@ -279,8 +294,10 @@ a { color: var(--accent); }
     <li>StatsBomb. <em>Set-pieces remain an under-utilised game-changer</em>. https://blogarchive.statsbomb.com/articles/soccer/set-pieces-remain-an-underutilised-gamechanger/</li>
     <li>Clijmans, J., Van Roy, M. y Davis, J. (2022). <em>Looking Beyond the Past: Analyzing the Intrinsic Playing Style of Soccer Teams</em>. ECML PKDD.</li>
     <li>Baseball-Reference. Glosario de estadísticas ajustadas por estadio y liga (OPS+, ERA+). https://www.baseball-reference.com/about/bat_glossary.shtml</li>
+    <li>Anthropic (2026). <em>Claude</em> [asistente de inteligencia artificial; modelos Claude usados mediante Claude Code]. Usado para programación, redacción y edición (ver Anexo A). https://www.anthropic.com/claude</li>
   </ol>
 </details>
+  <a class="arriba" href="#inicio">↑ Volver al inicio</a>
 </section>
 
 <footer>
@@ -289,7 +306,7 @@ a { color: var(--accent); }
 </footer>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+$plotly_js
 <script>
 var FIGS = $figs;
 var CFG = { displayModeBar: false, responsive: true };

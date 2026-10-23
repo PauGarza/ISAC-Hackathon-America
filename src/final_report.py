@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "reports" / "final" / "reporte_america.html"
 TPL = Path(__file__).with_name("templates") / "final_report.html.tpl"
 A = GOLD / "analysis"
-APP_URL = ""          # enlace al explorador (app) cuando esté publicado
+APP_URL = "https://isac-hackathon-america-2rkgqdhmmyqxvkxnogcpci.streamlit.app/"  # explorador (app)
 COACHES = ["Solari", "Ortiz", "Jardine"]
 INK, MUTED, RULE, ACCENT = "#14181d", "#6f7782", "#dde2e8", "#1d4e89"
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
@@ -128,7 +128,7 @@ def cifras() -> dict:
 # ------------------------------------------------------------------ gráficas (tema claro fijo)
 def lay(fig: go.Figure, h: int, **kw) -> go.Figure:
     base = dict(height=h, paper_bgcolor="white", plot_bgcolor="white",
-                font=dict(family="Source Sans 3, Segoe UI, sans-serif", size=13, color=INK),
+                font=dict(family="\"Source Sans 3\", Segoe UI, sans-serif", size=13, color=INK),
                 margin=dict(l=10, r=16, t=40, b=44), hoverlabel=dict(bgcolor="white", bordercolor=RULE, font=dict(color=INK)),
                 legend=dict(orientation="h", y=1.12, x=0))
     base.update(kw)
@@ -494,6 +494,10 @@ def cuerpo(N) -> dict:
         f"<p><strong>Sale jugando.</strong> Saca en corto el {c['Jardine']:.0f} % de sus saques de meta (Ortiz {c['Ortiz']:.0f} %, "
         f"Solari {c['Solari']:.0f} %) y el pase corto lo recibe un mediocentro que baja en el {N['mc_baja']['Jardine']:.0f} % de las "
         f"veces (Ortiz {N['mc_baja']['Ortiz']:.0f} %): antes iba casi siempre al central.</p>"
+        # progresión y entradas al área: data/gold/analysis/story_hallazgos.parquet (3.2b, notebook 05)
+        f"<p><strong>Progresa por dentro y entra por fuera.</strong> El 42 % de sus pases progresivos termina en el carril central, "
+        f"pero al último tercio llega sobre todo por las bandas: 21.1 veces por partido por la izquierda y 17.9 por la derecha, "
+        f"frente a 9.3 por el centro. Pisa el área 14.7 veces por partido, como Ortiz (15.0) y 48 % más que Solari (9.9).</p>"
         f"<p><strong>No tira más, tira mejor.</strong> {N['tiros_pp']['Jardine']:.1f} tiros por partido, como sus antecesores, pero "
         f"{x['Jardine']:.2f} xG por tiro (Ortiz {x['Ortiz']:.2f}, Solari {x['Solari']:.2f}). Su jugada distintiva es el pase atrás al "
         f"área: {N['pase_atras']['Jardine']:.0f} % de su peligro (Ortiz {N['pase_atras']['Ortiz']:.0f} %).</p>"
@@ -514,14 +518,19 @@ def cuerpo(N) -> dict:
         f"30 yardas y el América corta el {N['dba_sin_tiro']['Jardine']:.0f} % de esas jugadas sin permitir un tiro.</p>")
     S["jardine_bp"] = (
         f"<p><strong>El balón parado es un arma.</strong> Juega en corto el {N['corner_corto']['Jardine']:.0f} % de sus córners "
-        f"(Ortiz {N['corner_corto']['Ortiz']:.0f} %) y cada córner vale {N['xg_corner']['Jardine']:.3f} xG. La mayor parte del "
+        f"(Ortiz {N['corner_corto']['Ortiz']:.0f} %) y cada córner vale {N['xg_corner']['Jardine']:.3f} xG. Cuando centra, apunta al "
+        f"punto de penal (38 % de los envíos) más que al área chica (16 %). La mayor parte del "
         f"peligro llega en la segunda jugada, no en el remate directo del envío.</p>"
         f"<p><strong>En contra, el primer palo.</strong> Defiende los córners con {N['def_area']['Jardine']:.0f} jugadores en el área "
         f"y un esquema mixto ({N['pegados']['Jardine']:.0f} % pegados a un rival, frente a {N['azar']['Jardine']:.0f} % si fuera al azar). "
         f"El {N['primer_palo']:.0f} % del peligro que concede en córners nace en el primer palo.</p>"
         f"<p><strong>El juego pasa por el doble pivote.</strong> Fidalgo genera el {N['fidalgo']:.0f} % del aporte con balón del "
         f"equipo y es el eje de la red de pases. Los extremos juegan a pierna cambiada (diestro por la izquierda, zurdo por la derecha), "
-        f"una marca que empezó con Ortiz.</p>")
+        f"una marca que empezó con Ortiz.</p>"
+        # rotación y núcleo: data/gold/analysis/story_hallazgos.parquet (3.7a, notebook 05)
+        f"<p><strong>Rota alrededor de un núcleo.</strong> Cambia 3.6 titulares de un partido al siguiente (Ortiz 2.4) y usó "
+        f"79 onces distintos en 91 partidos, pero 8 jugadores suman más de la mitad de los minutos: Malagón, Fidalgo, Zendejas, "
+        f"Israel Reyes, Henry Martín, Jonathan dos Santos, Ramón Juárez y Kevin Álvarez. Su sistema base es el 4-2-3-1.</p>")
     S["ajusta"] = (
         f"<p><strong>El marcador cambia el plan.</strong> Comparado con el mismo partido empatado: perdiendo por uno, el América de "
         f"Jardine tiene {m_pos['Pierde por 1']:+.0f} puntos de posesión y {m_ft['Pierde por 1']:+.0f} de dominio territorial; ganando por "
@@ -647,7 +656,15 @@ def build() -> str:
         aporte=S["aporte"], epilogo=S["epilogo"], app=app, importa=importa,
         **{gid.replace("-", "_"): fig_html(gid, ("Epílogo. " if gid == "g-epilogo" else "") + pie(gid, N), PIES[gid][1], LEC[gid])
            for gid in FIGURAS},
-        figs=json.dumps(figs, ensure_ascii=False).replace("</", "<\\/"))
+        figs=json.dumps(figs, ensure_ascii=False).replace("</", "<\\/"),
+        plotly_js=plotly_js())
+
+
+def plotly_js() -> str:
+    """plotly.js dentro del HTML (la copia que trae plotly para Python), para que el reporte funcione sin conexión."""
+    import plotly
+    js = (Path(plotly.__file__).parent / "package_data" / "plotly.min.js").read_text(encoding="utf-8")
+    return "<script>" + js.replace("</script", "<\\/script") + "</script>"
 
 
 def main() -> None:
