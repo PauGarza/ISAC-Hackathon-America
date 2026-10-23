@@ -20,7 +20,6 @@ import plotly.graph_objects as go
 from src import cube as K
 from src.pipeline.config import GOLD
 from src.prereporte import siglas
-from src.story import rival_terciles
 from src.viz import COACH_COLOR, STAGE_COLOR, pitch_shapes, torneo_short
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,6 +64,7 @@ def cortes_rival(a: Path = A) -> np.ndarray:
     f = a / "rival_cortes.parquet"
     if f.exists():
         return pd.read_parquet(f).corte.to_numpy()
+    from src.story import rival_terciles  # aquí y no arriba: story trae sklearn, que la app no instala
     return rival_terciles(pd.read_parquet(GOLD / "fct_team_match_league.parquet"))
 
 
