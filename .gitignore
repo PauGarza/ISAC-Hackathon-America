@@ -37,3 +37,12 @@ Otho/
 # Material del video (notas de voz, grabaciones y renders): pesado, no se versiona
 Audios/
 Video_ADN/
+
+# Notas internas del equipo (pendientes, revisiones, guiones de grabación, prerreporte): se quedan en local
+todo.md
+Comentarios Emi.md
+docs/video/
+reports/prereporte/
+Teoria ML/
+docs/*.pdf
+docs/Trabajos pasados ganadores/
