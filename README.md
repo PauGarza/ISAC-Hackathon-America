@@ -12,7 +12,7 @@ Entre 2023 y 2024 el América de André Jardine ganó tres torneos seguidos, en 
 | **Reporte** (HTML interactivo, funciona sin conexión) | [`reports/final/reporte_america.html`](reports/final/reporte_america.html): descárgalo y ábrelo en el navegador |
 | **Reporte en PDF** (misma versión, para leer o imprimir) | [`reports/final/reporte_america.pdf`](reports/final/reporte_america.pdf) |
 | **App interactiva** (explorador por técnico, torneo o partido) | https://isac-hackathon-america-2rkgqdhmmyqxvkxnogcpci.streamlit.app/ |
-| **Video** (menos de 5 min) | Se envió con la entrega |
+| **Video** (menos de 5 min) | https://drive.google.com/file/d/1AKJtaJ4C5SH1IgBeqoqMoBgz_MUCvV2R/view?usp=sharing |
 
 > La app puede tardar unos segundos en despertar la primera vez que se abre.
 
