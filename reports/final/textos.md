@@ -241,3 +241,121 @@ Ese mismo ADN reconoce el estilo de Almada en sus primeros 9 partidos: el estilo
    - Con Almada, el balón parado se mantiene (percentil 99), pero **la solidez cae al percentil 67** (Jardine 98). Es la primera alerta que el ADN da en la prueba de 2026.
    - Los perfiles más cercanos a la identidad del club en la liga son Renato Paiva (97), Antonio Mohamed (94) y Víctor Vucetich (93).
    - El ADN también sirve para revisar cada jornada si el técnico en turno se aleja de la identidad que se quiere.
+
+---
+
+## 7 · Guion del video (máximo 5 min)
+
+> **Cómo se arma.** Voz A y Voz B mandan **una nota de voz por bloque** con el texto exacto de abajo. Pau narra sus bloques (los que van pegados a la pantalla: la demo) y graba la pantalla siguiendo cada audio.
+> Cada bloque de A y B se apoya en **una sola gráfica**, así que la toma de pantalla se alarga o se recorta al largo del audio sin que se note.
+> Meta: **4:45 en total**. Si nos pasamos de 4:50, quitamos lo marcado como *[recortable]* (unos 15 s).
+> Cifras: las del reporte (ventana Ap 2021 – Cl 2025), salvo el bloque 9 y la demo, que usan 2025–26.
+
+### Reparto
+
+| Bloque | Qué | Voz | Duración |
+|---|---|---|---|
+| 1 | El problema | Pau | 20 s |
+| 2 | Cómo lo hicimos | Pau | 38 s |
+| 3 | Idea 1 · El ADN del club | A | 22 s |
+| 4 | Idea 2 · Lo que puso Jardine | A | 30 s |
+| 5 | Idea 3 · Lee el partido | A | 15 s |
+| 6 | Idea 4 · El ADN ganador | B | 37 s |
+| 7 | Idea 5 · Puntos críticos | B | 20 s |
+| 8 | Recomendaciones | B | 43 s |
+| 9 | ¿Se sostiene? | A | 25 s |
+| 10 | Demo de la app | Pau | 32 s |
+| 11 | Cierre | Pau | 16 s |
+
+Cada voz suma más o menos lo mismo: A unos 1:30, B unos 1:40 y Pau unos 1:45. Si alguien no alcanza a mandar su audio, Pau lo graba: el texto funciona con cualquier voz.
+
+### Cómo grabar tu nota de voz (A y B)
+
+- **Una nota por bloque**, en orden (3, 4, 5, 9 o 6, 7, 8). No digas el número del bloque en el audio.
+- Cuarto cerrado y sin eco (un clóset con ropa es ideal). Celular a un palmo de la boca, sin altavoz y sin audífonos con micrófono de cable suelto.
+- Un segundo de silencio antes y después de hablar.
+- Lee **con calma**, como si se lo contaras a alguien que no vio los partidos. Si te equivocas, repite la nota completa.
+- Mándalas **como documento** (WhatsApp → adjuntar → documento), no como nota de voz, para que no pierdan calidad. Si solo puedes como nota de voz, también sirve.
+- Las cifras se dicen así: "0.12" = "cero punto doce"; "4-4-2" = "cuatro, cuatro, dos"; "1.41" = "uno punto cuarenta y uno".
+
+### Bloques
+
+**Bloque 1 · El problema · Pau · 20 s**
+- *Pantalla:* portada del reporte (título y autores) → bajar a "¿Por qué importa?".
+- *Pistas:* al decir "104 cambios", el recuadro de cifras ya debe estar a la vista.
+
+> Entre 2021 y 2025 hubo 104 cambios de técnico en la Liga MX, y siete de cada diez técnicos no completan dos torneos en su equipo. André Jardine ganó tres seguidos con el América. Nos preguntamos: ¿cómo juega su América, qué es del club, qué es suyo y qué lo hizo campeón?
+
+**Bloque 2 · Cómo lo hicimos · Pau · 38 s**
+- *Pantalla:* sección 8, "De dónde tomamos las ideas" (las 4 tarjetas) → "Cómo lo hicimos" (los 5 pasos).
+- *Pistas:* "béisbol" → cursor en la tarjeta de béisbol; "ensayo clínico" → tarjeta de medicina; "el partido empatado" → paso 4 del flujo.
+
+> Usamos los eventos y el 360 de StatsBomb (dónde estaba cada jugador en cada acción) de 175 partidos del América, y las estadísticas de toda la liga. Tomamos ideas de otras disciplinas. El béisbol ajusta sus estadísticas por estadio y por época; nosotros comparamos cada rasgo con la liga del mismo torneo y descontamos rival y localía. Como en un ensayo clínico, comparamos contra casos parecidos: el mismo técnico, el mismo nivel de rival y, para el plan de juego, el partido empatado. Así no confundimos el estilo con el marcador.
+
+**Bloque 3 · Idea 1: el ADN del club · Voz A · 22 s**
+- *Pantalla:* sección 1, el radar con su "Lo que muestra" visible.
+- *Pistas:* "más balón y más peligro" → cursor recorre control, peligro y solidez; "la presión" → cursor en presión alta, sobre Ortiz y luego sobre Jardine.
+
+> Primero: el América tiene un ADN que no depende del técnico. Con Solari, Ortiz y Jardine tuvo más balón y más peligro, y concedió menos que la liga. Eso es del club. Lo que cambia con cada técnico es la presión: Ortiz presionaba arriba como pocos, 86 de 100; Jardine, 37, por debajo del técnico típico.
+
+**Bloque 4 · Idea 2: lo que puso Jardine · Voz A · 30 s**
+- *Pantalla:* sección 2, gráfica de tipos de gol → mapas de ocasiones y robos.
+- *Pistas:* "sale jugando" → tipos de gol; "sin balón no asfixia" → mapa de robos (la zona oscura en su mitad).
+
+> Segundo: sobre esa base, Jardine sale jugando: saca en corto el 45 % de sus saques de meta, contra 31 % de Ortiz. No tira más, tira mejor. Sin balón no asfixia: espera y se junta. Con el 360 medimos su bloque: 20 yardas de largo, tres menos que Ortiz. Y gana las transiciones: genera casi el doble de peligro al contragolpe del que concede.
+
+**Bloque 5 · Idea 3: lee el partido · Voz A · 15 s**
+- *Pantalla:* sección 3, gráfica del marcador.
+- *Pistas:* "perdiendo por un gol" → fila "pierde por 1"; "ganando por uno" → fila "gana por 1".
+
+> Tercero: lee el partido. Perdiendo por un gol, empuja: más balón y más campo rival. Ganando por uno, guarda el balón lejos del área en vez de buscar el segundo.
+
+**Bloque 6 · Idea 4: el ADN ganador · Voz B · 37 s** ⭐
+- *Pantalla:* sección 4, gráfica por torneo → gráfica de series.
+- *Pistas:* "15 series" → cursor sobre las estrellas; "Ortiz" → cambiar a la gráfica de series y pasar el cursor por los puntos vacíos de abajo; "finales" → regresar al texto de las finales.
+
+> Cuarto, lo que más nos sorprendió: en liguilla, el campeón juega de copa. En las 15 series que el América pasó, dejó dar al rival 19 pases antes de presionar; en las 5 que perdió, 10. Ninguna serie perdida pasa de 13. Ortiz perdió sus tres semifinales presionando como nunca *[recortable: y en dos tuvo ocasiones iguales o mejores que el rival]*. Y Jardine ganó las finales de 2024 con menos de la mitad del balón; la que perdió, contra Toluca, la jugó dominando.
+
+**Bloque 7 · Idea 5: puntos críticos · Voz B · 20 s**
+- *Pantalla:* sección 5, gráfica por minuto (tramo sombreado) → gráfica de dibujos contra rivales fuertes.
+- *Pistas:* "del minuto 30 al descanso" → cursor en el pico naranja del tramo sombreado; "tres centrales" → segunda gráfica.
+
+> Quinto: dónde se le escapan los partidos. Del minuto 30 al descanso le generan 1.41 goles esperados por cada 90 minutos; al volver del descanso, 0.89. Y la línea de tres centrales que usó contra los grandes no lo protege: cede el balón y concede más tiros.
+
+**Bloque 8 · Recomendaciones · Voz B · 43 s**
+- *Pantalla:* sección 6, las 4 tarjetas; bajar una por una con zoom en "Cómo medirlo".
+- *Pistas:* "Uno", "Dos", "Tres", "Cuatro" → una tarjeta cada vez.
+
+> Cada hallazgo se vuelve una decisión con un indicador para seguirla. Uno: en liguilla, esperar en vez de asfixiar. La meta es dejar dar 15 pases o más antes de presionar, no tener el balón. Dos: contra los grandes, 4-4-2 en lugar de tres centrales; se mide con las llegadas al área y las ocasiones en contra. Tres: un ajuste desde el minuto 30, no solo en el descanso; se mide con lo que concede entre el 30 y el 45. Cuatro: cerrar el primer palo en los córners, de donde nace la mitad del peligro que concede, y preparar un relevo para Fidalgo, el organizador.
+
+**Bloque 9 · ¿Se sostiene? · Voz A · 25 s**
+- *Pantalla:* sección 7, tabla "Lo que probamos y no cambia el resultado" → sección 8, primer párrafo de "Nuestro aporte".
+- *Pistas:* "mejores jugadores" → fila "Cuando ganó tenía mejores jugadores".
+
+> No todo lo que probamos se sostuvo, y también lo publicamos: son diez ideas que no cambian el resultado. Por ejemplo, Jardine no ganó por tener mejores jugadores: el once de Ortiz en sus semifinales aportaba lo mismo o más. Y el ADN funciona en partidos nuevos: en 2025–26 pone al técnico correcto entre los cinco más parecidos el doble de veces que el azar.
+
+**Bloque 10 · Demo de la app · Pau · 38 s (máximo 42)**
+- *Pantalla (app):* https://isac-hackathon-america-2rkgqdhmmyqxvkxnogcpci.streamlit.app/
+  1. Jardine, toda su etapa, pestaña "El ADN": cursor por Técnico, Periodo y "Más filtros" (abrirlo: liguilla, localía, fuerza del rival); señalar "Cómo leerla".
+  2. Pestaña "Sin balón" → gráfica "¿Cuánto vale robar en cada zona?".
+  3. Pestaña "Puntos críticos" → gráfica de rivales; señalar Necaxa, abajo de la línea.
+  4. Periodo "Un partido" → escribir "Dec 2024" → 13 Dec 2024 · vs Monterrey (2-1) → "¿Merecía el resultado?" (80 %).
+  5. Periodo "Toda su etapa" (primero) → Técnico Almada (compara solo con Jardine) → pestaña "El ADN": presión alta y solidez defensiva.
+- *Ojo:* abrir la app unos minutos antes para despertarla. No desplegar "Partidos del periodo" ni "Todos los indicadores".
+
+> Todo esto vive en una app abierta. Elegimos técnico y periodo (toda su etapa, un torneo o un partido) y filtramos por liguilla, localía o fuerza del rival; cada gráfica se recalcula y explica cómo leerla. En «Sin balón» vemos cuánto vale robar en cada zona. En «Puntos críticos», contra quién sacó menos puntos de los que merecía, como Necaxa. Un solo partido: la ida de la final del Apertura 2024. Con sus ocasiones, el América la ganaba 8 de cada 10 veces. Y con Almada, casi la misma plantilla, la presión sube y la solidez baja: el estilo sigue al técnico.
+
+**Bloque 11 · Cierre · Pau · 16 s**
+- *Pantalla:* sección 8, Índice de Encaje → portada con los tres nombres y el enlace de la app.
+
+> *[recortable: Para la dirección deportiva, el Índice de Encaje dice qué técnicos de la liga se parecen al ADN del club: hoy, Renato Paiva y Antonio Mohamed.]* Convertimos 175 partidos en una historia que cualquiera puede leer y en decisiones que se pueden medir. Gracias.
+
+### Montaje (Pau)
+
+1. **Juntar los audios** en una carpeta con nombres `03_A.m4a`, `04_A.m4a`… Si Clipchamp no abre algún audio de WhatsApp (.opus), convertirlo: `ffmpeg -i nota.opus nota.m4a`.
+2. **Grabar los bloques de Pau** (1, 2, 10 y 11) con las mismas reglas de la nota de voz.
+3. **Poner todos los audios en orden** en la línea de tiempo de Clipchamp. Ese es el esqueleto: la imagen se acomoda al audio, no al revés.
+4. **Grabar la pantalla bloque por bloque** escuchando el audio en audífonos y siguiendo las *pistas*. La demo (bloque 10) se graba en vivo mientras se narra.
+5. **Igualar el volumen** de las tres voces, porque cada celular graba distinto. Música muy baja o sin música.
+6. **Subtítulos automáticos** en español y revisar las cifras a mano (los decimales y "4-4-2" suelen salir mal).
+7. **Revisar antes de exportar:** dura menos de 5:00; no aparece código, notebooks ni tablas de datos; se leen las cifras en 1080p.

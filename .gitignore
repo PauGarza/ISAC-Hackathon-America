@@ -33,3 +33,7 @@ Thumbs.db
 
 # Carpeta de Otho (su código en R, salidas y datos crudos de StatsBomb): no se versiona
 Otho/
+
+# Material del video (notas de voz, grabaciones y renders): pesado, no se versiona
+Audios/
+Video_ADN/
